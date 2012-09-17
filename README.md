@@ -2,13 +2,24 @@
 
 Improves genre-metadata of audio-files based on tags from various music-sites.
 
+
 ## How it works
 
+
 ## Installation
+
+
+### Dependencies
+
+Run this to install the required modules:
+
+	$ pip install -r requirements.txt
+
 
 ## Configuration
 
 Empty configuration file will be created on first run.
+
 
 ## Usage
 
@@ -28,6 +39,7 @@ Empty configuration file will be created on first run.
 	  -n, --dry-run        dry-run (write nothing) (default: False)
 	  -i, --interactive    interactive mode (default: False)
 	  -r, --tag-release    tag release type from whatcd (default: False)
+	  -s, --stats          collect stats to written genres (default: False)
 	  -l N, --tag-limit N  max. number of genre tags (default: 6)
 	  
 	  --no-whatcd          disable lookup on What.CD (default: False)
