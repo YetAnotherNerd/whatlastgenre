@@ -1,0 +1,3 @@
+musicbrainzngs
+requests
+mutagen
