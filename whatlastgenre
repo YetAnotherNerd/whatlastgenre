@@ -142,7 +142,7 @@ def handle_album(path, filetype):
     
     ai = get_album_info(tracks)
     if not ai:
-        print "Warning: Not all Tracks in this folder have same album-tag. Skipping for safety..."
+        print "Warning: Not all tracks in this folder have same album-tag or tags could not be found. Skipping for safety..."
         return
     
     genreTags, releaseType = get_data(ai)
@@ -166,6 +166,7 @@ def get_album_info(tracks):
     try:
         meta = get_meta(tracks[0])
         #if args.verbose: print meta.pprint()
+        
         for track in tracks:
             meta2 = get_meta(track)
             if not meta2:
@@ -174,10 +175,12 @@ def get_album_info(tracks):
                 return False
             if meta['artist'][0] != meta2['artist'][0]:
                 va = True
+
+        return AlbumInfo(meta['artist'][0] if not va else "", meta['album'][0], va)
     except Exception, e:
         print e
-
-    return AlbumInfo(meta['artist'][0] if not va else "", meta['album'][0], va)
+    
+    return False
 
 
 def get_meta(track):
@@ -349,28 +352,27 @@ def get_data_mbrainz(ai, genretags):
 
     mbrainzids = [None, None, []]
 
-    if not ai.va:
-        r = musicbrainzngs.search_artists(artist=ai.artist, limit=1)
-        if r['artist-list']:
-            artistid = r['artist-list'][0]['id']
-            r = musicbrainzngs.get_artist_by_id(artistid, includes=['tags'])
-            if r['artist'].has_key('tag-list'):
-                tags = sorted(r['artist']['tag-list'], key=operator.itemgetter('count'), reverse=True)[:(args.tag_limit * 2)]
-                genretags = add_tags(genretags, tags)
-                
-        r = musicbrainzngs.search_release_groups(artist=ai.artist, release=ai.album, limit=1)
-    if ai.va:
-        r = musicbrainzngs.search_release_groups(release=ai.album, limit=1)
-        
-    if r['release-group-list']:
-        releasegroupid = r['release-group-list'][0]['id']
-        r = musicbrainzngs.get_release_group_by_id(releasegroupid, includes=['tags'])
-        if r['release-group'].has_key('tag-list'):
-            tags = sorted(r['release-group']['tag-list'], key=operator.itemgetter('count'), reverse=True)[:(args.tag_limit * 2)]
-            genretags = add_tags(genretags, tags)
-            
     try:
-        pass
+        if not ai.va:
+            r = musicbrainzngs.search_artists(artist=ai.artist, limit=1)
+            if r['artist-list']:
+                artistid = r['artist-list'][0]['id']
+                r = musicbrainzngs.get_artist_by_id(artistid, includes=['tags'])
+                if r['artist'].has_key('tag-list'):
+                    tags = sorted(r['artist']['tag-list'], key=operator.itemgetter('count'), reverse=True)[:(args.tag_limit * 2)]
+                    genretags = add_tags(genretags, tags)
+                    
+            r = musicbrainzngs.search_release_groups(artist=ai.artist, release=ai.album, limit=1)
+        if ai.va:
+            r = musicbrainzngs.search_release_groups(release=ai.album, limit=1)
+            
+        if r['release-group-list']:
+            releasegroupid = r['release-group-list'][0]['id']
+            r = musicbrainzngs.get_release_group_by_id(releasegroupid, includes=['tags'])
+            if r['release-group'].has_key('tag-list'):
+                tags = sorted(r['release-group']['tag-list'], key=operator.itemgetter('count'), reverse=True)[:(args.tag_limit * 2)]
+                genretags = add_tags(genretags, tags)
+
     except:
         print "ERROR with MusicBrainz!"
 
@@ -432,12 +434,10 @@ def main():
                         help='dry-run (write nothing)')
     parser.add_argument('-i', '--interactive', action='store_true',
                         help='interactive mode')
-    
+    parser.add_argument('-r', '--tag-release', action='store_true',
+                        help='tag release type from what.cd')
     parser.add_argument('-l', '--tag-limit', metavar='N', type=int,
                         help='max. number of genre tags', default=6)
-    parser.add_argument('-r', '--tag-release', action='store_true',
-                        help='tag release type from whatcd')
-
     parser.add_argument('--no-whatcd', action='store_true',
                         help='disable lookup on What.CD')
     parser.add_argument('--no-lastfm', action='store_true',
@@ -446,7 +446,6 @@ def main():
                         help='disable lookup on MusicBrainz')
     parser.add_argument('--no-discogs', action='store_true',
                         help='disable lookup on Discogs')
-
     parser.add_argument('--config', default=os.path.expanduser('~/.whatlastgenre/config'),
                         help='location of the configuration file')
     '''
@@ -496,11 +495,27 @@ def main():
     conf.genre_score_down = config_list(config.get('genres', 'score_down'))
     conf.lastfm_apikey = config.get('lastfm', 'apikey')
     
+    whatcd_user = config.get('whatcd', 'username')
+    whatcd_pass = config.get('whatcd', 'password')
+    
+    if not (whatcd_user and whatcd_pass):
+        print "No What.CD credentials specified. What.CD support disabled."
+        args.no_whatcd = True
+    
+    if args.no_whatcd and args.tag_release:
+        print "Can't tag release with What.CD support disabled. Release tagging disabled."
+        args.tag_release = False
+    
+    if not conf.lastfm_apikey:
+        print "No Last.FM apikey specified, Last.FM support disabled."
+        args.no_lastfm = True
+    
     global session
     session = requests.session()
+    
     if not args.no_whatcd:
-        session.post('https://what.cd/login.php', {'username': config.get('whatcd', 'username'),
-                                                   'password': config.get('whatcd', 'password')})
+        session.post('https://what.cd/login.php', {'username': whatcd_user, 'password': whatcd_pass})
+
     if not args.no_mbrainz:
         musicbrainzngs.set_useragent("genrefixer", "0.1")
     
