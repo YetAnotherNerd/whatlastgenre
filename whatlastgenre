@@ -2,11 +2,12 @@
 
 from __future__ import division
 from collections import namedtuple
-from difflib import get_close_matches
+from difflib import get_close_matches, SequenceMatcher
 import ConfigParser
 import argparse
 import difflib
 import glob
+import inspect
 import json
 import musicbrainzngs
 import mutagen
@@ -19,8 +20,8 @@ import sys
 
 # score multipliers
 sm_whatcd = 1.5
-sm_lastfm = 0.8
-sm_mbrain = 1.0 
+sm_lastfm = 0.75
+sm_mbrain = 1.0
 sm_discog = 1.0
 
 
@@ -32,30 +33,12 @@ class GenreTags:
     def __init__(self):
         self.tags = {}
         # add some basic genre tags (id3)
-        id3genres = ["Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge", "Hip-Hop", "Jazz",
-                     "Metal", "New Age", "Oldies", "Other", "Pop", "R&B", "Rap", "Reggae", "Rock", "Techno",
-                     "Industrial", "Alternative", "Ska", "Death Metal", "Pranks", "Soundtrack", "Euro-Techno",
-                     "Ambient", "Trip-Hop", "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical", "Instrumental",
-                     "Acid", "House", "Game", "Sound Clip", "Gospel", "Noise", "Alternative Rock", "Bass", "Soul",
-                     "Punk", "Space", "Meditative", "Instrumental Rock", "Ethnic", "Gothic", "Darkwave",
-                     "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance", "Dream", "Southern Rock",
-                     "Comedy", "Cult", "Gangsta", "Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native US",
-                     "Cabaret", "New Wave", "Psychedelic", "Rave", "Showtunes", "Trailer", "Lo-Fi", "Tribal",
-                     "Acid Punk", "Acid Jazz", "Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock", "Folk",
-                     "Folk-Rock", "National Folk", "Swing", "Fast Fusion", "Bebob", "Latin", "Revival", "Celtic",
-                     "Bluegrass", "Avantgarde", "Gothic Rock", "Progressive Rock", "Psychedelic Rock", "Slow Rock",
-                     "Symphonic Rock", "Big Band", "Chorus", "Easy Listening", "Acoustic", "Humour", "Speech",
-                     "Chanson", "Opera", "Chamber Music", "Sonata", "Symphony", "Booty Bass", "Primus", "Porn Groove",
-                     "Satire", "Slow Jam", "Club", "Tango", "Samba", "Folklore", "Ballad", "Power Ballad",
-                     "Rhythmic Soul", "Freestyle", "Duet", "Punk Rock", "Drum Solo", "Acapella", "Euro-House",
-                     "Dance Hall", "Goa", "Drum & Bass", "Club - House", "Hardcore", "Terror", "Indie", "BritPop",
-                     "Negerpunk", "Polsk Punk", "Beat", "Christian Gangsta Rap", "Heavy Metal", "Black Metal",
-                     "Crossover", "Contemporary Christian", "Christian Rock", "Merengue", "Salsa", "Thrash Metal",
-                     "Anime", "JapanPop", "Synthpop"]
+        id3genres = ['Acapella', 'Acid', 'Acid Jazz', 'Acid Punk', 'Acoustic', 'Alternative', 'Alternative Rock', 'Ambient', 'Anime', 'Avantgarde', 'Ballad', 'Bass', 'Beat', 'Bebob', 'Big Band', 'Black Metal', 'Bluegrass', 'Blues', 'Booty Bass', 'BritPop', 'Cabaret', 'Celtic', 'Chamber Music', 'Chanson', 'Chorus', 'Christian Gangsta Rap', 'Christian Rap', 'Christian Rock', 'Classic Rock', 'Classical', 'Club', 'Club - House', 'Comedy', 'Contemporary Christian', 'Country', 'Crossover', 'Cult', 'Dance', 'Dance Hall', 'Darkwave', 'Death Metal', 'Disco', 'Dream', 'Drum & Bass', 'Drum Solo', 'Duet', 'Easy Listening', 'Electronic', 'Ethnic', 'Euro-House', 'Euro-Techno', 'Eurodance', 'Fast Fusion', 'Folk', 'Folk-Rock', 'Folklore', 'Freestyle', 'Funk', 'Fusion', 'Game', 'Gangsta', 'Goa', 'Gospel', 'Gothic', 'Gothic Rock', 'Grunge', 'Hard Rock', 'Hardcore', 'Heavy Metal', 'Hip-Hop', 'House', 'Humour', 'Indie', 'Industrial', 'Instrumental', 'Instrumental Rock', 'JapanPop', 'Jazz', 'Jazz+Funk', 'Jungle', 'Latin', 'Lo-Fi', 'Meditative', 'Merengue', 'Metal', 'Musical', 'National Folk', 'Native US', 'Negerpunk', 'New Age', 'New Wave', 'Noise', 'Oldies', 'Opera', 'Other', 'Polka', 'Polsk Punk', 'Pop', 'Pop-Folk', 'Pop/Funk', 'Porn Groove', 'Power Ballad', 'Pranks', 'Primus', 'Progressive Rock', 'Psychedelic', 'Psychedelic Rock', 'Punk', 'Punk Rock', 'R&B', 'Rap', 'Rave', 'Reggae', 'Retro', 'Revival', 'Rhythmic Soul', 'Rock', 'Rock & Roll', 'Salsa', 'Samba', 'Satire', 'Showtunes', 'Ska', 'Slow Jam', 'Slow Rock', 'Sonata', 'Soul', 'Sound Clip', 'Soundtrack', 'Southern Rock', 'Space', 'Speech', 'Swing', 'Symphonic Rock', 'Symphony', 'Synthpop', 'Tango', 'Techno', 'Techno-Industrial', 'Terror', 'Thrash Metal', 'Top 40', 'Trailer', 'Trance', 'Tribal', 'Trip-Hop', 'Vocal']
         for tag in id3genres:
             self.add(tag, 0.0)
         # TODO: add more
-        tags = ["German", "German Hip-Hop", "Chillout", "Downtempo", "Jazz-Hop", "Female Vocalist", "Future Jazz", "Tech-House"]
+        tags = ['Chillout', 'Downtempo', 'Electro-Swing', 'Female Vocalist', 'Future Jazz', 'German', 'German Hip-Hop', 'Jazz-Hop', 'Tech-House']
+        #tags.sort(); print tags # devel sorting helper
         for tag in tags:
             self.add(tag, 0.1)
         for tag in conf.genre_score_up:
@@ -64,19 +47,32 @@ class GenreTags:
             self.add(tag, -0.2)
 
     def add(self, name, score):
+        if re.match('([0-9]{2}){1,2}s?', name) is not None \
+            or len(name) not in range(2, 20) \
+            or (score < 0.01 and inspect.stack()[1][3] is not '__init__'):
+            return
         name = string.replace(name.lower(), 'prog ', 'progressive ')
-        name = string.capwords(name)
-        found = get_close_matches(name, self.tags.keys(), 1, 0.857)
+        name = string.replace(name.lower(), 'rnb', 'r&b')
+        name = string.replace(name.lower(), 'deutsch', 'german')
+        name = string.replace(name.lower(), 'frensh', 'france')
+        name = string.replace(name.lower(), 'hiphop', 'hip-hop')
+        name = string.replace(name.lower(), 'hip hop', 'hip-hop')
+        name = string.replace(name.lower(), 'triphop', 'trip-hop')
+        name = string.replace(name.lower(), 'trip hop', 'trip-hop')
+        name = self.format_tag(name)
+        if args.verbose and inspect.stack()[1][3] is not '__init__':
+            print "  %s (%.3f)" % (name, score)
+        found = get_close_matches(name, self.tags.keys(), 1, 0.858) # don't change this, add replaces above
         if found:
-            if args.verbose and name.lower() != found[0].lower():
-                print "%s is the same tag as %s" % (name, found[0]) 
-            self.tags[found[0]] = self.tags[found[0]] + score;
+            self.tags[found[0]] = (self.tags[found[0]] + score) * 0.8;
+            if args.verbose and SequenceMatcher(None, name, found[0]).ratio() < 0.99:
+                print "  %s is the same tag as %s (%.3f)" % (name, found[0], self.tags[found[0]]) 
         else:
             self.tags.update({name: score})
 
     def get(self):
         # only good ones
-        tags = dict((name, score) for name, score in self.tags.iteritems() if score > 0.5)
+        tags = dict((name, score) for name, score in self.tags.iteritems() if score > 0.4)
         if args.verbose:
             print "Good tags: ",
             for key, value in sorted(tags.iteritems(), key=lambda (k, v): (v, k), reverse=True):
@@ -85,15 +81,9 @@ class GenreTags:
         # get sorted list from it
         tags = sorted(tags, key=self.tags.get, reverse=True)
         # filter them
-        tags = self.filter_taglist(tags);
-        tags = self.format_taglist(tags);
-        return tags
+        return self.filter_taglist(tags);
 
     def filter_taglist(self, tags):
-        # remove year based tags
-        tags = list(tag for tag in tags if re.match('\([0-9]{2}\){1,2}s?', tag) is None)
-        # remove too long tags
-        tags = list(tag for tag in tags if len(tag) < 20)
         # apply whitelist
         if conf.genre_whitelist:
             wl = conf.genre_whitelist
@@ -103,20 +93,12 @@ class GenreTags:
             bl = conf.genre_blacklist
             tags = (tag for tag in tags if tag not in bl)
         # reduce size to limit
-        tags = list(tags)[:args.tag_limit]
-        return tags
+        return list(tags)[:args.tag_limit]
     
-    def format_taglist(self, tags):
-        for i in range(len(tags)):
-            if tags[i] in conf.genre_uppercase:
-                tags[i] = string.upper(tags[i])
-            elif tags[i].find("-") != -1:
-                tags[i] = string.capwords(tags[i], "-")
-            elif tags[i].find("/") != -1:
-                tags[i] = string.capwords(tags[i], "/")
-            else:
-                tags[i] = string.capwords(tags[i])
-        return tags
+    def format_tag(self, tag):
+        if tag in conf.genre_uppercase:
+            return string.upper(tag)
+        return tag.title()
 
 
 
@@ -151,6 +133,13 @@ def handle_album(path, filetype):
         print "Release type: %s" % releaseType
     if genreTags:
         print "Genre tags: %s" % liststr(genreTags)
+    
+    if args.stats:
+        for tag in genreTags:
+            if stats.has_key(tag):
+                stats[tag] = stats[tag] + 1
+            else:
+                stats.update({tag: 1})
     
     if args.dry_run:
         print "DRY-Mode! Skipping saving of metadata..."
@@ -188,7 +177,7 @@ def get_meta(track):
         return mutagen.File(track, easy=True)
     except Exception, e:
         print e
-    return False
+        return False
 
 
 def set_meta(track, genreTags, releaseType):
@@ -237,9 +226,9 @@ def get_data_whatcd(ai, genretags):
         try:
             j = json.loads(r.content)
             if j['status'] != 'success':
-                raise Exception
+                raise Exception("unsuccessful response from what.cd")
             return j['response']
-        except:
+        except Exception, e:
             raise Exception
         
     def add_tags(genretags, tags):
@@ -248,9 +237,7 @@ def get_data_whatcd(ai, genretags):
         topcount = int(tags[0]['count']) + 1
         for tag in tags:
             if tag['name'] not in badtags:
-                score = int(tag['count']) / topcount * sm_whatcd
-                if score > 0.01:
-                    genretags.add(string.replace(tag['name'], '.', ' '), score)
+                genretags.add(string.replace(tag['name'], '.', ' '), int(tag['count']) / topcount * sm_whatcd)
         return genretags
     
     def interactive(data):
@@ -270,12 +257,12 @@ def get_data_whatcd(ai, genretags):
     
     try:
         if not ai.va:
-            data = query('artist', id=0, artistname=ai.artist)
+            data = query('artist', id=0, artistname=searchstr(ai.artist))
             if data.has_key('tags'):
                 tags = sorted(data['tags'], key=operator.itemgetter('count'), reverse=True)
                 genretags = add_tags(genretags, tags)
         
-        data = query('browse', searchstr=(ai.album if ai.va else ai.artist + ' ' + ai.album), **{'filter_cat[1]':1})['results']
+        data = query('browse', searchstr=searchstr(ai.album if ai.va else ai.artist + ' ' + ai.album), **{'filter_cat[1]':1})['results']
         
         if len(data) > 1 and args.interactive:
             data = interactive(data)
@@ -312,24 +299,22 @@ def get_data_lastfm(ai, genretags):
     def add_tags(genretags, tags):
         badtags = [ai.album.lower(), ai.artist.lower(), 'albums i dont own yet', 'albums i own',
                    'albums i want', 'favorite album', 'favorite', 'lieblingssongs', 'own it',
-                   'owned cds', 'seen live', 'wishlist', 'best of']
+                   'owned cds', 'seen live', 'wishlist', 'best of', 'laidback-221']
         if tags.__class__ is not list:
             tags = [tags]
         topcount = int(tags[0]['count']) + 1
         for tag in tags:
             if not get_close_matches(tag['name'].lower(), badtags, 1):
-                score = int(tag['count']) / topcount * sm_lastfm
-                if score > 0.01:
-                    genretags.add(tag['name'], score)
+                genretags.add(tag['name'], int(tag['count']) / topcount * sm_lastfm)
         return genretags
     
     try:
         if not ai.va:
-            data = query('artist.gettoptags', artist=ai.artist)
+            data = query('artist.gettoptags', artist=searchstr(ai.artist))
             if data.has_key('toptags') and data['toptags'].has_key('tag'):
                 genretags = add_tags(genretags, data['toptags']['tag'])
         
-        data = query('album.gettoptags', artist='Various Artists' if ai.va else ai.artist, album=ai.album)
+        data = query('album.gettoptags', artist=searchstr('Various Artists' if ai.va else ai.artist), album=searchstr(ai.album))
         if data.has_key('toptags') and data['toptags'].has_key('tag'):
             genretags = add_tags(genretags, data['toptags']['tag'])
             
@@ -345,16 +330,14 @@ def get_data_mbrainz(ai, genretags):
         tags = list(tags)
         topcount = int(tags[0]['count']) + 1
         for tag in tags:
-            score = int(tag['count']) / topcount * sm_mbrain
-            if score > 0.01:
-                genretags.add(tag['name'], score)
+            genretags.add(tag['name'], int(tag['count']) / topcount * sm_mbrain)
         return genretags
 
     mbrainzids = [None, None, []]
 
     try:
         if not ai.va:
-            r = musicbrainzngs.search_artists(artist=ai.artist, limit=1)
+            r = musicbrainzngs.search_artists(artist=searchstr(ai.artist), limit=1)
             if r['artist-list']:
                 artistid = r['artist-list'][0]['id']
                 r = musicbrainzngs.get_artist_by_id(artistid, includes=['tags'])
@@ -362,9 +345,9 @@ def get_data_mbrainz(ai, genretags):
                     tags = sorted(r['artist']['tag-list'], key=operator.itemgetter('count'), reverse=True)[:(args.tag_limit * 2)]
                     genretags = add_tags(genretags, tags)
                     
-            r = musicbrainzngs.search_release_groups(artist=ai.artist, release=ai.album, limit=1)
+            r = musicbrainzngs.search_release_groups(artist=searchstr(ai.artist), release=searchstr(ai.album), limit=1)
         if ai.va:
-            r = musicbrainzngs.search_release_groups(release=ai.album, limit=1)
+            r = musicbrainzngs.search_release_groups(release=searchstr(ai.album), limit=1)
             
         if r['release-group-list']:
             releasegroupid = r['release-group-list'][0]['id']
@@ -397,12 +380,13 @@ def get_data_discogs(ai, genretags):
         return genretags
     
     try:
-        data = query('master', release_title=ai.album)
+        data = query('master', release_title=searchstr(ai.album))
         if data:
             if data[0].has_key('style'):
                 genretags = add_tags(genretags, data[0]['style'])
             if data[0].has_key('genre'):
                 genretags = add_tags(genretags, data[0]['genre'])
+
     except Exception, e:
         print "ERROR with Discogs!", e
     
@@ -424,6 +408,8 @@ def config_list(s):
 
 
 def main():
+    global args, conf, session
+    
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description='Improves genre-metadata of audio-files based on tags from various music-sites.')
     parser.add_argument('path', nargs='+',
@@ -436,6 +422,8 @@ def main():
                         help='interactive mode')
     parser.add_argument('-r', '--tag-release', action='store_true',
                         help='tag release type from what.cd')
+    parser.add_argument('-s', '--stats', action='store_true',
+                        help='collect stats to written genres')
     parser.add_argument('-l', '--tag-limit', metavar='N', type=int,
                         help='max. number of genre tags', default=6)
     parser.add_argument('--no-whatcd', action='store_true',
@@ -457,7 +445,6 @@ def main():
                         help='clear the cache')
     '''
 
-    global args
     args = parser.parse_args()
     
     if args.no_whatcd and args.no_lastfm and args.no_mbrainz and args.no_discogs:
@@ -479,14 +466,13 @@ def main():
         config.add_section('genres')
         config.set('genres', 'whitelist', '')
         config.set('genres', 'blacklist', '')
-        config.set('genres', 'uppercase', 'IDM, UK')
+        config.set('genres', 'uppercase', 'IDM, UK, US')
         config.set('genres', 'score_up', 'Trip-Hop')
         config.set('genres', 'score_down', 'Electronic, Rock, Metal, Alternative, Indie, Other, Other, Unknown, Unknown')
         config.write(open(args.config, 'w'))
         print "Please edit the configuration file: %s" % args.config
         sys.exit(2)
 
-    global conf
     conf = namedtuple('conf', '')
     conf.genre_whitelist = config_list(config.get('genres', 'whitelist'))
     conf.genre_blacklist = config_list(config.get('genres', 'blacklist'))
@@ -510,26 +496,35 @@ def main():
         print "No Last.FM apikey specified, Last.FM support disabled."
         args.no_lastfm = True
     
-    global session
     session = requests.session()
-    
     if not args.no_whatcd:
         session.post('https://what.cd/login.php', {'username': whatcd_user, 'password': whatcd_pass})
 
     if not args.no_mbrainz:
-        musicbrainzngs.set_useragent("genrefixer", "0.1")
+        musicbrainzngs.set_useragent("whatlastgenre", "0.1")
     
     ''' DEVEL Helper '''
     #args.verbose = True
     #args.dry_run = True
     #args.tag_release = True
     #args.interactive = True
+    #args.stats = True
     #args.path.append('/home/foo/nobackup/test/')
-    #args.path.append('/media/music/Alben/Boards of Canada')
+    #args.path.append('/media/music/Alben/Natalie Walker')
     #import random; args.path.append(os.path.join('/media/music/Alben', random.choice(os.listdir('/media/music/Alben'))))
+    
+    if args.stats:
+        global stats
+        stats = {}
     
     for path in args.path:
         read_folder(path)
+        
+    if args.stats:
+        print "Stats: ",
+        for tag, num in sorted(stats.iteritems(), key=lambda (tag, num): (num, tag), reverse=True):
+            print "%s: %d," % (tag, num),
+        print
         
     print "... all done!"
 
