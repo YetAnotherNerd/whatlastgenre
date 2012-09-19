@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(name='whatlastgenre',
       version='0.1',
-      description='Python Distribution Utilities',
+      description='Improves genre metadata of audio files based on tags from various music-sites.',
       author='YetAnotherNerd',
       author_email='qpdb@foosion.de',
       url='http://github.com/YetAnotherNerd/whatlastgenre',
