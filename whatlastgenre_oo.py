@@ -463,7 +463,7 @@ def main():
         for path in args.path:
             albums = scan_folder(path)
     except Exception, e:
-        print e
+        out.error(e)
     
     print "Found %d folders with possible albums!\n" % len(albums)
     
@@ -505,9 +505,9 @@ def main():
             if not args.dry_run:
                 a.save()
         except AlbumLoadException, e:
-            out.error("Could not get album:" + e)
+            out.error("Could not get album:" + e.message)
         except AlbumSaveException, e:
-            out.error("Could not save album:" + e)
+            out.error("Could not save album:" + e.message)
         except Exception, e:
             out.error(e)
         finally:
