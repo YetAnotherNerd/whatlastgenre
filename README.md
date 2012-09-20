@@ -45,11 +45,6 @@ If you have any ideas on improving this scoring, please let me know :)
 * mutagen
 * requests
 
-Run this to install the required modules:
-
-	$ pip install -r requirements.txt
-
-With setuptools:
 
 	$ python setup.py install
 
@@ -63,8 +58,6 @@ modifiers can be tuned in the source if you know what you are doing and act with
 	[whatcd]
 	username = whatuser
 	password = myscretwhatcdpassword
-	[lastfm]
-	apikey = 54bee5593b60d0a5bf379cedcad79052
 	[genres]
 	whitelist = 
 	blacklist = Unknown
@@ -117,6 +110,8 @@ score offset, to modify their score even more, just mention them more then once.
 	  
 	  --config CONFIG      location of the configuration file (default: ~/.whatlastgenre/config)
 
+
+If you seriously want to tag release-types (-r) you should also enable (-i, --interactive).
 
 
 ## Examples
