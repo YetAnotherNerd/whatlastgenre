@@ -95,7 +95,7 @@ class WhatCD(DataProvider):
         data = self.__query('browse',
                             searchstr=DataProvider._searchstr(self, a.album if a.va else a.artist + ' ' + a.album),
                              **{'filter_cat[1]':1})['results']
-        if len(data) > 10:
+        if len(data) > 10 and a.year:
             data = [d for d in data if int(d['groupYear']) in range(int(a.year) - 3, int(a.year) + 3)]
         if len(data) > 1 and self.interactive:
             data = self.__interactive(a, data)
@@ -234,7 +234,10 @@ class Album:
                     self.va = True
             self.artist = meta['artist'][0] if not self.va else ''
             self.album = meta['album'][0]
-            self.year = meta['date'][0]
+            try:
+                self.year = int(meta['date'][0][:4])
+            except:
+                pass
         except Exception, e:
             raise AlbumLoadException("Could not load album metadata.")
     
