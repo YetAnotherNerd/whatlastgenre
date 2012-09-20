@@ -15,6 +15,7 @@ import re
 import requests
 import string
 import sys
+import time
 
 # Constant Score Multipliers
 SM_WHATCD = 1.5
@@ -43,12 +44,19 @@ class WhatCD(DataProvider):
         session.post('https://what.cd/login.php', {'username': username, 'password': password})
         self.tag_release = tag_release
         self.interactive = interactive
+        self.last_request = time.time()
+        self.rate_limit = 2.0 # seconds between requests
     
     def __query(self, action, **args):
         params = {'action': action}
         params.update(args)
+        if out._verbose and time.time() - self.last_request < self.rate_limit:
+            out.verbose("Waiting %.2f sec for What.CD request." % (time.time() - self.last_request))
+        while time.time() - self.last_request < self.rate_limit:
+            time.sleep(0.1)
         try:
             r = self.session.get('https://what.cd/ajax.php', params=params)
+            self.last_request = time.time()
             j = json.loads(r.content)
             if j['status'] != 'success':
                 raise DataProviderException("What.CD", "unsuccessful response")
