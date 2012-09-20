@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='whatlastgenre',
       version='0.1',
@@ -8,6 +8,6 @@ setup(name='whatlastgenre',
       author='YetAnotherNerd',
       author_email='qpdb@foosion.de',
       url='http://github.com/YetAnotherNerd/whatlastgenre',
-      py_modules=['whatlastgenre'],
+      scripts=['whatlastgenre.py'],
       install_requires=['musicbrainzngs', 'mutagen', 'requests']
      )
