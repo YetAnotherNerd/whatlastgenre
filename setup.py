@@ -9,4 +9,5 @@ setup(name='whatlastgenre',
       author_email='qpdb@foosion.de',
       url='http://github.com/YetAnotherNerd/whatlastgenre',
       py_modules=['whatlastgenre'],
+      install_requires=['musicbrainzngs', 'mutagen', 'requests']
      )
