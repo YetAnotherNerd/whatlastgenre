@@ -84,10 +84,10 @@ score offset, to modify their score even more, just mention them more then once.
 
 ## Usage
 
-usage: whatlastgenre.py [-h] [-v] [-n] [-i] [-r] [-s] [-l N] [--no-colors]
-                        [--no-whatcd] [--no-lastfm] [--no-mbrainz]
-                        [--no-discogs] [--config CONFIG]
-	                    path [path ...]
+	usage: whatlastgenre.py [-h] [-v] [-n] [-i] [-r] [-s] [-l N] [--no-colors]
+	                        [--no-whatcd] [--no-lastfm] [--no-mbrainz]
+	                        [--no-discogs] [--config CONFIG]
+		                    path [path ...]
 	
 	Improves genre-metadata of audio-files based on tags from various music-sites.
 	
