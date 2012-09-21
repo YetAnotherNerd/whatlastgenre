@@ -47,7 +47,7 @@ If you have any ideas on improving this scoring, please let me know :)
 * requests
 
 
-	# python setup.py install
+	$ python setup.py install
 
 
 ## Configuration
