@@ -34,14 +34,15 @@ class DataProvider:
 
 class DataProviderException(Exception):
     def __init__(self, name, message):
-        Exception.__init__(self, message)
+        Exception.__init__(self)
         self.name = name
+        self.message = message
 
     
 class WhatCD(DataProvider):
     def __init__(self, multi, session, username, password, tag_release, interactive):
         DataProvider.__init__(self, "What.CD", multi, session)
-        session.post('https://what.cd/login.php', {'username': username, 'password': password})
+        self.session.post('https://what.cd/login.php', {'username': username, 'password': password})
         self.tag_release = tag_release
         self.interactive = interactive
         self.last_request = time.time()
@@ -51,7 +52,7 @@ class WhatCD(DataProvider):
         params = {'action': action}
         params.update(args)
         if out._verbose and time.time() - self.last_request < self.rate_limit:
-            out.verbose("Waiting %.2f sec for What.CD request." % (time.time() - self.last_request))
+            out.verbose("  Waiting %.2f sec for What.CD request." % (time.time() - self.last_request))
         while time.time() - self.last_request < self.rate_limit:
             time.sleep(0.1)
         try:
@@ -97,7 +98,7 @@ class WhatCD(DataProvider):
     def get_tags(self, a):
         if not a.va:
             data = self.__query('artist', id=0, artistname=DataProvider._searchstr(self, a.artist))
-            if data.has_key('tags'):
+            if data.has_key('tags') and data['tags']:
                 a.tags.addlist_count(self.__filter_tags(data['tags']), self.multi)
         
         data = self.__query('browse',
@@ -113,7 +114,7 @@ class WhatCD(DataProvider):
             data = None
             
         if data:
-            if data.has_key('tags'):
+            if data.has_key('tags') and data['tags']:
                 a.tags.addlist_nocount(self.__filter_tags(data['tags']), self.multi)
             if self.tag_release and data.has_key('releaseType'):
                 a.type = data['releaseType']
@@ -194,7 +195,7 @@ class MusicBrainz(DataProvider):
         except musicbrainzngs.musicbrainz.ResponseError, e:
             raise DataProviderException("MusicBrainz", e.cause)
         except HTTPError, e:
-            raise DataProviderException("MusicBrainz", e.message)
+            raise DataProviderException("MusicBrainz", e.args)
 
 
 class Discogs(DataProvider):
@@ -265,11 +266,14 @@ class AlbumSaveException(Exception): pass
 
 
 class GenreTags:
-    def __init__(self, score_up, score_down, whitelist, blacklist, uppercase):
+    def __init__(self, limit, score_up, score_down, whitelist, blacklist, uppercase):
         self.tags = {}
+        self.limit = limit
         self.whitelist = whitelist
         self.blacklist = blacklist
         self.uppercase = uppercase
+        self.score_up = score_up
+        self.score_down = score_down
         # add some basic genre tags (from id3)
         tags = ['Acapella', 'Acid', 'Acid Jazz', 'Acid Punk', 'Acoustic', 'Alternative',
                 'Alternative Rock', 'Ambient', 'Anime', 'Avantgarde', 'Ballad', 'Bass', 'Beat',
@@ -320,7 +324,9 @@ class GenreTags:
         #if not init: out.verbose("  %s (%.3f)" % (name, score))
         found = get_close_matches(name, self.tags.keys(), 1, 0.858) # don't change this, add replaces instead
         if found:
-            self.tags[found[0]] = (self.tags[found[0]] + score) * 0.8 # FIXME: find good value for modifier
+            if found[0] in self.score_up: score = score * 1.2
+            elif found[0] in self.score_down: score = score * 0.8
+            self.tags[found[0]] = (self.tags[found[0]] + score) * 1.2 # FIXME: find good value for modifier
             if out._verbose and SequenceMatcher(None, name, found[0]).ratio() < 0.92:
                 out.verbose("  %s is the same tag as %s (%.3f)" % (name, found[0], self.tags[found[0]]))
         else:
@@ -341,13 +347,13 @@ class GenreTags:
             for name, count in tags.iteritems():
                 self.add(name, count / top * multi)
 
-    def get(self, limit):
+    def get(self):
         # only good ones
         tags = dict((name, score) for name, score in self.tags.iteritems() if score > 0.4)
         # get sorted list from it
         tags = sorted(tags, key=self.tags.get, reverse=True)
         # filter them
-        return self.filter_taglist(tags)[:limit]
+        return self.filter_taglist(tags)[:self.limit]
 
     def filter_taglist(self, tags):
         # apply whitelist
@@ -442,7 +448,7 @@ def main():
             config.set('genres', 'whitelist', '')
             config.set('genres', 'blacklist', 'Unknown')
             config.set('genres', 'uppercase', 'IDM, UK, US')
-            config.set('genres', 'score_up', 'Trip-Hop')
+            config.set('genres', 'score_up', 'Soundtrack')
             config.set('genres', 'score_down', 'Electronic, Rock, Metal, Alternative, Indie, Other, Other')
             config.write(open(configfile, 'w'))
             print "Please edit the configuration file: %s" % configfile
@@ -487,7 +493,7 @@ def main():
     #args.no_colors = True
     #args.stats = True
     #args.path.append('/home/foo/nobackup/test')
-    #args.path.append('/media/music/Alben/Sissy')
+    #args.path.append('/media/music/Alben/Mogwai')
     #import random; args.path.append(os.path.join('/media/music/Alben', random.choice(os.listdir('/media/music/Alben'))))
     ''' /DEVEL HELPER '''
     
@@ -528,9 +534,8 @@ def main():
     
     for album in albums:
         print
-        gt = GenreTags(conf.genre_score_up, conf.genre_score_down,
-                       conf.genre_whitelist, conf.genre_blacklist,
-                       conf.genre_uppercase)
+        gt = GenreTags(args.tag_limit, conf.genre_score_up, conf.genre_score_down,
+                       conf.genre_whitelist, conf.genre_blacklist, conf.genre_uppercase)
         
         try:
             a = Album(album, albums[album], gt)
@@ -552,7 +557,7 @@ def main():
         if args.tag_release and a.type:
             print "Release type: %s" % a.type
 
-        tags = a.tags.get(args.tag_limit)
+        tags = a.tags.get()
         if tags:
             print "Genre tags: %s" % ', '.join(map(str, tags))
             if args.stats:
