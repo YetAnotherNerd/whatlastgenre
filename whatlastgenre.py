@@ -254,8 +254,9 @@ class Album:
                     raise AlbumLoadException("Not all tracks have the same album-tag!")
                 if meta['artist'][0] != meta2['artist'][0]:
                     self.va = True
-            self.artist = meta['artist'][0] if not self.va else ''
-            self.album = meta['album'][0]
+                    
+            self.artist = meta['artist'][0].decode('ascii', 'ignore') if not self.va else ''
+            self.album = meta['album'][0].decode('ascii', 'ignore')
             try:
                 self.year = int(meta['date'][0][:4])
             except:
@@ -582,7 +583,7 @@ def main():
             out.error("Could not get album: " + e.message)
             continue
 
-        print 'Getting tags for "%s - %s"...' % ('VA' if a.va else a.artist, a.album)
+        print "Getting tags for '%s - %s'..." % ('VA' if a.va else a.artist, a.album)
         
         if whatcd:
             get_data(whatcd, a)
