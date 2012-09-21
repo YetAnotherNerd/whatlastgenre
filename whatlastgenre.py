@@ -11,6 +11,7 @@ import musicbrainzngs
 import mutagen
 import operator
 import os
+import pickle
 import re
 import requests
 import string
@@ -46,13 +47,13 @@ class WhatCD(DataProvider):
         self.tag_release = tag_release
         self.interactive = interactive
         self.last_request = time.time()
-        self.rate_limit = 2.0 # seconds between requests
+        self.rate_limit = 2.0 # min. seconds between requests
     
     def __query(self, action, **args):
         params = {'action': action}
         params.update(args)
         if out._verbose and time.time() - self.last_request < self.rate_limit:
-            out.verbose("  Waiting %.2f sec for What.CD request." % (time.time() - self.last_request))
+            out.verbose("  Waiting %.2f sec. for What.CD request." % (time.time() - self.last_request))
         while time.time() - self.last_request < self.rate_limit:
             time.sleep(0.1)
         try:
@@ -62,10 +63,12 @@ class WhatCD(DataProvider):
             if j['status'] != 'success':
                 raise DataProviderException("What.CD", "unsuccessful response")
             return j['response']
-        except (ValueError, HTTPError), e:
+        except ValueError, e:
             raise DataProviderException("What.CD", e.message)
+        except HTTPError, e:
+            raise DataProviderException("What.CD", e.args)
     
-    def __filter_tags(self, tags): # Improve this shit
+    def __filter_tags(self, tags): # FIXME: Improve this
         badtags = ['staff.picks', 'freely.available', 'vanity.house']
         if tags.__class__.__name__ == 'str':
             tags = [tags]
@@ -85,11 +88,11 @@ class WhatCD(DataProvider):
         return thetags
     
     def __interactive(self, a, data):
-        print "Multiple releases found on What.CD, please choose the right one (0 to skip):"
+        print "Multiple releases found on What.CD, please choose the right one:"
         for i in range(len(data)):
-            print "#%d: %s - %s [%d] [%s]" % (i + 1, data[i]['artist'], data[i]['groupName'], data[i]['groupYear'], data[i]['releaseType'])
+            print "#%2d: %s - %s [%d] [%s]" % (i + 1, data[i]['artist'], data[i]['groupName'], data[i]['groupYear'], data[i]['releaseType'])
         while True:
-            try: c = int(raw_input("Choose Release #: "))
+            try: c = int(raw_input("Choose Release # (0 to skip): "))
             except: c = None
             if c in range(len(data) + 1):
                 break
@@ -105,7 +108,7 @@ class WhatCD(DataProvider):
                             searchstr=DataProvider._searchstr(self, a.album if a.va else a.artist + ' ' + a.album),
                              **{'filter_cat[1]':1})['results']
         if len(data) > 10 and a.year:
-            data = [d for d in data if int(d['groupYear']) in range(int(a.year) - 3, int(a.year) + 3)]
+            data = [d for d in data if int(d['groupYear']) in range(int(a.year) - 2, int(a.year) + 2)]
         if len(data) > 1 and self.interactive:
             data = self.__interactive(a, data)
         elif len(data) == 1:
@@ -128,9 +131,10 @@ class LastFM(DataProvider):
     def __filter_tags(self, a, tags):
         if tags.__class__.__name__ == 'str':
             tags = [tags]
-        badtags = [a.album.lower(), a.artist.lower(), 'albums i dont own yet', 'albums i own', 'tagme'
-                   'albums i want', 'favorite album', 'favorite', 'lieblingssongs', 'own it', 'my albums'
-                   'owned cds', 'seen live', 'wishlist', 'best of', 'laidback-221', 'number one', 'fettttttttttttttt']
+        badtags = [a.album.lower(), a.artist.lower(), 'albums i own', 'amazing', 'berlin',
+                   'best of', 'favorites', 'favorite album', 'fettttttttttttttt', 'hamburg',
+                   'laidback-221', 'love', 'lieblingssongs', 'minden', 'number one', 'own it',
+                   'seen live', 'tagme', 'wishlist']
         thetags = {}
         for tag in tags:
             if (tag.__class__.__name__ == 'dict' and tag.has_key('name')
@@ -146,17 +150,23 @@ class LastFM(DataProvider):
             r = self.session.get('http://ws.audioscrobbler.com/2.0/', params=params) 
             j = json.loads(r.content)
             return j
-        except (ValueError, HTTPError), e:
+        except ValueError, e:
             raise DataProviderException("Last.FM", e.message)
+        except HTTPError, e:
+            raise DataProviderException("Last.FM", e.args)
     
     def get_tags(self, a):
         if not a.va:
             data = self.__query('artist.gettoptags', artist=DataProvider._searchstr(self, a.artist))
-            if data.has_key('toptags') and data['toptags'].has_key('tag'):
+            if (data and data.has_key('toptags')
+                and data['toptags'] and data['toptags'].has_key('tag')
+                and data['toptags']['tag']):
                 a.tags.addlist_count(self.__filter_tags(a, data['toptags']['tag']), self.multi)
         data = self.__query('album.gettoptags', album=DataProvider._searchstr(self, a.album),
                             artist=DataProvider._searchstr(self, 'Various Artists' if a.va else a.artist))
-        if data.has_key('toptags') and data['toptags'].has_key('tag'):
+        if (data and data.has_key('toptags')
+            and data['toptags'] and data['toptags'].has_key('tag')
+            and data['toptags']['tag']):
             a.tags.addlist_count(self.__filter_tags(a, data['toptags']['tag']), self.multi)
 
 
@@ -209,12 +219,14 @@ class Discogs(DataProvider):
             r = self.session.get('http://api.discogs.com/database/search', params=params) 
             j = json.loads(r.content)
             return j['results']
-        except (ValueError, HTTPError), e:
+        except ValueError, e:
             raise DataProviderException("Discogs", e.message)
+        except HTTPError, e:
+            raise DataProviderException("Discogs", e.args)
     
     def get_tags(self, a):
         data = self.__query('master', release_title=DataProvider._searchstr(self, a.album))
-        if data:
+        if data and data[0]:
             if data[0].has_key('style'):
                 a.tags.addlist_nocount(data[0]['style'], self.multi)
             if data[0].has_key('genre'):
@@ -230,14 +242,15 @@ class Album:
         self.__load_metadata()
     
     def __load_metadata(self):
-        print "Getting metadata for album in %s..." % self.path
         self.va = False
         self.type = None
         try:
             meta = mutagen.File(os.path.join(self.path, self.tracks[0]), easy=True)
             for track in self.tracks:
                 meta2 = mutagen.File(os.path.join(self.path, track), easy=True)
-                if not meta2 or meta['album'][0] != meta2['album'][0]:
+                if not meta2:
+                    raise AlbumLoadException("Error loading album metadata.")
+                if meta['album'][0] != meta2['album'][0]:
                     raise AlbumLoadException("Not all tracks have the same album-tag!")
                 if meta['artist'][0] != meta2['artist'][0]:
                     self.va = True
@@ -246,9 +259,9 @@ class Album:
             try:
                 self.year = int(meta['date'][0][:4])
             except:
-                pass
+                self.year = None
         except Exception, e:
-            raise AlbumLoadException("Could not load album metadata.")
+            raise AlbumLoadException("Error loading album metadata.")
     
     def save(self):
         print "Saving metadata..."
@@ -301,9 +314,10 @@ class GenreTags:
         self.addlist(score_down, -0.2, True)
 
     def __replace_tag(self, tag):
-        rplc = {'deutsch': 'german', 'frensh': 'france', 'hip hop': 'hip-hop', 'hiphop': 'hip-hop',
-                'prog ': 'progressive', 'rnb': 'r&b', 'rhythm and blues': 'r&b', 'rhythm & blues': 'r&b',
-                'trip hop': 'trip-hop', 'triphop': 'trip-hop'}
+        rplc = {'deutsch': 'german', 'dnb': 'd&b', 'france': 'french', 'hiphop': 'hip-hop',
+                'hip hop': 'hip-hop', 'prog ': 'progressive', 'rnb': 'r&b', 'rhythm and blues': 'r&b',
+                'rhythm & blues': 'r&b', 'triphop': 'trip-hop', 'trip hop': 'trip-hop',
+                'lo fi': 'lo-fi', ' and ': ' & ' }
         for (a, b) in rplc.items():
             if a in tag.lower():
                 return string.replace(tag.lower(), a, b)
@@ -326,7 +340,7 @@ class GenreTags:
         if found:
             if found[0] in self.score_up: score = score * 1.2
             elif found[0] in self.score_down: score = score * 0.8
-            self.tags[found[0]] = (self.tags[found[0]] + score) * 1.2 # FIXME: find good value for modifier
+            self.tags[found[0]] = (self.tags[found[0]] + score) * 1.2
             if out._verbose and SequenceMatcher(None, name, found[0]).ratio() < 0.92:
                 out.verbose("  %s is the same tag as %s (%.3f)" % (name, found[0], self.tags[found[0]]))
         else:
@@ -384,9 +398,11 @@ class Stats:
                 self.tags.update({tag: 1})
                 
     def liststats(self):
-        s = "Statistics:"
+        s = ""
         for tag, num in sorted(self.tags.iteritems(), key=lambda (tag, num): (num, tag), reverse=True):
             s = s + " %s: %d," % (tag, num)
+        if s:
+            s = "Statistics:" + s
         return s[:-1]
 
 class Out:
@@ -414,17 +430,22 @@ def main():
         ap.add_argument('-r', '--tag-release', action='store_true', help='tag release type from what.cd')
         ap.add_argument('-s', '--stats', action='store_true', help='collect statistics to found genres')
         ap.add_argument('-l', '--tag-limit', metavar='N', type=int, help='max. number of genre tags', default=4)
-        ap.add_argument('--no-colors', action='store_true', help='dont use colors')
+        
+        ap.add_argument('--config', default=os.path.expanduser('~/.whatlastgenre/config'),
+                        help='location of the configuration file')
+        ap.add_argument('--cache', default=os.path.expanduser('~/.whatlastgenre/cache'),
+                        help='location of the cache')
+        
+        ap.add_argument('--no-colors', action='store_true', help='don\'t use colors')
+        ap.add_argument('--no-cache', action='store_true', help='disable cache feature')
+        
         ap.add_argument('--no-whatcd', action='store_true', help='disable lookup on What.CD')
         ap.add_argument('--no-lastfm', action='store_true', help='disable lookup on Last.FM')
         ap.add_argument('--no-mbrainz', action='store_true', help='disable lookup on MusicBrainz')
         ap.add_argument('--no-discogs', action='store_true', help='disable lookup on Discogs')
-        ap.add_argument('--config', default=os.path.expanduser('~/.whatlastgenre/config'),
-                        help='location of the configuration file')
-        #ap.add_argument('--cache', default=os.path.expanduser('~/.whatlastgenre/cache'),
-        #                help='location of the cache')
-        #ap.add_argument('--no-cache', action='store_true', help='disable cache feature')
-        #ap.add_argument('--clear-cache', action='store_true', help='clear the cache')
+        
+        ap.add_argument('--clear-cache', action='store_true', help='clear the cache')
+        
         return ap.parse_args()
 
     def get_configuration(configfile):
@@ -446,10 +467,10 @@ def main():
             config.set('whatcd', 'password', '')
             config.add_section('genres')
             config.set('genres', 'whitelist', '')
-            config.set('genres', 'blacklist', 'Unknown')
+            config.set('genres', 'blacklist', 'Live, Unknown')
             config.set('genres', 'uppercase', 'IDM, UK, US')
             config.set('genres', 'score_up', 'Soundtrack')
-            config.set('genres', 'score_down', 'Electronic, Rock, Metal, Alternative, Indie, Other, Other')
+            config.set('genres', 'score_down', 'Electronic, Alternative, Indie, Other, Other')
             config.write(open(configfile, 'w'))
             print "Please edit the configuration file: %s" % configfile
             sys.exit(2)
@@ -486,16 +507,15 @@ def main():
 
     args = get_arguments()
     
-    ''' DEVEL Helper '''
+    # DEVEL Helper
     #args.verbose = True
     #args.dry_run = True
     #args.tag_release = True
     #args.no_colors = True
     #args.stats = True
     #args.path.append('/home/foo/nobackup/test')
-    #args.path.append('/media/music/Alben/Mogwai')
+    #args.path.append('/media/music/Alben/')
     #import random; args.path.append(os.path.join('/media/music/Alben', random.choice(os.listdir('/media/music/Alben'))))
-    ''' /DEVEL HELPER '''
     
     out._verbose = args.verbose
     out.colors = not args.no_colors
@@ -513,6 +533,16 @@ def main():
         print "Can't tag release with What.CD support disabled. Release tagging disabled."
         args.tag_release = False
     
+    if not args.no_cache:
+        cache = set()
+        if not args.clear_cache:
+            try:
+                cache = pickle.load(open(args.cache))
+            except:
+                pickle.dump(cache, open(args.cache, 'wb'))
+        else:
+            print "Using empty cache..."
+    
     whatcd, lastfm, mbrainz, discogs, stats = None, None, None, None, None
     
     session = requests.session()
@@ -529,30 +559,39 @@ def main():
         stats = Stats()
         
     albums = find_albums(args.path)
+    errors = []
 
     print "Found %d folders with possible albums!" % len(albums)
     
+    i = 0
     for album in albums:
+        i = i + 1 
+        if not args.no_cache and album in cache:
+            print "Found %s in cache, skipping..." % album
+            continue
         print
+
         gt = GenreTags(args.tag_limit, conf.genre_score_up, conf.genre_score_down,
                        conf.genre_whitelist, conf.genre_blacklist, conf.genre_uppercase)
         
+        print "Getting metadata for album (%d/%d) in %s..." % (i, len(albums), album)
         try:
             a = Album(album, albums[album], gt)
         except AlbumLoadException, e:
+            errors.append(album)
             out.error("Could not get album: " + e.message)
             continue
 
         print 'Getting tags for "%s - %s"...' % ('VA' if a.va else a.artist, a.album)
         
         if whatcd:
-            get_data(whatcd, a);
+            get_data(whatcd, a)
         if lastfm:
-            get_data(lastfm, a);
+            get_data(lastfm, a)
         if mbrainz:
-            get_data(mbrainz, a);
+            get_data(mbrainz, a)
         if discogs:
-            get_data(discogs, a);
+            get_data(discogs, a)
 
         if args.tag_release and a.type:
             print "Release type: %s" % a.type
@@ -566,7 +605,11 @@ def main():
         try:
             if not args.dry_run:
                 a.save()
+                if not args.no_cache:
+                    cache.add(a.path)
+                    pickle.dump(cache, open(args.cache, 'wb'))
         except AlbumSaveException, e:
+            errors.append(album)
             out.error("Could not save album: " + e.message)
 
     print
@@ -574,6 +617,9 @@ def main():
     
     if args.stats:
         out.info(stats.liststats())
+    
+    if errors:
+        print "Albums with errors: %s" % ', '.join(map(str, errors))
 
 
 if __name__ == "__main__":
