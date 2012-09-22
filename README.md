@@ -87,40 +87,32 @@ to modify their score offset even more, just mention them more then once.
 
 ## Usage
 
-	usage: whatlastgenre.py [-h] [-v] [-n] [-i] [-r] [-s] [-l N] [--no-colors]
+	usage: whatlastgenre.py [-h] [-v] [-n] [-r] [-i] [-s] [-b] [-c] [-l N]
 	                        [--no-whatcd] [--no-lastfm] [--no-mbrainz]
 	                        [--no-discogs] [--config CONFIG] [--cache CACHE]
-	                        [--no-cache] [--clear-cache]
 	                        path [path ...]
-
+	
 	positional arguments:
-	  path                 folder(s) to scan (default: None)
+	  path                 folder(s) to scan
 	
 	optional arguments:
 	  -h, --help           show this help message and exit
 	  -v, --verbose        run verbose (more output) (default: False)
 	  -n, --dry-run        dry-run (write nothing) (default: False)
-	  -i, --interactive    interactive mode (default: False)
 	  -r, --tag-release    tag release type from what.cd (default: False)
+	  -i, --interactive    interactive mode (default: False)
 	  -s, --stats          collect statistics to found genres (default: False)
+	  -b, --use-colors     enable colorful output (default: False)
+	  -c, --use-cache      enable cache feature (default: False)
 	  -l N, --tag-limit N  max. number of genre tags (default: 4)
-	  
-	  --config CONFIG      location of the configuration file (default: ~/.whatlastgenre/config)
-	  --cache CACHE        location of the cache (default: ~/.whatlastgenre/cache)
-	  
-	  --no-colors          don't use colors (default: False)
-	  --no-cache           disable cache feature (default: False)
-	  
 	  --no-whatcd          disable lookup on What.CD (default: False)
 	  --no-lastfm          disable lookup on Last.FM (default: False)
 	  --no-mbrainz         disable lookup on MusicBrainz (default: False)
 	  --no-discogs         disable lookup on Discogs (default: False)
-	  
-	  --clear-cache        clear the cache (default: False)
-
 
 
 If you seriously want to tag release-types (-r) you should also enable (-i, --interactive).
+Disabling music-sites is not recommended, the more sources, the better tag.
 
 
 ## Examples
@@ -133,12 +125,12 @@ Tag the release-type and max. 5 genre tags for all albums in /home/user/music:
 Do a dry run on your albums in /home/user/music changing nothing, but collect
 some statistics on your genres:
 
-	$ whatlastgenre.py -ns /home/user/music
+	$ whatlastgenre.py -nsb /home/user/music
 
 
 ## How to help
 
-Thanks if you are interested in helping improving it :)
+Thanks for being interested in helping to improve it :)
 Things you can tell me about:
 * Tag naming inconsistencies like a tag sometimes named 'Trip Hop' or 'Trip-Hop'
 * If your unhappy with the tag result for some albums
@@ -146,3 +138,10 @@ Things you can tell me about:
 
 Or just paste me the output so i can take a look on it for scoring improvements.
 I'm also happy for any other suggestions :)
+
+### Ended up with a tag that shouldn't be there?
+If its a tag that impartial correct, just use score_down or blacklist to get rid of it.
+If the tag is personal, crappy or somehow else bad, just rerun the script with
+`whatlastgenre.py -vn /path/to/that/album/with/wrong/genres > wlg.log`
+and send me the `wlg.log`, i'll try to improve the scoring.
+
