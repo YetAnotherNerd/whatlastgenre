@@ -407,7 +407,7 @@ class Stats:
         return s[:-1]
 
 class Out:
-    def __init__(self, verbose=False, colors=True):
+    def __init__(self, verbose=False, colors=False):
         self._verbose = verbose
         self.colors = colors
     def verbose(self, s):
@@ -415,6 +415,8 @@ class Out:
             print "\033[0;33m%s\033[0;m" % s if self.colors else s
     def info(self, s):
         print "\033[0;36m%s\033[0;m" % s if self.colors else s
+    def warning(self, s):
+        print "\033[1;35mWARNING:\033[0;35m %s\033[0;m" % s if self.colors else s
     def error(self, s):
         print "\033[1;31mERROR:\033[0;31m %s\033[0;m" % s if self.colors else s
     def success(self, s):
@@ -427,26 +429,20 @@ def main():
         ap.add_argument('path', nargs='+', help='folder(s) to scan')
         ap.add_argument('-v', '--verbose', action='store_true', help='run verbose (more output)')
         ap.add_argument('-n', '--dry-run', action='store_true', help='dry-run (write nothing)')
-        ap.add_argument('-i', '--interactive', action='store_true', help='interactive mode')
         ap.add_argument('-r', '--tag-release', action='store_true', help='tag release type from what.cd')
+        ap.add_argument('-i', '--interactive', action='store_true', help='interactive mode')
         ap.add_argument('-s', '--stats', action='store_true', help='collect statistics to found genres')
+        ap.add_argument('-b', '--use-colors', action='store_true', help='enable colorful output')
+        ap.add_argument('-c', '--use-cache', action='store_true', help='enable cache feature')
         ap.add_argument('-l', '--tag-limit', metavar='N', type=int, help='max. number of genre tags', default=4)
-        
-        ap.add_argument('--config', default=os.path.expanduser('~/.whatlastgenre/config'),
-                        help='location of the configuration file')
-        ap.add_argument('--cache', default=os.path.expanduser('~/.whatlastgenre/cache'),
-                        help='location of the cache')
-        
-        ap.add_argument('--no-colors', action='store_true', help='don\'t use colors')
-        ap.add_argument('--no-cache', action='store_true', help='disable cache feature')
-        
         ap.add_argument('--no-whatcd', action='store_true', help='disable lookup on What.CD')
         ap.add_argument('--no-lastfm', action='store_true', help='disable lookup on Last.FM')
         ap.add_argument('--no-mbrainz', action='store_true', help='disable lookup on MusicBrainz')
         ap.add_argument('--no-discogs', action='store_true', help='disable lookup on Discogs')
-        
-        ap.add_argument('--clear-cache', action='store_true', help='clear the cache')
-        
+        ap.add_argument('--config', default=os.path.expanduser('~/.whatlastgenre/config'),
+                        help='location of the configuration file')
+        ap.add_argument('--cache', default=os.path.expanduser('~/.whatlastgenre/cache'),
+                        help='location of the cache')
         return ap.parse_args()
 
     def get_configuration(configfile):
@@ -512,37 +508,34 @@ def main():
     #args.verbose = True
     #args.dry_run = True
     #args.tag_release = True
-    #args.no_colors = True
     #args.stats = True
     #args.path.append('/home/foo/nobackup/test')
     #args.path.append('/media/music/Alben/')
     #import random; args.path.append(os.path.join('/media/music/Alben', random.choice(os.listdir('/media/music/Alben'))))
     
     out._verbose = args.verbose
-    out.colors = not args.no_colors
+    out.colors = args.use_colors
 
     if args.no_whatcd and args.no_lastfm and args.no_mbrainz and args.no_discogs:
-        print "Where do you want to get your data from? At least one source must be activated!"
+        out.error("Where do you want to get your data from?")
+        print "At least one source must be activated (multiple sources recommended)!"
         sys.exit()
 
     conf = get_configuration(args.config)
 
     if not (conf.whatcd_user and conf.whatcd_pass):
-        print "No What.CD credentials specified. What.CD support disabled."
+        out.warning("No What.CD credentials specified. What.CD support disabled.")
         args.no_whatcd = True
     if args.no_whatcd and args.tag_release:
-        print "Can't tag release with What.CD support disabled. Release tagging disabled."
-        args.tag_release = False
+        out.warning("Can't tag release with What.CD support disabled. Release tagging disabled.")
+        args.tag_release = args.interactive = False
     
-    if not args.no_cache:
-        cache = set()
-        if not args.clear_cache:
-            try:
-                cache = pickle.load(open(args.cache))
-            except:
-                pickle.dump(cache, open(args.cache, 'wb'))
-        else:
-            print "Using empty cache..."
+    if args.use_cache:
+        try:
+            cache = set()
+            cache = pickle.load(open(args.cache))
+        except:
+            pickle.dump(cache, open(args.cache, 'wb'))
     
     whatcd, lastfm, mbrainz, discogs, stats = None, None, None, None, None
     
@@ -567,8 +560,8 @@ def main():
     i = 0
     for album in albums:
         i = i + 1 
-        if not args.no_cache and album in cache:
-            print "Found %s in cache, skipping..." % album
+        if args.use_cache and album in cache:
+            out.info("Found %s in cache, skipping..." % album)
             continue
         print
 
@@ -583,7 +576,7 @@ def main():
             out.error("Could not get album: " + e.message)
             continue
 
-        print "Getting tags for '%s - %s'..." % ('VA' if a.va else a.artist, a.album)
+        print "Getting tags for \033[1m%s - %s\033[0m..." % ('VA' if a.va else a.artist, a.album)
         
         if whatcd:
             get_data(whatcd, a)
@@ -606,7 +599,7 @@ def main():
         try:
             if not args.dry_run:
                 a.save()
-                if not args.no_cache:
+                if args.use_cache:
                     cache.add(a.path)
                     pickle.dump(cache, open(args.cache, 'wb'))
         except AlbumSaveException, e:
