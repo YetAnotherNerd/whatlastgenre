@@ -55,13 +55,13 @@ class Album:
                 if SequenceMatcher(None, meta['artist'][0], meta2['artist'][0]).ratio() < 0.9:
                     self.va = True
                     
-            self.artist = meta['artist'][0].decode('ascii', 'ignore') if not self.va else ''
-            self.album = meta['album'][0].decode('ascii', 'ignore')
+            self.artist = meta['artist'][0].encode('ascii', 'ignore') if not self.va else ''
+            self.album = meta['album'][0].encode('ascii', 'ignore')
             try:
-                self.year = int(meta['date'][0][:4])
+                self.year = int(meta['date'][0].encode('ascii', 'ignore')[:4])
             except ValueError:
                 self.year = None
-        except KeyError, e:
+        except (KeyError, UnicodeEncodeError), e:
             raise AlbumLoadException("Error loading album metadata: %s" % e.message)
     
     def save(self):
@@ -199,7 +199,7 @@ class DataProvider:
                 print
             if c in range(maximum + 1):
                 break
-        return None if c is 0 else c - 1
+        return None if c == 0 else c - 1
 
     def _searchstr(self, s):
         return re.sub(r'\[\W\S\]+', '', s)
@@ -239,7 +239,7 @@ class WhatCD(DataProvider):
             return {string.replace(tag['name'], '.', ' '): int(tag['count']) for tag in tags if tag['name'] not in badtags}
         return [string.replace(tag, '.', ' ') for tag in tags if tag not in badtags]
     
-    def __interactive(self, a, data):
+    def __interactive(self, data):
         print "Multiple releases found on What.CD, please choose the right one:"
         for i in range(len(data)):
             print "#%2d: %s - %s [%s] [%s]" % (i + 1, data[i]['artist'], data[i]['groupName'], data[i]['groupYear'], data[i]['releaseType'])
@@ -262,7 +262,7 @@ class WhatCD(DataProvider):
                 if a.year:
                     data = [d for d in data if abs(int(d['groupYear']) - a.year) <= 2]
                 if len(data) > 1 and self.interactive:
-                    data = self.__interactive(a, data)
+                    data = self.__interactive(data)
             if len(data) == 1:
                 a.tags.addlist_nocount(self.__filter_tags(data[0]['tags']), self.multi)
                 a.type = data[0]['releaseType']
@@ -361,7 +361,7 @@ class Discogs(DataProvider):
         except (HTTPError, ValueError):
             raise DataProviderException
     
-    def __interactive(self, a, data):
+    def __interactive(self, data):
         print "Multiple releases found on Discogs, please choose the right one:"
         for i in range(len(data)):
             print "#%2d: %s [%s] [#%s]" % (i + 1, data[i]['title'], data[i]['year'], data[i]['id'])
@@ -375,7 +375,7 @@ class Discogs(DataProvider):
                 data = [d for d in data if (a.artist in d['title']
                                             and (not a.year or (abs(int(d['year']) - a.year) <= 2)))]
                 if len(data) > 1 and self.interactive:
-                    data = self.__interactive(a, data)
+                    data = self.__interactive(data)
             if data and len(data) == 1 and (data[0].has_key('style') or data[0].has_key('genre')):
                 tags = []
                 if data[0].has_key('style'): tags = tags + data[0]['style']
