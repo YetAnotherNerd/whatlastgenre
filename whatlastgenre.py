@@ -10,10 +10,9 @@ TODO:
 from __future__ import division
 from ConfigParser import SafeConfigParser
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from difflib import get_close_matches, SequenceMatcher
 from requests.exceptions import HTTPError, ConnectionError
-from sqlalchemy.util.compat import defaultdict
 import datetime
 import json
 import musicbrainzngs
@@ -431,7 +430,7 @@ class Stats:
     def printstats(self):
         print "Tag statistics: ",
         for tag, num in sorted(self.tags.iteritems(), key=lambda (k, v): (v, k), reverse=True):
-            print "%s: %d, " % (tag, num),
+            print "%s: %d," % (tag, num),
         print "\nTime elapsed: %s " % str(datetime.timedelta(seconds=time.time() - self.starttime))
 
 
