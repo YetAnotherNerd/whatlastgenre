@@ -3,36 +3,45 @@
 Improves genre metadata of audio files based on tags from various music-sites.
 
 * Supported audio files: flac, ogg, mp3
-* Supported music-sites: wcd, lastfm, musicbrainz, discogs
+* Supported music-sites: What.CD, Last.FM, MusicBrainz, Discogs
+* Features
+	* Genre tag merging, scoring
+		* Personal score modifiers, filters, blacklist
+	* Optional: writes release type (Album, EP, Anthology, ...) (from What.CD)
+	* Optional: writes MusicBrainz IDs
+	* Dry-Mode for safe testing
+	* Interactive mode (it's not guessing wrong data)
 
 ## How it works: tag scoring
 It scans through folders for albums and receives genre tags for this releases
 and their artists from different music-sites. The tags get scored and put
 together, then the best scored tags will be saved as genre metadata in the
 corresponding album tracks. If a tag is supplied from more then one source,
-their individual scores will be merged.
+their individual scores will be summed up. Equal tags in different writings
+will be merged together.
 
-### Tags with count (lastfm, musicbrainz, wcd partially)
+### Tags with count (Last.FM, MusicBrainz, What.CD partially)
 If counts are supplied for the tags, they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of 1.0, a tag having only half of the top tag's count gets a
 score of 0.5 and so on. 
 
-### Tags without count (discogs, wcd partially)
+### Tags without count (Discogs, What.CD partially)
 Tags supplied without a count will be scored `0.85^(n-1)`, where `n` is the
-total number of tags supplied by this source. The more tags the lower the score
-for each tag will be. So if only one tag is supplied, it will get a score of
-1.0, two tags will get a score of 0.85 each, three get 0.72 each and so on...
+total number of tags supplied by this source. The more tags the lower the
+score for each tag will be. So if only one tag is supplied, it will get a
+score of 1.0, two tags will get a score of 0.85 each, three get 0.72 each
+and so on...
 
 ### Score multiplier for different sources
-Every source (wcd, lastfm, mbrainz, discogs) has its own score multiplier, so
-sources that generally provide higher quality tags can be given advantage over
-sources that often provide bad, inaccurate or personal tags.
+Every source (What.CD, Last.FM, MusicBrainz, Discogs) has its own score
+multiplier, so sources that generally provide higher quality tags can be given
+advantage over sources that often provide bad, inaccurate or personal tags.
 
 ### Personal score modifiers
-One can set a list of tags that will get an initial score offset and a
-tag-score bonus. Consider this as some kind of "soft" white-/blacklist, where
-you can reduce the occurrence of hated or inaccurate tags without fully banning
+One can set a list of tags that will get an initial score offset and a tag-
+score bonus. Consider this as some kind of "soft" white-/blacklist, where you
+can reduce the occurrence of hated or inaccurate tags without fully banning
 them. See Configuration for more details.
 
 
@@ -51,30 +60,23 @@ If you have any ideas on improving this scoring, please let me know :)
 
 ## Configuration
 
-An empty configuration file will be created on first run. The score multipliers
-for sources can be tuned in the source, but act with caution.
+An empty configuration file will be created on first run. The score
+multipliers for sources can be tuned in the source, but act with caution.
 
 ### Example configuration file
 	[whatcd]
 	username = whatuser
 	password = myscretwhatcdpassword
 	[genres]
-	whitelist = 
 	blacklist = Live, Unknown
-	uppercase = IDM, UK, US
 	score_up = 
 	score_down = Electronic, Other, Other
+	filters = country, label, year
 
 
 ### Configuration options explained
 
 #### genres section
-
-##### whitelist, blacklist option
-Using a whitelist is not recommended, depending on your music collection you
-might have to create a really large list to get reasonable results, you might
-want to use score_up instead. Use the blacklist to ban specific tags.
-The white- and blacklist can't be used at the same time, obviously ;)
 
 ##### score_up, score_down option
 This should be considered as "soft" white-/blacklist where you can in-/decrease
@@ -82,6 +84,12 @@ the occurrence of specific tags that you don't like or that are to inaccurate
 for you without fully banning them like with the blacklist option. Tags listed
 here will get an initial score offset and a score multiplier bonus of `+/-0.2`,
 to modify their score offset even more, just mention them more then once.
+
+### filters
+Use this to filter specific groups from genres.
+* country: filters countries, cities and nationalities
+* label: filters label names
+* year: filters years, like 80s or 1980
 
 
 ## Usage
@@ -113,8 +121,9 @@ to modify their score offset even more, just mention them more then once.
 	  --cache CACHE        location of the cache (default: ~/.whatlastgenre/cache)
 
 
-If you seriously want to tag release-types (-r) you should also enable (-i, --interactive).
-Disabling music-sites is not recommended, the more sources, the better tags.
+If you seriously want to tag release-types (-r) or mbrainz-ids (-m) you should
+also enable interactive-mode (-i). Disabling music-sites is not recommended,
+the more sources, the better tags.
 
 
 ## Examples
@@ -134,7 +143,7 @@ some statistics on your genres:
 
 Thanks for being interested in helping to improve it :)
 Things you can tell me about:
-* Tag naming inconsistencies like a tag sometimes named 'Trip Hop' or 'Trip-Hop'
+* Tag that are similar but haven't been merged or naming inconsistencies, e.g. 'Trip Hop' <-> 'Trip-Hop'
 * If your unhappy with the tag result for some albums
 * Any errors of course ;)
 
@@ -142,8 +151,11 @@ Or just paste me the output so i can take a look on it for scoring improvements.
 I'm also happy for any other suggestions :)
 
 ### Ended up with a tag that shouldn't be there?
-If it's an impartial correct tag, just use score_down or blacklist to get rid of it.
-If the tag is personal, crappy or somehow else bad, just rerun the script with
-`whatlastgenre.py -vn /path/to/that/album/with/wrong/genres > wlg.log`
+* If it's an impartial correct tag, just use score_down or blacklist to get
+rid of it.
+* If it's a label or county tag that should have been filtered, please name
+it to me so i can add it to the hardcoded filter list.
+* If the tag is personal, crappy or somehow else bad, just rerun the script
+with `whatlastgenre.py -vn /path/to/that/album/with/wrong/genres > wlg.log`
 and send me the `wlg.log`, i'll try to improve the scoring.
 
