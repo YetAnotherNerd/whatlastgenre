@@ -39,10 +39,10 @@ multiplier, so sources that generally provide higher quality tags can be given
 advantage over sources that often provide bad, inaccurate or personal tags.
 
 ### Personal score modifiers
-One can set a list of tags that will get an initial score offset and a tag-
-score bonus. Consider this as some kind of "soft" white-/blacklist, where you
-can reduce the occurrence of hated or inaccurate tags without fully banning
-them. See Configuration for more details.
+One can set a list of tags that will get an initial score offset and
+multiplier bonus. Consider this as some kind of "soft" white-/blacklist, where
+you can reduce the occurrence of hated or inaccurate tags without fully
+banning them. See Configuration for more details.
 
 
 If you have any ideas on improving this scoring, please let me know :)
@@ -60,8 +60,9 @@ If you have any ideas on improving this scoring, please let me know :)
 
 ## Configuration
 
-An empty configuration file will be created on first run. The score
-multipliers for sources can be tuned in the source, but act with caution.
+An empty configuration file will be created on the first run. The score
+modifiers/multipliers for sources and score_{up,down} can be tuned in the
+source, but act with caution.
 
 ### Example configuration file
 	[whatcd]
@@ -80,12 +81,12 @@ multipliers for sources can be tuned in the source, but act with caution.
 
 ##### score_up, score_down option
 This should be considered as "soft" white-/blacklist where you can in-/decrease
-the occurrence of specific tags that you don't like or that are to inaccurate
+the occurrence of specific tags that you don't like or that are too inaccurate
 for you without fully banning them like with the blacklist option. Tags listed
-here will get an initial score offset and a score multiplier bonus of `+/-0.2`,
-to modify their score offset even more, just mention them more then once.
+here will get an initial score offset and a score multiplier bonus of `+/-0.25`
+per default, to boost this even more, just mention them more then once.
 
-### filters
+##### filters
 Use this to filter specific groups from genres.
 * country: filters countries, cities and nationalities
 * label: filters label names
@@ -156,6 +157,6 @@ rid of it.
 * If it's a label or county tag that should have been filtered, please name
 it to me so i can add it to the hardcoded filter list.
 * If the tag is personal, crappy or somehow else bad, just rerun the script
-with `whatlastgenre.py -vn /path/to/that/album/with/wrong/genres > wlg.log`
+with `whatlastgenre.py -vn /path/to/album/with/wrong/genres > wlg.log`
 and send me the `wlg.log`, i'll try to improve the scoring.
 
