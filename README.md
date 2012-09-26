@@ -4,15 +4,18 @@ Improves genre metadata of audio files based on tags from various music-sites.
 
 * Supported audio files: flac, ogg, mp3
 * Supported music-sites: What.CD, Last.FM, MusicBrainz, Discogs
-* Features
-	* Genre tag merging, scoring
-		* Personal score modifiers, filters, blacklist
+* Feature Overview
+	* Gets genretags from music sites and splits, merges, scores and filters them.
+		* Splitting, eg. Jazz+Funk -> Jazz and Funk, Rock/Pop -> Rock and Pop
+		* Merges similar tags in different writings, eg. DnB, D&B, Drum and Bass -> Drum & Bass
+		* Scores them different methods, can take personal preferences into account
+		* Filters them by personal preferences and preset filters
 	* Optional: writes release type (Album, EP, Anthology, ...) (from What.CD)
 	* Optional: writes MusicBrainz IDs
+	* Interactive mode, especially for releasetypes and mbids (it's not guessing wrong data)
 	* Dry-Mode for safe testing
-	* Interactive mode (it's not guessing wrong data)
 
-## How it works: tag scoring
+## How it works
 It scans through folders for albums and receives genre tags for this releases
 and their artists from different music-sites. The tags get scored and put
 together, then the best scored tags will be saved as genre metadata in the
@@ -20,13 +23,13 @@ corresponding album tracks. If a tag is supplied from more then one source,
 their individual scores will be summed up. Equal tags in different writings
 will be merged together.
 
-### Tags with count (Last.FM, MusicBrainz, What.CD partially)
+### Tags scoring with count (Last.FM, MusicBrainz, What.CD partially)
 If counts are supplied for the tags, they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of 1.0, a tag having only half of the top tag's count gets a
 score of 0.5 and so on. 
 
-### Tags without count (Discogs, What.CD partially)
+### Tags scoring without count (Discogs, What.CD partially)
 Tags supplied without a count will be scored `0.85^(n-1)`, where `n` is the
 total number of tags supplied by this source. The more tags the lower the
 score for each tag will be. So if only one tag is supplied, it will get a
@@ -90,12 +93,12 @@ per default, to boost this even more, just mention them more then once.
 Use this to filter specific groups from genres.
 * country: filters countries, cities and nationalities
 * label: filters label names
-* year: filters years, like 80s or 1980
+* year: filters year tags, like 1980s
 
 
 ## Usage
 
-	usage: whatlastgenre.py [-h] [-v] [-n] [-i] [-r] [-m] [-s] [-b] [-c] [-l N]
+	usage: whatlastgenre.py [-h] [-v] [-n] [-i] [-r] [-m] [-b] [-c] [-l N]
 	                        [--no-whatcd] [--no-lastfm] [--no-mbrainz]
 	                        [--no-discogs] [--config CONFIG] [--cache CACHE]
 	                        path [path ...]
@@ -110,7 +113,6 @@ Use this to filter specific groups from genres.
 	  -i, --interactive    interactive mode (default: False)
 	  -r, --tag-release    tag release type (from what.cd) (default: False)
 	  -m, --tag-mbids      tag musicbrainz ids (default: False)
-	  -s, --stats          collect statistics (default: False)
 	  -b, --use-colors     colorful output (default: False)
 	  -c, --use-cache      cache processed albums (default: False)
 	  -l N, --tag-limit N  max. number of genre tags (default: 4)
@@ -123,21 +125,30 @@ Use this to filter specific groups from genres.
 
 
 If you seriously want to tag release-types (-r) or mbrainz-ids (-m) you should
-also enable interactive-mode (-i). Disabling music-sites is not recommended,
+also enable interactive-mode (-i). Consider to save the mbrainz-ids (-m) when
+not using --no-mbrainz, you searched for them, why not save them? ;)
+Think about using the cache feature (-c, --cache) if you have a large set of
+albums, to speed up things next time. Disabling music-sites is not recommended,
 the more sources, the better tags.
 
 
 ## Examples
 
-Tag the release-type and max. 5 genre tags for all albums in /home/user/music:
+Do a dry-run on your albums in /home/user/music changing nothing:
 
-	$ whatlastgenre.py -irl 5 /home/user/music
+	$ whatlastgenre.py -n /home/user/music
 
+Tag max. 3 genre tags for all albums in /home/user/music:
 
-Do a dry run on your albums in /home/user/music changing nothing, but collect
-some statistics on your genres:
+	$ whatlastgenre.py -cl 3 /home/user/music
 
-	$ whatlastgenre.py -nsb /home/user/music
+To get the most of it for all albums in /media/music:
+
+	$ whatlastgenre.py -irmcl 5 /media/music
+	
+Just tag release-types and mbids (this is hack ;)) on /media/music:
+
+	$ whatlastgenre.py -irml 0 --no-lastfm --no-discogs /media/music
 
 
 ## How to help
@@ -157,6 +168,6 @@ rid of it.
 * If it's a label or county tag that should have been filtered, please name
 it to me so i can add it to the hardcoded filter list.
 * If the tag is personal, crappy or somehow else bad, just rerun the script
-with `whatlastgenre.py -vn /path/to/album/with/wrong/genres > wlg.log`
+with `whatlastgenre.py -vn /path/to/album/with/bad/genre > wlg.log`
 and send me the `wlg.log`, i'll try to improve the scoring.
 
