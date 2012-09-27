@@ -8,12 +8,14 @@ Improves genre metadata of audio files based on tags from various music-sites.
 	* Gets genretags from music sites and splits, merges, scores and filters them.
 		* Splitting, eg. Jazz+Funk -> Jazz and Funk, Rock/Pop -> Rock and Pop
 		* Merges similar tags in different writings, eg. DnB, D&B, Drum and Bass -> Drum & Bass
-		* Scores them different methods, can take personal preferences into account
+		* Scores them with different methods, can take personal preferences into account
 		* Filters them by personal preferences and preset filters
 	* Optional: writes release type (Album, EP, Anthology, ...) (from What.CD)
 	* Optional: writes MusicBrainz IDs
+	* Optional: caches already proceeded albums and mbarids too reduce needed interactivity
+	* Makes use of MusicBrainz IDs when possible
 	* Interactive mode, especially for releasetypes and mbids (it's not guessing wrong data)
-	* Dry-Mode for safe testing
+	* Dry-mode for safe testing
 
 ## How it works
 It scans through folders for albums and receives genre tags for this releases
@@ -72,8 +74,8 @@ source, but act with caution.
 	username = whatuser
 	password = myscretwhatcdpassword
 	[genres]
-	blacklist = Live, Unknown
-	score_up = 
+	blacklist = Charts, Composer, Live, Unknown
+	score_up = Soundtrack
 	score_down = Electronic, Other, Other
 	filters = country, label, year
 
@@ -146,7 +148,7 @@ To get the most of it for all albums in /media/music:
 
 	$ whatlastgenre.py -irmcl 5 /media/music
 	
-Just tag release-types and mbids (this is hack ;)) on /media/music:
+Just tag release-types and mbids (this is a hack ;)) on /media/music:
 
 	$ whatlastgenre.py -irml 0 --no-lastfm --no-discogs /media/music
 
