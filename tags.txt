@@ -1,0 +1,216 @@
+# whatlastgenre basic tags and filter file
+#
+# [basictags]: list of required basic tags
+# [dontsplit]: tags that contain +, /, &, , or and but shouldn't get split 
+# [uppercase]: list of tags with length>2 which should be uppercase
+# [filters_<name>] sections:
+#   define your own filters by adding [filter_<name>] sections
+#   activate them by adding the name to the filters list in your config file
+# 	don't use this reserved names: blacklist, year
+#
+# all tags should be lowercase ([basictags] anycase)
+# empty lines and lines starting with # are ignored
+
+[basictags]
+Acapella
+Acid
+Acid Jazz
+Acid Punk
+Acoustic
+Avantgarde
+Ballad
+Bass
+Beats
+Bebob
+Big Band
+Black Metal
+Bluegrass
+Blues
+Booty Bass
+BritPop
+Cabaret
+Celtic
+Chamber Music
+Chanson
+Chillout
+Chorus
+Christian
+Classic Rock
+Classical
+Club
+Comedy
+Country
+Crossover
+Cult
+Dance
+Dance Hall
+Darkwave
+Death Metal
+Disco
+Downtempo
+Dream
+Drum & Bass
+Easy Listening
+Electro-Swing
+Electronic
+Ethnic
+Euro-Dance
+Euro-House
+Euro-Techno
+Fast Fusion
+Female Vocalist
+Folk
+Folk-Rock
+Freestyle
+Funk
+Fusion
+Future Jazz
+Gangsta
+German
+German Hip-Hop
+Goa
+Gospel
+Gothic
+Gothic Rock
+Grunge
+Hard Rock
+Hardcore
+Heavy Metal
+Hip-Hop
+House
+Indie
+Industrial
+Instrumental
+Jazz
+Jazz-Hop
+Jungle
+Latin
+Lo-Fi
+Meditative
+Metal
+Musical
+New Age
+New Wave
+Noise
+Oldies
+Opera
+Other
+Pop
+Progressive Rock
+Psychedelic
+Psychedelic Rock
+Punk
+Punk Rock
+Rap
+Rave
+Reggae
+Retro
+Revival
+Rhythm & Blues
+Rhythmic Soul
+Rock
+Rock & Roll
+Salsa
+Samba
+Ska
+Slow Jam
+Slow Rock
+Sonata
+Soul
+Soundtrack
+Southern Rock
+Space
+Speech
+Swing
+Symphonic Rock
+Symphony
+Synthpop
+Tango
+Tech-House
+Techno
+Thrash Metal
+Trance
+Tribal
+Trip-Hop
+Vocal
+
+[dontsplit]
+drill & bass
+drum & bass
+rhythm & blues
+rock & roll
+stage & screen
+
+[uppercase]
+ebm
+idm
+nyc
+usa
+
+
+# filter sections
+
+[filter_country]
+afrcian
+africa
+america
+american
+australia
+australian
+austria
+austrian
+balkan
+belgien
+berlin
+bristol
+britain
+britannique
+british
+canada
+canadien
+china
+chinese
+england
+english
+europe
+european
+france
+french
+german
+germany
+hamburg
+iceland
+icelandic
+irish
+japan
+japanese
+new york
+new york city
+new zealand
+norway
+norwegian
+nyc
+roma
+stuttgart
+uk
+united kingdom
+united states
+us
+usa
+vienna
+
+[filter_label]
+4ad
+blue note
+creative commons
+pretty lights
+pretty lights music
+ninja tune
+smalltown supersound
+tru thoughts
+
+[filter_custom_example]
+ihatethistag
+shitty tag
+thistagiswrong
+
