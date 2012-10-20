@@ -9,7 +9,7 @@ Improves genre metadata of audio files based on tags from various music-sites.
 		* Splitting, eg. Jazz+Funk -> Jazz and Funk, Rock/Pop -> Rock and Pop
 		* Merges similar tags in different writings, eg. DnB, D&B, Drum and Bass -> Drum & Bass
 		* Scores them with different methods, can take personal preferences into account
-		* Filters them by personal preferences and preset filters
+		* Filters them by personal preferences and preset or custom filters
 	* Optional: writes release type (Album, EP, Anthology, ...) (from What.CD)
 	* Optional: writes MusicBrainz IDs
 	* Optional: caches already proceeded albums and mbarids too reduce needed interactivity
@@ -92,10 +92,13 @@ here will get an initial score offset and a score multiplier bonus of `+/-0.25`
 per default, to boost this even more, just mention them more then once.
 
 ##### filters
-Use this to filter specific groups from genres.
+Use this to activate filtering of specific tag groups from genres:
 * country: filters countries, cities and nationalities
 * label: filters label names
 * year: filters year tags, like 1980s
+* create your own filter lists by adding filter sections to the tags.txt file
+
+Consider custom filter lists as large blacklists.
 
 
 ## Usage
@@ -136,9 +139,9 @@ the more sources, the better tags.
 
 ## Examples
 
-Do a dry-run on your albums in /home/user/music changing nothing:
+Do a verbose dry-run on your albums in /home/user/music changing nothing:
 
-	$ whatlastgenre.py -n /home/user/music
+	$ whatlastgenre.py -vn /home/user/music
 
 Tag max. 3 genre tags for all albums in /home/user/music:
 
@@ -146,11 +149,11 @@ Tag max. 3 genre tags for all albums in /home/user/music:
 
 To get the most of it for all albums in /media/music:
 
-	$ whatlastgenre.py -irmcl 5 /media/music
+	$ whatlastgenre.py -cirml 5 /media/music
 	
 Just tag release-types and mbids (this is a hack ;)) on /media/music:
 
-	$ whatlastgenre.py -irml 0 --no-lastfm --no-discogs /media/music
+	$ whatlastgenre.py -cirml 0 --no-lastfm --no-discogs /media/music
 
 
 ## How to help
