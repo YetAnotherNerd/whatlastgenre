@@ -74,9 +74,9 @@ source, but act with caution.
 	username = whatuser
 	password = myscretwhatcdpassword
 	[genres]
-	blacklist = Charts, Composer, Live, Unknown
-	score_up = Soundtrack
-	score_down = Electronic, Other, Other
+	blacklist = charts, composer, live, unknown
+	score_up = soundtrack
+	score_down = electronic, alternative, indie, other, other
 	filters = country, label, year
 
 
@@ -151,7 +151,7 @@ To get the most of it for all albums in /media/music:
 
 	$ whatlastgenre.py -cirml 5 /media/music
 	
-Just tag release-types and mbids (this is a hack ;)) on /media/music:
+Just tag release-types and mbids (this is not intended) on /media/music:
 
 	$ whatlastgenre.py -cirml 0 --no-lastfm --no-discogs /media/music
 
@@ -171,7 +171,7 @@ I'm also happy for any other suggestions :)
 * If it's an impartial correct tag, just use score_down or blacklist to get
 rid of it.
 * If it's a label or county tag that should have been filtered, please name
-it to me so i can add it to the hardcoded filter list.
+it to me so i can add it to the tags.txt file (do it yourself until i did it).
 * If the tag is personal, crappy or somehow else bad, just rerun the script
 with `whatlastgenre.py -vn /path/to/album/with/bad/genre > wlg.log`
 and send me the `wlg.log`, i'll try to improve the scoring.
