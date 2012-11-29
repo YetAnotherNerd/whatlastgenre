@@ -10,8 +10,8 @@ setup(
     author='YetAnotherNerd',
     author_email='qpdb@foosion.de',
     url='http://github.com/YetAnotherNerd/whatlastgenre',
-    # saying tags.txt is a script is an ugly hack, but hey, it works
-    # please tell me a better solution if there is know one
+    # saying tags.txt is a script is ugly but works
+    # please tell me a better solution if there is one
     scripts=['whatlastgenre.py', 'tags.txt'],
     install_requires=[
         'musicbrainzngs',
