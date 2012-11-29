@@ -32,7 +32,7 @@ SCORE_DISCOG = 1.0
 SCORE_USER = .25
 
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 
 
 class GenreTags:
@@ -49,6 +49,7 @@ class GenreTags:
         'drill ?(and|\'?n\'?|&) ?bass': 'drill & bass',
         'rock ?(and|\'?n\'?|&) ?roll': 'rock & roll',
         'stage ?(and|\'?n\'?|&) ?screen': 'stage & screen',
+        'hard ?(and|\'?n\'?|&) ?heavy': 'hard & heavy',
         # year related
         '^(19)?([3-9])[0-9](s|er)?$': '19\g<2>0s',
         '^(20)?([0-2])[0-9](s|er)?$': '20\g<2>0s',
@@ -112,9 +113,9 @@ class GenreTags:
                 OUT.verbose("  %s is the same tag as %s" % (name, found[0]))
             name = found[0]
         # score bonus
-        if name in self.basetags.get('_score_up'):
+        if name.lower() in self.basetags.get('_score_up'):
             score *= 1 + SCORE_USER
-        elif name in self.basetags.get('_score_dn'):
+        elif name.lower() in self.basetags.get('_score_dn'):
             score *= 1 - SCORE_USER
         # finally add it
         self.tags[name] += score
@@ -174,7 +175,7 @@ class Album:
                        if track.lower().endswith('.' + filetype)]
         self.tags = genretags
         self.dotag = dotag
-        #self.meta = namedtuple('AlbumMeta', 'va artist aartist title year')
+        # self.meta = namedtuple('AlbumMeta', 'va artist aartist title year')
         self.artist = self.aartist = self.album = None
         self.type = self.year = None
         self.is_va = False
@@ -589,7 +590,7 @@ class MusicBrainz(DataProvider):
         else:
             return mbid
             # FIXME: this exception can not happen
-            #raise DataProviderError("No tags for artist found.")
+            # raise DataProviderError("No tags for artist found.")
 
     def __get_tags_artist(self, album):
         """Gets the tags for the artist from MusicBrainz"""
@@ -635,8 +636,8 @@ class MusicBrainz(DataProvider):
             if len(data) > 1 and self.interactive:
                 data = self._interactive(album.path, data, "%s - %s [%s]: "
                     "http://musicbrainz.org/release-group/%s",
-                    lambda x: (x['artist-credit-phrase'], x['title'],
-                               x['type'], x['id']))
+                    lambda x: (x.get('artist-credit-phrase'), x.get('title'),
+                               x.get('type'), x.get('id')))
             if len(data) > 1:
                 raise DataProviderError("Too many album results: %d (use "
                                         "--interactive)" % len(data))
@@ -891,10 +892,10 @@ def get_configuration(configfile):
         config.set('whatcd', 'username', '')
         config.set('whatcd', 'password', '')
         config.add_section('genres')
-        config.set('genres', 'blacklist', 'Charts, Composer, Live, Unknown')
-        config.set('genres', 'score_up', 'Soundtrack')
+        config.set('genres', 'blacklist', 'charts, composer, live, unknown')
+        config.set('genres', 'score_up', 'soundtrack')
         config.set('genres', 'score_down',
-                   'Electronic, Alternative, Indie, Other, Other')
+                   'electronic, alternative, indie, other, other')
         config.set('genres', 'filters', 'country, label, year')
         config.write(open(configfile, 'w'))
         print("Please edit the configuration file: %s" % configfile)
