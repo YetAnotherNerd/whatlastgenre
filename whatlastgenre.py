@@ -32,7 +32,7 @@ SCORE_DISCOG = 1.0
 SCORE_USER = .25
 
 
-__version__ = "0.1.7"
+__version__ = "0.1.8"
 
 
 class GenreTags:
@@ -325,7 +325,9 @@ class DataProvider:
     @classmethod
     def _searchstr(cls, searchstr=''):
         """Cleans up a string for use in searching."""
-        patterns = ['[^\w]', '(volume |vol | and )', '[\(\[\{\)\]\}]', ' +']
+        if not searchstr:
+            return ''
+        patterns = ['[^\w\']', '(volume |vol | and )', '[\(\[\{\)\]\}]', ' +']
         searchstr = searchstr.lower()
         for pattern in patterns:
             searchstr = re.sub(pattern, ' ', searchstr)
@@ -625,9 +627,10 @@ class MusicBrainz(DataProvider):
             arid = album.mbids.artist or album.mbids.aartist
             if arid:
                 params.update({'arid': arid})
-            else:
-                params.update({'artist': self._searchstr(album.artist
-                                                         or album.aartist)})
+            elif album.artist:
+                params.update({'artist': self._searchstr(album.artist)})
+            elif album.aartist:
+                params.update({'artist': self._searchstr(album.aartist)})
             req = mb.search_release_groups(**params)
             data = req.get('release-group-list', [])
             if len(data) > 1:
