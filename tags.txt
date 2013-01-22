@@ -187,6 +187,8 @@ japanese
 new york
 new york city
 new zealand
+norvge
+norvgien
 norway
 norwegian
 nyc
@@ -201,8 +203,10 @@ vienna
 
 [filter_label]
 4ad
+anticon
 blue note
 creative commons
+leftfield
 pretty lights
 pretty lights music
 ninja tune
