@@ -22,17 +22,24 @@ import requests
 import sys
 import time
 
-# Source Score Multipliers
+
+# source score multipliers
 SCORE_WHATCD = 1.5
 SCORE_LASTFM = 0.7
 SCORE_MBRAIN = 1.0
 SCORE_DISCOG = 1.0
 
+# score multiplier for tags based on artist
+SCORE_ARTIST = 1.5
+
 # score_{up,down} +/-x offset and 1+/-x multiplier
 SCORE_USER = .25
 
 
-__version__ = "0.1.8"
+__version__ = "0.1.9"
+
+
+print_verbose = lambda *a, **k: None
 
 
 class GenreTags:
@@ -63,7 +70,7 @@ class GenreTags:
         '^ost$': 'soundtrack',
         'sci(ence)?( |-)?fi(ction)?': 'science fiction',
         # country/language related
-        'deutsch(er?$|$)': 'german',
+        'deutsch(er | )?': 'german',
         'liedermacher(in)?': 'singer-songwriter',
         # misc.
         'tv soundtrack': 'soundtrack',
@@ -76,16 +83,21 @@ class GenreTags:
         self.basetags = basetags
         self.limit = limit
         self.filters = filters
-        # add tags
-        self.addlist(basetags.get('basictags'))
+        self.__add_list(basetags.get('_score_up'), +SCORE_USER)
+        self.__add_list(basetags.get('_score_dn'), -SCORE_USER)
         for filt in self.filters:
-            self.addlist(self.basetags.get('filter_' + filt))
-        self.addlist(basetags.get('_score_up'), SCORE_USER / (1 + SCORE_USER))
-        self.addlist(basetags.get('_score_dn'), -SCORE_USER / (1 - SCORE_USER))
+            self.__add_list(self.basetags.get('filter_' + filt))
+
+    def clear(self):
+        """Clears the genre tags."""
+        self.tags = defaultdict(float)
 
     def add(self, name, score):
         """Adds a genre tag with a score."""
         name = name.encode('ascii', 'ignore').lower().strip()
+        # filter by length
+        if len(name) not in range(2, 21):
+            return
         # replace
         for pattern, repl in self.replace.items():
             name = re.sub(pattern, repl, name)
@@ -93,11 +105,8 @@ class GenreTags:
         if name.lower() not in self.basetags.get('dontsplit'):
             sep = [sep for sep in ['+', '/', '&', ',', ' and '] if sep in name]
             if sep:
-                self.addlist(name.split(sep[0]), score * .75)
+                self.__add_list(name.split(sep[0]), score * .75)
                 return
-        # filter by length
-        if len(name) not in range(2, 21):
-            return
         # format
         name = name.title()
         if len(name) < 3 or name.lower() in self.basetags.get('uppercase'):
@@ -106,12 +115,10 @@ class GenreTags:
             name = name.lower()
         # searching for existing tag
         # don't change the cutoff, add replaces instead
-        found = get_close_matches(name, self.tags.keys(), 1, .8572)
-        if found:
-            if (OUT.beverbose and
-                    SequenceMatcher(None, name, found[0]).ratio < .99):
-                OUT.verbose("  %s is the same tag as %s" % (name, found[0]))
-            name = found[0]
+        for taglist in [self.basetags.get('basictags'), self.tags.keys()]:
+            match = get_close_matches(name, taglist, 1, .8572)
+            if match:
+                name = match[0]
         # score bonus
         if name.lower() in self.basetags.get('_score_up'):
             score *= 1 + SCORE_USER
@@ -120,49 +127,44 @@ class GenreTags:
         # finally add it
         self.tags[name] += score
 
-    def addlist(self, tags, score=0):
+    def __add_list(self, tags, score=0):
         """Adds a list of tags with all the same score."""
-        if tags:
-            for tag in tags:
-                self.add(tag, score)
+        for tag in tags or []:
+            self.add(tag, score)
 
-    def addlist_nocount(self, tags, multi=1):
-        """Adds a list of countless tags with scoring based on amount."""
-        self.addlist(tags, .85 ** (len(tags) - 1) * multi)
-
-    def addlist_count(self, tags, multi=1):
-        """Adds a list of counted tags with scoring based on count-ratio"""
-        if tags:
+    def add_tags(self, tags, multi=1):
+        """Adds tags with counts and scoring based on count-ratio
+        or without count and scoring based on amount."""
+        if not tags:
+            return
+        if isinstance(tags, dict):
             top = max(1, max(tags.items(), key=operator.itemgetter(1))[1])
             for name, count in tags.iteritems():
                 if count > top * .1:
                     self.add(name, count / top * multi)
+        elif isinstance(tags, list):
+            self.__add_list(tags, .85 ** (len(tags) - 1) * multi)
 
-    def __getgood(self, minscore):
-        """Returns tags with a score higher then minscore."""
-        return {name: score for name, score in self.tags.iteritems()
-                if score > minscore}
-
-    def get(self):
-        """Returns a filtered and limited list of good tags without score."""
-        tags = self.__getgood(.5)
-        if 'year' in self.filters:
-            tags = [tag for tag in tags if re.match('([0-9]{2}){1,2}s?',
-                                                    tag.lower()) is None]
-        for filt in self.filters:
-            filtertags = self.basetags.get('filter_' + filt)
-            if filtertags:
-                tags = [tag for tag in tags if tag.lower() not in filtertags]
-        tags = sorted(tags, key=self.tags.get, reverse=True)
-        return tags[:self.limit]
-
-    def listgood(self):
-        """Returns a list of unfiltered good tags."""
-        tags = ["%s: %.2f" % (name, score) for name, score in
-                sorted(self.__getgood(.3).items(),
-                       key=operator.itemgetter(1), reverse=True)]
-        if tags:
-            return "Good tags: %s" % ', '.join(tags)
+    def get(self, minscore=SCORE_USER,
+            filtered=True, scores=True, limited=False):
+        """Gets the tags by minscore, with or without scores,
+        filtered and/or limited"""
+        tags = {k: v for k, v in self.tags.iteritems() if v > minscore}
+        if filtered:
+            if 'year' in self.filters:
+                tags = {k: v for k, v in tags.iteritems() if not
+                        re.match('([0-9]{2}){1,2}s?', k.lower())}
+            for filt in self.filters:
+                tags = {k: v for k, v in tags.iteritems() if k.lower()
+                        not in (self.basetags.get('filter_' + filt) or [])}
+        if scores:
+            tags = sorted(tags.items(), key=operator.itemgetter(1),
+                          reverse=True)
+        else:
+            tags = sorted(tags, key=tags.get, reverse=True)
+        if limited:
+            return tags[:self.limit]
+        return tags
 
 
 class Album:
@@ -175,100 +177,99 @@ class Album:
                        if track.lower().endswith('.' + filetype)]
         self.tags = genretags
         self.dotag = dotag
-        # self.meta = namedtuple('AlbumMeta', 'va artist aartist title year')
-        self.artist = self.aartist = self.album = None
-        self.type = self.year = None
-        self.is_va = False
-        self.mbids = namedtuple('mbids', 'artist aartist release relgrp')
+        self.meta = {}
+        self.meta['is_va'] = False
         self.__load_metadata()
+
+    def __str__(self):
+        out = ""
+        if 'mbids' in self.dotag:
+            out += ("MBIDs: artist=%s, aartist=%s\n"
+                    "MBIDs: relgrp=%s, release=%s\n"
+                    % (self.meta.get('mbidartist'),
+                       self.meta.get('mbidaartist'),
+                       self.meta.get('mbidrelgrp'),
+                       self.meta.get('mbidrelease')))
+        if 'release' in self.dotag:
+            out += "RelType: %s\n" % self.meta.get('releasetype')
+        out += "Genres: %d - Chosen: %s" % (len(self.tags.tags), ', '.join
+            (["%s (%.2f)" % (k, v) for k, v in self.tags.get(limited=True)]))
+        return out
 
     def __load_metadata(self):
         """Loads and checks the album metadata from the tracks."""
-        try:
-            meta = os.path.join(self.path, self.tracks[0])
-            meta = mutagen.File(meta, easy=True)
-            self.artist = self.__get_tag(meta, 'artist')
-            self.aartist = self.__get_tag(meta, 'albumartist')
-            self.album = self.__get_tag(meta, 'album')
-            rva = re.compile('^v(arious)?( ?a(rtists?)?)?')
-            if self.artist and rva.match(self.artist.lower()) is not None:
-                self.artist = None
-                self.is_va = True
-            if self.aartist and rva.match(self.aartist.lower()) is not None:
-                self.aartist = None
-            if not self.album:
-                raise AlbumError("Error loading album metadata. (not tagged?)")
+        rva = re.compile('^v(arious)?( ?a(rtists?)?)?', re.IGNORECASE)
+        tags = {"album": "album",
+                "artist": "artist",
+                "aartist": "albumartist",
+                "year": "date",
+                "mbidartist": "musicbrainz_artistid",
+                "mbidaartist": "musicbrainz_albumartistid",
+                "mbidrelease": "musicbrainz_albumid",
+                "mbidrelgrp": "musicbrainz_releasegroupid"}
+        taglist = defaultdict(list)
+
+        for track in self.tracks:
             try:
-                self.year = int(self.__get_tag(meta, 'date')[:4])
-            except (TypeError, ValueError):
-                pass
-            self.mbids.artist = self.__get_tag(meta, 'musicbrainz_artistid')
-            self.mbids.aartist = self.__get_tag(meta,
-                                                'musicbrainz_albumartistid')
-            self.mbids.release = self.__get_tag(meta, 'musicbrainz_albumid')
-            self.mbids.relgrp = self.__get_tag(meta,
-                                               'musicbrainz_releasegroupid')
-
-            for track in self.tracks:
                 meta = mutagen.File(os.path.join(self.path, track), easy=True)
-                if not meta:
-                    raise AlbumError("Error loading metadata for %s." % track)
-                if SequenceMatcher(None, self.album,
-                        self.__get_tag(meta, 'album')).ratio() < .9:
-                    raise AlbumError("Not all tracks have the same album-tag!")
-                if (not self.is_va and SequenceMatcher(None, self.artist,
-                        self.__get_tag(meta, 'artist')).ratio() < .9):
-                    self.artist = None
-                    self.is_va = True
-                if (self.aartist and SequenceMatcher(None, self.aartist,
-                        self.__get_tag(meta, 'albumartist')).ratio() < .9):
-                    self.aartist = None
-        except TypeError as err:
-            raise AlbumError("Error loading album metadata: %s" % err.message)
+            except mutagen.flac.FLACNoHeaderError as err:
+                raise AlbumError("Error loading Metadata: %s" % err.message)
+            for tag, tagname in tags.iteritems():
+                if (tagname.startswith('musicbrainz') and
+                        isinstance(meta, mutagen.flac.FLAC)):
+                    tagname = tagname.upper()
+                try:
+                    value = meta[tagname][0].encode('ascii', 'ignore')
+                    if tag is 'year':
+                        value = int(value[:4])
+                except (KeyError, ValueError, UnicodeEncodeError):
+                    value = None
+                if value:
+                    taglist[tag].append(value)
 
-    @classmethod
-    def __get_tag(cls, meta, tag):
-        """Helper method to get the value of a tag from metadata."""
-        if (tag.startswith('musicbrainz') and
-                isinstance(meta, mutagen.flac.FLAC)):
-            tag = tag.upper()
-        try:
-            return meta[tag][0].encode('ascii', 'ignore')
-        except (KeyError, UnicodeEncodeError):
-            return None
+        for tag, tlist in taglist.iteritems():
+            tset = set(tlist)
+            if len(tset) == 0:
+                continue
+            elif len(tset) == 1:
+                if tag in ['artist', 'aartist'] and rva.match(tlist[0]):
+                    self.meta['is_va'] = True
+                else:
+                    self.meta[tag] = tlist[0]
+            elif tag in ['album', 'mbidrelease', 'mbidrelgrp']:
+                raise AlbumError("Not all tracks have an equal %s-tag!" % tag)
+            elif tag in ['artist', 'aartist']:
+                self.meta['is_va'] = True
 
-    @classmethod
-    def __set_tag(cls, meta, tag, val):
-        """Helper method to set the value to a tag in metadata."""
-        if not tag or not val:
-            return
-        if (tag.startswith('musicbrainz') and
-                isinstance(meta, mutagen.flac.FLAC)):
-            tag = tag.upper()
-        meta[tag] = val
+        if 'album' not in self.meta:
+            raise AlbumError("There is not even an album tag (untagged?)")
+        print_verbose("Metadata: %s" % self.meta)
 
     def save(self):
         """Saves the metadata to the tracks."""
-        print("Saving metadata...")
-        tags = self.tags.get()
+        tags = {"mbidartist": "musicbrainz_artistid",
+                "mbidaartist": "musicbrainz_albumartistid",
+                "mbidrelease": "musicbrainz_albumid",
+                "mbidrelgrp": "musicbrainz_releasegroupid"}
+        genres = self.tags.get(scores=False, limited=True)
         error = []
         for track in self.tracks:
-            meta = mutagen.File(os.path.join(self.path, track), easy=True)
-            if ('release' in self.dotag and
-                    self.filetype in ['flac', 'ogg']):
-                self.__set_tag(meta, 'releasetype', self.type)
-            if 'mbids' in self.dotag:
-                self.__set_tag(meta, 'musicbrainz_artistid', self.mbids.artist)
-                self.__set_tag(meta, 'musicbrainz_albumartistid',
-                               self.mbids.aartist)
-                self.__set_tag(meta, 'musicbrainz_albumid', self.mbids.release)
-                if self.filetype in ['flac', 'ogg']:
-                    self.__set_tag(meta, 'musicbrainz_releasegroupid',
-                                   self.mbids.relgrp)
-            self.__set_tag(meta, 'genre', tags)
             try:
+                meta = mutagen.File(os.path.join(self.path, track), easy=True)
+                meta['genre'] = genres
+                if 'release' in self.dotag and self.meta.get('releasetype') \
+                        and self.filetype in ['flac', 'ogg']:
+                    meta['releasetype'] = self.meta.get('releasetype')
+                if 'mbids' in self.dotag:
+                    for tag, tagname in tags.iteritems():
+                        if self.filetype is 'mp3' and tag is 'mbidrelgrp':
+                            continue
+                        if self.meta.get(tag):
+                            if self.filetype is 'flac':
+                                tagname = tagname.upper()
+                            meta[tagname] = self.meta.get(tag)
                 meta.save()
-            except:  # FIXME: find possible errors
+            except mutagen.flac.FLACNoHeaderError:
                 error.append(track)
         if error:
             raise AlbumError("Error saving album metadata for tracks: %s"
@@ -288,27 +289,26 @@ class DataProvider:
         self.multi = multi
         self.session = session
         self.interactive = interactive
-        self.methods = None
 
-    def _jsonapiquery(self, url, params, sparams):
+    def _jsonapiquery(self, url, params, sparams=None):
         """Method for querying json-apis."""
-        sparams = sparams or {}
-        for key, val in sparams.items():
-            params.update({key: self._searchstr(val)})
+        if sparams:
+            for key, val in sparams.items():
+                params.update({key: self._searchstr(val)})
         try:
             req = self.session.get(url, params=params)
             data = json.loads(req.content)
-            return data
         except (ConnectionError, HTTPError, ValueError) as err:
-            raise DataProviderError("request error: %s" % err.message)
+            raise DataProviderError("Request error: %s" % err.message)
+        return data
 
-    def _interactive(self, albumpath, data, form, cont):
+    def _interactive(self, albumpath, data):
         """Asks the user to choose from a list of possibilites."""
         print("\aMultiple results from %s, which is right one?" % self.name)
-        OUT.verbose("Path: %s" % albumpath)
+        print_verbose("Path: %s" % albumpath)
         for i in range(len(data)):
             print("#%2d:" % (i + 1), end=" ")
-            print(form % cont(data[i]))
+            print(data[i].get('info'))
         while True:
             try:
                 num = int(raw_input("Please Choose #[1-%d] (0 to skip): "
@@ -320,24 +320,73 @@ class DataProvider:
                 print()
             if num in range(len(data) + 1):
                 break
-        return [data[num - 1]] if num else []
+        return [data[num - 1]] if num else data
 
     @classmethod
-    def _searchstr(cls, searchstr=''):
+    def _searchstr(cls, searchstr):
         """Cleans up a string for use in searching."""
         if not searchstr:
             return ''
-        patterns = ['[^\w\']', '(volume |vol | and )', '[\(\[\{\)\]\}]', ' +']
+        patterns = ['[^\w\'\-\.:&]', '(volume |vol\.? | and )',
+                    '\(.*\)', '\[.*\]', '{.*}', ' +']
         searchstr = searchstr.lower()
         for pattern in patterns:
             searchstr = re.sub(pattern, ' ', searchstr)
         return searchstr.strip()
 
+    def _get_data(self, album, what):
+        """Get data from a DataProvider (this should be overridden by DPs)"""
+        pass
+
     def get_data(self, album):
-        """Gets data by calling the datagetting-methods of dataproviders."""
-        for method in self.methods:
+        """Getting data from DataProviders."""
+        for what in ['artist', 'aartist', 'album']:
+            if isinstance(self, Discogs) and what in ['artist', 'aartist'] \
+                    or not album.meta.get(what):
+                continue
+            print_verbose("%s: %s search..." % (self.name, what))
             try:
-                method(album)
+                data = self._get_data(album.meta, what)
+                if not data:
+                    raise DataProviderError("%s search found nothing." % what)
+                if len(data) > 1 and album.meta.get('year'):
+                    for i in range(4):
+                        tmp = [d for d in data if not d.get('year') or abs(int
+                               (d.get('year')) - album.meta.get('year')) <= i]
+                        if tmp:
+                            data = tmp
+                            break
+                if len(data) > 1 and what is 'album' and (album.meta.get
+                                ('artist') or album.meta.get('aartist')):
+                    for i in range(6):
+                        tmp = [d for d in data if SequenceMatcher(None,
+                               (album.meta.get('artist') or album.meta.get
+                                ('aartist')) + ' - ' + album.meta.get('album'),
+                                d.get('title')).ratio() > (10 - i) * 0.1]
+                        if tmp:
+                            data = tmp
+                            break
+                if len(data) > 1 and self.interactive:
+                    data = self._interactive(album.path, data)
+                if len(data) > 1:
+                    raise DataProviderError("%s search returned too many "
+                                            "results: %d (use --interactive)"
+                                            % (what, len(data)))
+                data = data[0]
+                if isinstance(self, WhatCD) and 'releasetype' in data:
+                    album.meta['releasetype'] = data.get('releasetype')
+                elif isinstance(self, MusicBrainz):
+                    for mbid in ['mbidartist', 'mbidaartist',
+                                 'mbidrelgrp', 'mbidrelease']:
+                        if mbid in data:
+                            album.meta[mbid] = data.get(mbid)
+                if 'tags' in data:
+                    print_verbose("%s: %s search found %d tags."
+                                  % (self.name, what, len(data.get('tags'))))
+                    multi = self.multi
+                    if what in ['artist', 'aartist']:
+                        multi *= SCORE_ARTIST
+                    album.tags.add_tags(data.get('tags'), multi)
             except DataProviderError as err:
                 print("%s: %s" % (self.name, err.message))
             except (mb.ResponseError, mb.NetworkError) as err:
@@ -345,7 +394,7 @@ class DataProvider:
 
 
 class DataProviderError(Exception):
-    """If something wents wrong with a DataProvider."""
+    """If something went wrong with a DataProvider."""
     pass
 
 
@@ -359,9 +408,6 @@ class WhatCD(DataProvider):
                           {'username': username, 'password': password})
         self.last_request = time.time()
         self.rate_limit = 2.0  # min. seconds between requests
-        self.methods = [self.__get_tags_artist,
-                        self.__get_tags_aartist,
-                        self.__get_tags_album]
 
     def __query(self, params, sparams):
         """Query What.CD API"""
@@ -370,8 +416,7 @@ class WhatCD(DataProvider):
         data = self._jsonapiquery('https://what.cd/ajax.php', params, sparams)
         self.last_request = time.time()
         if data['status'] != 'success' or 'response' not in data:
-            raise DataProviderError("unsuccessful response (maybe: artist not "
-                                    "found - api inconsistencies)")
+            return None
         return data['response']
 
     @classmethod
@@ -383,75 +428,38 @@ class WhatCD(DataProvider):
                     for tag in tags if tag['name'] not in badtags}
         return [tag.replace('.', ' ') for tag in tags if tag not in badtags]
 
-    def __get_artisttags(self, album, name):
-        """Gets tags for an artist from What.CD"""
-        data = self.__query({'action': 'artist', 'id': 0},
-                            {'artistname': name})
-        if data.get('tags'):
-            album.tags.addlist_count(
-                self.__filter_tags(data.get('tags')), self.multi)
-        else:
-            raise DataProviderError("No tags for artist found.")
-
-    def __get_tags_artist(self, album):
-        """Gets the tags for the artist from What.CD"""
-        if album.artist:
-            OUT.verbose("  Artist search...")
-            self.__get_artisttags(album, album.artist)
-
-    def __get_tags_aartist(self, album):
-        """Gets the tags for the album artist from What.CD"""
-        if album.is_va and album.aartist:
-            OUT.verbose("  Albumartist search...")
-            self.__get_artisttags(album, album.aartist)
-
-    def __get_tags_album(self, album):
-        """Gets the tags for the album from What.CD"""
-        OUT.verbose("  Album search...")
-        searchstr = album.album
-        if album.artist:
-            searchstr += ' ' + album.artist
-        elif album.aartist:
-            searchstr += ' ' + album.aartist
-        data = self.__query({'action': 'browse', 'filter_cat[1]': 1},
-            {'searchstr': searchstr})['results']
-        if len(data) > 1 and not album.is_va:
-            data = [d for d in data if d.get('artist') != 'Various Artists']
-        if len(data) > 1 and album.year:
-            orgdata = data
-            for i in range(4):
-                data = [d for d in data if not d.get('groupYear') or
-                        abs(int(d.get('groupYear')) - album.year) <= i]
-                if data:
-                    break
-                data = orgdata
-        if len(data) > 1 and self.interactive:
-            data = self._interactive(album.path, data, "%s - %s (%s) [%s]",
-                    lambda x: (x.get('artist'), x.get('groupName'),
-                               x.get('groupYear'), x.get('releaseType')))
-        if len(data) > 1:
-            raise DataProviderError("Too many album results: %d (use "
-                                    "--interactive)" % len(data))
-        elif len(data) == 1:
-            album.tags.addlist_nocount(self.__filter_tags(data[0].get('tags')),
-                                   self.multi)
-            album.type = data[0].get('releaseType')
-        else:
-            raise DataProviderError("No tags for album found.")
+    def _get_data(self, meta, what):
+        """Get data from What.CD"""
+        if what in ['artist', 'aartist']:
+            data = self.__query({'action': 'artist', 'id': 0},
+                                {'artistname': meta.get(what)})
+            if data and data.get('tags'):
+                return [{'tags': self.__filter_tags(data.get('tags'))}]
+        elif what is 'album':
+            searchstr = meta.get('album') + ' ' + (
+                        meta.get('artist') or meta.get('aartist') or '')
+            data = self.__query({'action': 'browse', 'filter_cat[1]': 1},
+                                {'searchstr': searchstr})['results']
+            if len(data) > 1:
+                data = [d for d in data if meta.get('is_va') and
+                        d.get('artist') == 'Various Artists' or
+                        d.get('artist') != 'Various Artists']
+            return [{'info': ("%s - %s (%s) [%s]"
+                              % (d.get('artist'), d.get('groupName'),
+                                 d.get('groupYear'), d.get('releaseType'))),
+                     'title': d.get('artist') + ' - ' + d.get('groupName'),
+                     'releasetype': d.get('releaseType'),
+                     'tags': self.__filter_tags(d.get('tags')),
+                     'year': d.get('groupYear')} for d in data]
+        return None
 
 
 class LastFM(DataProvider):
-    """Class for the DataProvider LastFM
-    TODO:
-    * use normal search if search with mbid failed
-    """
+    """Class for the DataProvider LastFM"""
     def __init__(self, session, interactive, apikey):
         DataProvider.__init__(self, "Last.FM", SCORE_LASTFM,
                               session, interactive)
         self.apikey = apikey
-        self.methods = [self.__get_tags_artist,
-                        self.__get_tags_aartist,
-                        self.__get_tags_album]
 
     def __query(self, params, sparams=None):
         """Query Last.FM API"""
@@ -460,197 +468,172 @@ class LastFM(DataProvider):
         data = self._jsonapiquery('http://ws.audioscrobbler.com/2.0/',
                                   theparams, sparams)
         if 'error' in data:
-            raise DataProviderError(data.get('message'))
+            return None
         return data
 
     @classmethod
-    def __filter_tags(cls, album, tags):
+    def __filter_tags(cls, meta, tags):
         """Filter the tags from Last.FM"""
         # list of dict for multiple tags; single dict for just one tag
         if not isinstance(tags, list):
             tags = [tags]
         badtags = [  # be aware of fuzzy matching below when adding here
-            album.album.lower(), 'albums i own', 'amazing', 'awesome', 'cool',
-            'drjazzmrfunkmusic', 'epic', 'favorite albums', 'favorites',
-            'fettttttttttttttt', 'good', 'love', 'owned', 'seen live', 'sexy',
-            'television', 'z3po like this']
-        if album.artist:
-            badtags += album.artist.lower()
-        if album.aartist:
-            badtags += album.aartist.lower()
+            'albums i own', 'amazing', 'awesome', 'cool', 'drjazzmrfunkmusic',
+            'epic', 'favorite albums', 'favorites', 'fettttttttttttttt',
+            'good', 'love', 'owned', 'seen live', 'sexy', 'television',
+            'z3po like this']
+        for tag in ['artist', 'aartist', 'album']:
+            if meta.get(tag):
+                badtags += meta.get(tag).lower()
         return {tag['name']: int(tag['count']) for tag in tags if
                 not get_close_matches(tag['name'].lower(), badtags, 1)
                 and int(tag['count']) > 2}
 
-    def __get_artisttags(self, album, mbid, name):
-        """Gets the tags for an artist from Last.FM"""
-        if mbid:
-            OUT.verbose("  Using MBID: %s" % album.mbids.artist)
-            data = self.__query({'method': 'artist.gettoptags',
-                                 'mbid': mbid})
-        else:
-            data = self.__query({'method': 'artist.gettoptags'},
-                                {'artist': name})
-        if data.get('toptags') and data.get('toptags').get('tag'):
-            album.tags.addlist_count(self.__filter_tags(
-                album, data.get('toptags').get('tag')), self.multi)
-        else:
-            raise DataProviderError("No tags for artist found.")
+    def _get_data(self, meta, what):
+        """Get data from Last.FM"""
+        data = None
+        if what in ['artist', 'aartist']:
+            if meta.get('mbid' + what):
+                print_verbose("  Using %s-MBID: %s"
+                              % (what, meta.get('mbid' + what)))
+                data = self.__query({'method': 'artist.gettoptags',
+                                     'mbid': meta.get('mbid' + what)})
+            if not data:
+                data = self.__query({'method': 'artist.gettoptags'},
+                                    {'artist': meta.get(what)})
+        elif what is 'album':
+            for mbid in ['release', 'relgrp']:
+                if meta.get('mbid' + mbid) and not data:
+                    print_verbose("  Using %s-MBID: %s"
+                                  % (mbid, meta.get('mbid' + mbid)))
+                    data = self.__query({'method': 'album.gettoptags',
+                                         'mbid': meta.get('mbid' + mbid)}, {})
+            if not data:
+                data = self.__query({'method': 'album.gettoptags'},
+                                    {'album': meta.get('album'),
+                                     'artist': 'Various Artists' if
+                                     meta.get('is_va') else
+                                     meta.get('artist') or
+                                     meta.get('aartist') or ''})
 
-    def __get_tags_artist(self, album):
-        """Gets the tags for the artist from Last.FM"""
-        if album.artist:
-            OUT.verbose("  Artist search...")
-            self.__get_artisttags(album, album.mbids.artist, album.artist)
-
-    def __get_tags_aartist(self, album):
-        """Gets the tags for the album artist from Last.FM"""
-        if album.is_va and album.aartist:
-            OUT.verbose("  Albumartist search...")
-            self.__get_artisttags(album, album.mbids.aartist, album.aartist)
-
-    def __get_tags_album(self, album):
-        """Gets the tags for the album from Last.FM"""
-        OUT.verbose("  Album search...")
-        params = {'method': 'album.gettoptags'}
-        sparams = {}
-        if album.mbids.release:
-            OUT.verbose("  Using Release-MBID: %s" % album.mbids.release)
-            params.update({'mbid': album.mbids.release})
-        else:
-            sparams.update({'album': album.album})
-            if album.is_va:
-                params.update({'artist': 'Various Artists'})
-            else:
-                sparams.update({'artist': album.artist})
-        data = self.__query(params, sparams)
-        if data.get('toptags') and data.get('toptags').get('tag'):
-            album.tags.addlist_count(self.__filter_tags(
-                album, data.get('toptags').get('tag')), self.multi)
-        else:
-            raise DataProviderError("No tags for album found.")
+        if data and data.get('toptags') and data.get('toptags').get('tag'):
+            return [{'tags': self.__filter_tags
+                     (meta, data.get('toptags').get('tag'))}]
+        return None
 
 
 class MusicBrainz(DataProvider):
-    """There are some remedies worse than the disease.
-    TODO:
-    * assume albumid might be relgrpid if search as releaseid failed
-    * use normal search if search with mbid failed
-    * remove wrong mbids
-    * maybe identify artist by having a release named like the album
-    """
+    """There are some remedies worse than the disease."""
 
-    def __init__(self, session, interactive, cache):
+    def __init__(self, session, interactive):
         DataProvider.__init__(self, "MusicBrainz", SCORE_MBRAIN,
                               session, interactive)
         mb.set_useragent("whatlastgenre", __version__,
                          "http://github.com/YetAnotherNerd/whatlastgenre")
-        self.cache = cache
-        self.methods = [self.__get_tags_artist,
-                        self.__get_tags_aartist,
-                        self.__get_tags_album]
 
     @classmethod
     def __filter_tags(cls, tags):
         """Filter the tags from MusicBrainz"""
-        if tags:
-            return {tag['name']: int(tag['count']) for tag in tags}
+        return {tag['name']: int(tag['count']) for tag in tags or []}
 
-    def __get_artist(self, album, name, mbid):
-        """Gets artist data from MusicBrainz"""
-        cachedmbid = self.cache.get_mbarid(name)
-        if not mbid and cachedmbid:
-            OUT.verbose("  Using MBID from artistcache!")
-            mbid = cachedmbid
-        if mbid:
-            OUT.verbose("  Using MBID: %s" % mbid)
-            req = mb.get_artist_by_id(mbid, includes=['tags'])
-            data = req['artist'].get('tag-list')
-        else:
-            req = mb.search_artists(artist=self._searchstr(name))
-            data = req.get('artist-list', [])
-            if len(data) > 1:
-                data = [d for d in data if SequenceMatcher(
-                                None, name, d.get('name', '')).ratio() > .9]
-            if len(data) > 1 and self.interactive:
-                data = self._interactive(album.path, data, "%s (%s) [%s] "
-                    "[%s-%s]: http://musicbrainz.org/artist/%s", lambda x:
-                    (x.get('name'), x.get('type'), x.get('country', ''),
-                     x.get('life-span', {}).get('begin', '')[:4],
-                     x.get('life-span', {}).get('end', '')[:4],
-                     x.get('id')))
-            if len(data) > 1:
-                raise DataProviderError("Too many artist results: %d (use "
-                                        "--interactive)" % len(data))
-            elif len(data) == 1:
-                self.cache.add_mbarid(name, data[0].get('id'))
-                mbid = data[0].get('id')
-                data = data[0].get('tag-list')
-        if data:
-            album.tags.addlist_count(self.__filter_tags(data), self.multi)
-            return mbid
-        else:
-            return mbid
-            # FIXME: this exception can not happen
-            # raise DataProviderError("No tags for artist found.")
+    def _get_data(self, meta, what):
+        """Get data from MusicBrainz"""
+        data = None
+        if what in ['artist', 'aartist']:
+            # search by mbid
+            if meta.get('mbid' + what):
+                print_verbose("  Using %s-MBID: %s"
+                              % (what, meta.get('mbid' + what)))
+                req = mb.get_artist_by_id(meta.get('mbid' + what),
+                                          includes=['tags'])
+                if not req or not req.get('artist'):
+                    print_verbose("  %s not found, deleting invalid MBID"
+                                  % what)
+                    meta['mbid' + what] = None
+                else:
+                    return [{'tags': self.__filter_tags(req.get('artist').
+                                                        get('tag-list')),
+                             'mbid' + what: req.get('artist').get('id')}]
+            if not data:
+                req = mb.search_artists(artist=self._searchstr(meta.get(what)))
+                data = req.get('artist-list', [])
+                if len(data) > 1:
+                    data = [d for d in data if SequenceMatcher(None,
+                            meta.get(what), d.get('name', '')).ratio() > .9]
+                if len(data) > 1:
+                    tmp = []
+                    for dat in data:
+                        req = mb.get_artist_by_id(dat.get('id'),
+                                        includes=['tags', 'release-groups'])
+                        for rel in req.get('artist').get('release-group-list'):
+                            if SequenceMatcher(None, meta.get('album'),
+                                               rel.get('title')).ratio() > .9:
+                                tmp.append(dat)
+                                break
+                    if tmp:
+                        data = tmp
 
-    def __get_tags_artist(self, album):
-        """Gets the tags for the artist from MusicBrainz"""
-        if album.artist:
-            OUT.verbose("  Artist search...")
-            album.mbids.artist = self.__get_artist(album, album.artist,
-                                                   album.mbids.artist)
+            return [{'info': "%s (%s) [%s] [%s-%s]: http://musicbrainz.org"
+                     "/artist/%s"
+                     % (x.get('name'), x.get('type'), x.get('country', ''),
+                        x.get('life-span', {}).get('begin', '')[:4],
+                        x.get('life-span', {}).get('end', '')[:4],
+                        x.get('id')),
+                     'title': x.get('name', ''),
+                     'tags': self.__filter_tags(x.get('tag-list')),
+                     'mbid' + what: x.get('id')} for x in data]
 
-    def __get_tags_aartist(self, album):
-        """Gets the tags for the album artist from MusicBrainz"""
-        if album.is_va and album.aartist:
-            OUT.verbose("  Albumartist search...")
-            album.mbids.aartist = self.__get_artist(album, album.aartist,
-                                                    album.mbids.aartist)
+        elif what is 'album':
+            # search album by release mbid
+            if not meta.get('mbidrelgrp') and meta.get('mbidrelease'):
+                print_verbose("  Using release-MBID: %s"
+                              % meta.get("mbidrelease"))
+                req = mb.get_release_by_id(meta.get("mbidrelease"),
+                                           includes=['release-groups'])
+                if req and req.get('release'):
+                    meta['mbidrelgrp'] = req.get('release') \
+                                            .get('release-group').get('id')
+                else:
+                    print_verbose("  Release not found, deleting invalid MBID")
+                    meta['mbidrelease'] = None
 
-    def __get_tags_album(self, album):  # tags are in release-groups
-        """Gets the tags for the album from MusicBrainz"""
-        OUT.verbose("  Album search...")
+            # search album by release-group mbid
+            if meta.get('mbidrelgrp'):
+                print_verbose("  Using relgrp-MBID: %s"
+                              % meta.get('mbidrelgrp'))
+                req = mb.get_release_group_by_id(meta.get('mbidrelgrp'),
+                                                 includes=['tags'])
+                if req and req.get('release-group'):
+                    data = [req.get('release-group')]
+                else:
+                    print_verbose("  Rel-Grp not found, deleting invalid MBID")
+                    meta['mbidrelgrp'] = None
 
-        if not album.mbids.relgrp and album.mbids.release:
-            OUT.verbose("  Using Release-MBID: %s" % album.mbids.release)
-            req = mb.get_release_by_id(album.mbids.release,
-                                       includes=['release-groups'])
-            album.mbids.relgrp = req['release']['release-group'].get('id')
-        if album.mbids.relgrp:
-            OUT.verbose("  Using Rel-Grp-MBID: %s" % album.mbids.relgrp)
-            req = mb.get_release_group_by_id(album.mbids.relgrp,
-                                             includes=['tags'])
-            data = req['release-group'].get('tag-list')
-        else:
-            params = {'release': self._searchstr(album.album)}
-            arid = album.mbids.artist or album.mbids.aartist
-            if arid:
-                params.update({'arid': arid})
-            elif album.artist:
-                params.update({'artist': self._searchstr(album.artist)})
-            elif album.aartist:
-                params.update({'artist': self._searchstr(album.aartist)})
-            req = mb.search_release_groups(**params)
-            data = req.get('release-group-list', [])
-            if len(data) > 1:
-                data = [d for d in data if SequenceMatcher(
-                    None, album.album, d.get('title', '')).ratio() > .9]
-            if len(data) > 1 and self.interactive:
-                data = self._interactive(album.path, data, "%s - %s [%s]: "
-                    "http://musicbrainz.org/release-group/%s",
-                    lambda x: (x.get('artist-credit-phrase'), x.get('title'),
-                               x.get('type'), x.get('id')))
-            if len(data) > 1:
-                raise DataProviderError("Too many album results: %d (use "
-                                        "--interactive)" % len(data))
-            elif len(data) == 1:
-                album.mbids.relgrp = data[0].get('id')
-                data = data[0].get('tag-list')
-        if data:
-            album.tags.addlist_count(self.__filter_tags(data), self.multi)
-        else:
-            raise DataProviderError("No tags for album found.")
+            if not data:
+                params = {'release': self._searchstr(meta.get('album'))}
+                if meta.get('mbidartist') or meta.get('mbidaartist'):
+                    params.update({'arid':
+                                   meta.get('mbidartist') or
+                                   meta.get('mbidaartist')})
+                elif meta.get('artist') or meta.get('aartist'):
+                    params.update({'artist':
+                                   self._searchstr(meta.get('artist') or
+                                                   meta.get('aartist'))})
+                req = mb.search_release_groups(**params)
+                data = req.get('release-group-list', [])
+                if len(data) > 1:
+                    data = [d for d in data if SequenceMatcher(None, meta.
+                            get('album'), d.get('title', '')).ratio() > .9]
+
+            return [{'info': "%s - %s [%s]: http://musicbrainz.org"
+                     "/release-group/%s"
+                     % (x.get('artist-credit-phrase'), x.get('title'),
+                        x.get('type'), x.get('id')),
+                     'title': x.get('artist-credit-phrase', '') + ' - '
+                        + x.get('title', ''),
+                     'tags': self.__filter_tags(x.get('tag-list')),
+                     'mbidrelgrp': x.get('id')} for x in data]
+        return None
 
 
 class Discogs(DataProvider):
@@ -659,175 +642,28 @@ class Discogs(DataProvider):
     def __init__(self, session, interactive):
         DataProvider.__init__(self, "Discogs", SCORE_DISCOG,
                               session, interactive)
-        self.methods = [self.__get_tags]
 
     def __query(self, thetype, params):
         """Query Discogs API"""
         data = self._jsonapiquery('http://api.discogs.com/database/search',
                                   {'type': thetype}, params)
         if 'results' not in data:
-            raise DataProviderError("Response error.")
-        elif not data['results']:
-            raise DataProviderError("Nothing found.")
+            return None
         return data['results']
 
-    def __get_tags(self, album):
-        """Gets the tags from Discogs"""
-        OUT.verbose("  Album search...")
-        data = self.__query('master', {'q': album.album})
-        artist = album.artist
-        if album.is_va and album.aartist:
-            artist = album.aartist
-        if len(data) > 1 and artist:
-            data = [d for d in data if SequenceMatcher(None,
-                artist + " - " + album.album, d.get('title', '')).ratio() > .9]
-        if len(data) > 1 and album.year:
-            orgdata = data
-            for i in range(4):
-                data = [d for d in data if not d.get('year')
-                        or abs(album.year - int(d.get('year'))) <= i]
-                if data:
-                    break
-                data = orgdata
-        if len(data) > 1 and self.interactive:
-            data = self._interactive(
-                album.path, data, "%s [%s] (http://www.discogs.com/master/%s)",
-                lambda x: (x.get('title'), x.get('year'), x.get('id')))
-        if len(data) > 1:
-            raise DataProviderError("Too many album results: %d (use "
-                                    "--interactive)" % len(data))
-        elif (len(data) == 1 and ('style' in data[0] or 'genre' in data[0])):
-            tags = data[0].get('style', []) + data[0].get('genre', [])
-            album.tags.addlist_nocount(tags, self.multi)
-        else:
-            raise DataProviderError("No tags for album found.")
-
-ArtistCache = namedtuple('ArtistCache', 'mbarid')
-
-
-class Cache:
-    """Class for caching proccessed albums and userchoises (mbarids atm)."""
-    # FIXME: Rewrite this
-
-    def __init__(self, cachefile, enabled, dryrun):
-        self.cachefile_albums = cachefile + '_albums'
-        self.cachefile_artist = cachefile + '_artist'
-        self.enabled = enabled
-        self.dryrun = dryrun
-        self.albums = set()
-        self.artist = ArtistCache(mbarid=defaultdict(str))
-        try:
-            self.albums = pickle.load(open(self.cachefile_albums))
-        except (IOError, EOFError):
-            pickle.dump(self.albums, open(self.cachefile_albums, 'wb'))
-        try:
-            self.artist = pickle.load(open(self.cachefile_artist))
-        except (IOError, EOFError):
-            pickle.dump(self.artist, open(self.cachefile_artist, 'wb'))
-
-    def add_album(self, albumpath):
-        """Adds an album by path to the album cache. Saves the cache every time
-        in case the user aborts the script.
-        """
-        self.albums.add(albumpath)
-        if self.enabled and not self.dryrun:
-            pickle.dump(self.albums, open(self.cachefile_albums, 'wb'))
-
-    def is_album_cached(self, albumpath):
-        """Checks if an album is cached."""
-        return self.enabled and albumpath in self.albums
-
-    def add_mbarid(self, artist, mbarid):
-        """Adds an artist with mbrainzartistid to the artist cache. Saves the
-        cache every time in case the user aborts the script.
-        """
-        self.artist.mbarid.update({artist: mbarid})
-        if self.enabled:
-            pickle.dump(self.artist, open(self.cachefile_artist, 'wb'))
-
-    def get_mbarid(self, artist):
-        """Gets the cached mbarid for artist if available or None."""
-        return self.artist.mbarid.get(artist) if self.enabled else None
-
-
-class Stats:
-    """Class for collecting some statistics."""
-
-    def __init__(self):
-        self.__tags = defaultdict(int)
-        self.__starttime = time.time()
-
-    def add(self, tags):
-        """Add tag or increase count for it."""
-        for tag in tags:
-            self.__tags[tag] += 1
-
-    def printstats(self):
-        """Print out the statistics."""
-        print("Time elapsed: %s"
-              % datetime.timedelta(seconds=time.time() - self.__starttime))
-        tags = []
-        for tag, num in sorted(self.__tags.iteritems(),
-                               key=operator.itemgetter(1), reverse=True):
-            tags.append("%s: %d" % (tag, num))
-        if tags:
-            print("Tag statistics: %s\n" % ', '.join(tags))
-
-
-class Out:
-    """Class for handling output."""
-
-    def __init__(self, verbose=False, colors=False):
-        self.beverbose = verbose
-        self.usecolors = colors
-
-    def ___print(self, level, msg):
-        """Helper method to print out differnt message-levels"""
-        if not msg:
-            return
-        if self.usecolors:
-            if level is 'verbose':
-                print("\033[0;33m%s\033[0;m" % msg)
-            elif level is 'info':
-                print("\033[0;36m%s\033[0;m" % msg)
-            elif level is 'warning':
-                print("\033[1;35mWARNING:\033[0;35m %s\033[0;m" % msg)
-            elif level is 'error':
-                print("\033[1;31mERROR:\033[0;31m %s\033[0;m" % msg)
-            elif level is 'success':
-                print("\n\033[1;32mSUCCESS:\033[0;32m %s\033[0;m" % msg)
-            else:
-                print(msg)
-        else:
-            if level is 'warning':
-                print("WARNING: %s" % msg)
-            elif level is 'error':
-                print("ERROR: %s" % msg)
-            elif level is 'success':
-                print("\nSUCESS: %s" % msg)
-            else:
-                print(msg)
-
-    def verbose(self, msg):
-        """Prints verbose messages."""
-        if self.beverbose:
-            self.___print('verbose', msg)
-
-    def info(self, msg):
-        """Prints info messages."""
-        self.___print('info', msg)
-
-    def warning(self, msg):
-        """Prints warnings."""
-        self.___print('warning', msg)
-
-    def error(self, msg):
-        """Prints errors."""
-        self.___print('error', msg)
-
-    def success(self, msg):
-        """Prints sucess messages."""
-        self.___print('success', msg)
+    def _get_data(self, meta, what):
+        """Get data from Discogs"""
+        if what is 'album':
+            data = self.__query('master', {'q': (meta.get('artist') or
+                                                 meta.get('aartist') or '')
+                                           + ' ' + meta.get('album')})
+            return [{'info': "%s [%s]: http://www.discogs.com/master/%s"
+                     % (x.get('title'), x.get('year'), x.get('id')),
+                     'tags': x.get('style', []) + x.get('genre', []),
+                     'title': x.get('title', ''),
+                     'year': x.get('year')}
+                    for x in data]
+        return None
 
 
 def get_arguments():
@@ -850,8 +686,6 @@ def get_arguments():
     argparse.add_argument(
         '-m', '--tag-mbids', action='store_true', help='tag musicbrainz ids')
     argparse.add_argument(
-        '-b', '--use-colors', action='store_true', help='colorful output')
-    argparse.add_argument(
         '-c', '--use-cache', action='store_true',
         help='cache processed albums')
     argparse.add_argument(
@@ -872,7 +706,13 @@ def get_arguments():
     argparse.add_argument(
         '--cache', default=os.path.expanduser('~/.whatlastgenre/cache'),
         help='location of the cache')
-    return argparse.parse_args()
+
+    args = argparse.parse_args()
+    if (args.verbose):
+        global print_verbose
+        print_verbose = print
+
+    return args
 
 
 def get_configuration(configfile):
@@ -899,7 +739,7 @@ def get_configuration(configfile):
         config.set('genres', 'score_up', 'soundtrack')
         config.set('genres', 'score_down',
                    'electronic, alternative, indie, other, other')
-        config.set('genres', 'filters', 'country, label, year')
+        config.set('genres', 'filters', 'location, label, year')
         config.write(open(configfile, 'w'))
         print("Please edit the configuration file: %s" % configfile)
         sys.exit(2)
@@ -941,33 +781,30 @@ def get_tags_from_file(tagsfile):
 def validate(args, conf, tags):
     """Validates argument and config settings and fixes them if necessary."""
     if not (conf.whatcd_user and conf.whatcd_pass):
-        OUT.warning("No What.CD credentials specified. "
-                    "What.CD support disabled.\n")
+        print("No What.CD credentials specified. What.CD support disabled.\n")
         args.no_whatcd = True
     if (args.no_whatcd and args.no_lastfm and args.no_mbrainz
             and args.no_discogs):
-        OUT.error("Where do you want to get your data from?")
-        OUT.warning("At least one source must be activated "
-                    "(multiple sources recommended)!\n")
+        print("Where do you want to get your data from?\nAt least one source "
+              "must be activated (multiple sources recommended)!\n")
         sys.exit()
     if args.no_whatcd and args.tag_release:
-        OUT.warning("Can't tag release with What.CD support disabled. "
-                    "Release tagging disabled.\n")
+        print("Can't tag release with What.CD support disabled. "
+              "Release tagging disabled.\n")
         args.tag_release = False
     if args.no_mbrainz and args.tag_mbids:
-        OUT.warning("Can't tag MBIDs with MusicBrainz support disabled. "
-                    "MBIDs tagging disabled.\n")
+        print("Can't tag MBIDs with MusicBrainz support disabled. "
+              "MBIDs tagging disabled.\n")
         args.tag_mbids = False
     if args.dry_run and args.use_cache:
-        OUT.warning("Won't save album cache in dry-mode, "
-                    "but artist cache will be saved.\n")
+        print("Won't save cache in dry-mode.\n")
     if not tags or not tags.get('basictags'):
-        OUT.error("Got no basic tags from the tag.txt file.")
+        print("Got no basic tags from the tag.txt file.")
         sys.exit()
     for filt in conf.filters:
         if filt != 'year' and not tags.get('filter_' + filt):
-            OUT.warning("The filter you specified in your config has no [fil"
-                        "ter_%s] section with tags in the tags file.\n" % filt)
+            print("The filter you specified in your config has no [filter_%s] "
+                  "section with tags in the tags file.\n" % filt)
 
 
 def find_albums(paths):
@@ -985,27 +822,35 @@ def find_albums(paths):
 
 def main():
     """The main() ... nothing more, nothing less (shut up pylint) ;)"""
-
     args = get_arguments()
-    OUT.beverbose = args.verbose
-    OUT.usecolors = args.use_colors
     conf = get_configuration(args.config)
     basetags = get_tags_from_file('tags.txt')
-    validate(args, conf, basetags)
-
+    basetags.update({"_score_up": conf.score_up})
+    basetags.update({"_score_dn": conf.score_down})
     if conf.blacklist:
         conf.filters.append('blacklist')
         basetags.update({"filter_blacklist": conf.blacklist})
-    basetags.update({"_score_up": conf.score_up})
-    basetags.update({"_score_dn": conf.score_down})
+    validate(args, conf, basetags)
 
-    stats = Stats()
-    cache = Cache(args.cache, args.use_cache, args.dry_run)
+    albums = find_albums(args.path)
+    print("Found %d folders with possible albums!" % len(albums))
+    if len(albums) == 0:
+        sys.exit()
 
     dps = []
+    start = time.time()
+    stats = defaultdict(int)
+    cache = set()
+    errors = []
     session = requests.session()
+    genretags = GenreTags(basetags, args.tag_limit, conf.filters)
+    if args.use_cache:
+        try:
+            cache = pickle.load(open(args.cache))
+        except (IOError, EOFError):
+            pickle.dump(cache, open(args.cache, 'wb'))
     if not args.no_mbrainz:
-        dps.append(MusicBrainz(session, args.interactive, cache))
+        dps.append(MusicBrainz(session, args.interactive))
     if not args.no_lastfm:
         dps.append(LastFM(session, args.interactive,
                           "54bee5593b60d0a5bf379cedcad79052"))
@@ -1015,68 +860,69 @@ def main():
     if not args.no_discogs:
         dps.append(Discogs(session, args.interactive))
 
-    albums = find_albums(args.path)
-    errors = []
-    print("Found %d folders with possible albums!" % len(albums))
-    i = 0
-    for album in albums:
-        i = i + 1
-        if cache.is_album_cached(album):
-            print("Found %s (%d/%d) in cache, skipping..."
-                  % (album, i, len(albums)))
+    for i, (albumpath, albumext) in enumerate(albums.iteritems(), 1):
+
+        print("\n(%2d/%2d) [" % (i, len(albums)), end='')
+        for j in range(40):
+            print('#' if j < (i / len(albums) * 40) else '-', end='')
+        print("] %.1f%%" % (i / len(albums) * 100))
+
+        if os.path.abspath(albumpath) in cache:
+            print("Found %s-album in %s cached, skipping..."
+                  % (albumext, albumpath))
             continue
 
-        genretags = GenreTags(basetags, args.tag_limit, conf.filters)
-
-        print("\nGetting metadata for %s-album (%d/%d) in %s..."
-              % (albums[album], i, len(albums), album))
+        print("Loading metadata for %s-album in %s..."
+              % (albumext, albumpath))
         try:
-            album = Album(album, albums[album], genretags,
+            genretags.clear()
+            album = Album(albumpath, albumext, genretags,
                           ['release' if args.tag_release else None,
                            'mbids' if args.tag_mbids else None])
         except AlbumError as err:
-            OUT.error("Could not get album: %s" % err.message)
-            errors.append(album)
+            print(err.message)
+            errors.append(albumpath)
             continue
 
-        print("Getting tags for '%s / %s - %s'..." % ('VA' if album.is_va
-                                else album.artist, album.aartist, album.album))
+        print("Receiving tags for artist=%s, aartist=%s, album=%s%s..."
+              % (album.meta.get('artist'),
+                 album.meta.get('aartist'),
+                 album.meta.get('album'),
+                 ' (VA)' if album.meta.get('is_va') else ''))
         for dapr in dps:
-            OUT.verbose("%s..." % dapr.name)
+            print_verbose("%s..." % dapr.name)
             dapr.get_data(album)
-            OUT.verbose(album.tags.listgood())
+            print_verbose("Good Genres: %s" % ', '.join(["%s (%.2f)" % (k, v)
+                                            for k, v in genretags.get()]))
 
-        if args.tag_release and album.type:
-            print("Release type: %s" % album.type)
+        print(album)
+        for tag in genretags.get(scores=False, limited=True):
+            stats[tag] += 1
 
-        if args.tag_mbids:
-            print("MBIDs: artist=%s, aartist=%s, release=%s, relgrp=%s"
-                  % (album.mbids.artist, album.mbids.aartist,
-                     album.mbids.release, album.mbids.relgrp))
-
-        tags = album.tags.get()
-        if tags:
-            print("Genre tags: %s" % ', '.join(tags))
-            stats.add(tags)
+        if args.dry_run:
+            print("DRY-RUN! Not saving metadata or cache.")
         else:
-            print("No or not good enough tags found :-(")
-
-        if not args.dry_run:
             try:
+                print("Saving metadata...")
                 album.save()
             except AlbumError as err:
-                OUT.error("Could not save album: %s" % err.message)
-                errors.append(album)
-            else:
-                cache.add_album(album.path)
+                print("Could not save album: %s" % err.message)
+                errors.append(albumpath)
+                continue
+            if args.use_cache:
+                cache.add(os.path.abspath(albumpath))
+                pickle.dump(cache, open(args.cache, 'wb'))
 
-    OUT.success("...all done!\n")
-    stats.printstats()
+    print("\n...all done!\n")
+    print("Tag statistics: %s\n"
+          % ', '.join(["%s: %d" % (tag, num) for tag, num in sorted
+            (stats.iteritems(), key=operator.itemgetter(1), reverse=True)]))
+    print("Time elapsed: %s"
+          % datetime.timedelta(seconds=time.time() - start))
     if errors:
-        errors.sort()
-        print("Albums with errors:\n%s" % '\n'.join(errors))
+        print("\n%d Albums with errors:\n%s"
+              % (len(errors), '\n'.join(sorted(errors))))
 
 if __name__ == "__main__":
     print("whatlastgenre v%s\n" % __version__)
-    OUT = Out()
     main()
