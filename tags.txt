@@ -150,7 +150,21 @@ usa
 
 # filter sections
 
-[filter_country]
+
+[filter_label]
+4ad
+anticon
+blue note
+creative commons
+leftfield
+pretty lights
+pretty lights music
+ninja tune
+smalltown supersound
+tru thoughts
+
+[filter_location]
+atlanta
 afrcian
 africa
 america
@@ -160,6 +174,7 @@ australian
 austria
 austrian
 balkan
+belgian
 belgien
 berlin
 bristol
@@ -174,6 +189,8 @@ england
 english
 europe
 european
+finnish
+franais
 france
 french
 german
@@ -184,6 +201,8 @@ icelandic
 irish
 japan
 japanese
+los angeles
+minden
 new york
 new york city
 new zealand
@@ -192,6 +211,7 @@ norvgien
 norway
 norwegian
 nyc
+quebec
 roma
 stuttgart
 uk
@@ -201,20 +221,12 @@ us
 usa
 vienna
 
-[filter_label]
-4ad
-anticon
-blue note
-creative commons
-leftfield
-pretty lights
-pretty lights music
-ninja tune
-smalltown supersound
-tru thoughts
+[filter_whatcd]
+freely.available
+staff.picks
+vanity.house
 
 [filter_custom_example]
 ihatethistag
 shitty tag
 thistagiswrong
-
