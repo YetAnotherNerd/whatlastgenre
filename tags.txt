@@ -1,138 +1,139 @@
 # whatlastgenre basic tags and filter file
 #
-# [basictags]: list of required basic tags
-# [dontsplit]: tags that contain +, /, &, , or and but shouldn't get split 
+# [basictags]: list of basic tags to know the right diction
+# [dontsplit]: tags that contain &, +, /, , or and but shouldn't get split
+# [splitprefix]: prefix of tags that contain SPACE and should get split
 # [uppercase]: list of tags with length>2 which should be uppercase
 # [filters_<name>] sections:
 #   define your own filters by adding [filter_<name>] sections
 #   activate them by adding the name to the filters list in your config file
 # 	don't use this reserved names: blacklist, year
 #
-# all tags should be lowercase ([basictags] anycase)
+# all tags should be lowercase
 # empty lines and lines starting with # are ignored
 
 [basictags]
-Acapella
-Acid
-Acid Jazz
-Acid Punk
-Acoustic
-Avantgarde
-Ballad
-Bass
-Beats
-Bebob
-Big Band
-Black Metal
-Bluegrass
-Blues
-Booty Bass
-BritPop
-Cabaret
-Celtic
-Chamber Music
-Chanson
-Chillout
-Chorus
-Christian
-Classic Rock
-Classical
-Club
-Comedy
-Country
-Crossover
-Cult
-Dance
-Dance Hall
-Darkwave
-Death Metal
-Disco
-Downtempo
-Dream
-Drum & Bass
-Easy Listening
-Electro-Swing
-Electronic
-Ethnic
-Euro-Dance
-Euro-House
-Euro-Techno
-Fast Fusion
-Female Vocalist
-Folk
-Folk-Rock
-Freestyle
-Funk
-Fusion
-Future Jazz
-Gangsta
-German
-German Hip-Hop
-Goa
-Gospel
-Gothic
-Gothic Rock
-Grunge
-Hard Rock
-Hardcore
-Heavy Metal
-Hip-Hop
-House
-Indie
-Industrial
-Instrumental
-Jazz
-Jazz-Hop
-Jungle
-Latin
-Lo-Fi
-Meditative
-Metal
-Musical
-New Age
-New Wave
-Noise
-Oldies
-Opera
-Other
-Pop
-Progressive Rock
-Psychedelic
-Psychedelic Rock
-Punk
-Punk Rock
-Rap
-Rave
-Reggae
-Retro
-Revival
-Rhythm & Blues
-Rhythmic Soul
-Rock
-Rock & Roll
-Salsa
-Samba
-Ska
-Slow Jam
-Slow Rock
-Sonata
-Soul
-Soundtrack
-Southern Rock
-Space
-Speech
-Swing
-Symphonic Rock
-Symphony
-Synthpop
-Tango
-Tech-House
-Techno
-Thrash Metal
-Trance
-Tribal
-Trip-Hop
-Vocal
+acapella
+acid jazz
+acid punk
+acoustic
+alternative
+avantgarde
+ballad
+bass
+beats
+bebob
+big band
+black metal
+bluegrass
+blues
+booty bass
+britpop
+cabaret
+celtic
+chamber music
+chanson
+chillout
+chorus
+christian
+classic rock
+classical
+club
+comedy
+country
+crossover
+cult
+dance
+dance hall
+darkwave
+death metal
+disco
+downtempo
+dream
+easy listening
+electro-swing
+electronic
+ethnic
+euro-dance
+euro-house
+euro-techno
+fast fusion
+female vocalist
+folk
+folk rock
+freestyle
+funk
+fusion
+future jazz
+gangsta
+german
+german hip-hop
+goa
+gospel
+gothic
+gothic rock
+grunge
+hard rock
+hardcore
+heavy metal
+hip-hop
+house
+indie
+industrial
+instrumental
+jazz
+jazz-hop
+jpop
+jrock
+jska
+jungle
+latin
+lo-fi
+metal
+musical
+new age
+new wave
+noise
+oldies
+opera
+other
+pop
+progressive
+progressive rock
+psychedelic
+psychedelic rock
+punk
+punk rock
+rap
+rave
+reggae
+retro
+revival
+rhythmic soul
+rock
+salsa
+samba
+ska
+slow jam
+slow rock
+sonata
+soul
+soundtrack
+southern rock
+space
+speech
+swing
+symphonic rock
+symphony
+synthpop
+tango
+tech-house
+techno
+thrash metal
+trance
+tribal
+trip-hop
+vocal
 
 [dontsplit]
 drill & bass
@@ -141,15 +142,34 @@ rhythm & blues
 rock & roll
 stage & screen
 
+[splitprefix]
+acoustic
+alternative
+experimental
+folk
+gothic
+indie
+industrial
+instrumental
+pop
+progressive
+psychedelic
+punk
+uk
+
 [uppercase]
 ebm
 idm
 nyc
 usa
 
-
 # filter sections
 
+[filter_instruments]
+guitar
+piano
+trumpet
+vocal
 
 [filter_label]
 4ad
@@ -206,6 +226,7 @@ minden
 new york
 new york city
 new zealand
+nyc
 norvge
 norvgien
 norway
@@ -213,18 +234,16 @@ norwegian
 nyc
 quebec
 roma
+scandinavie
 stuttgart
+sweden
+swedish
 uk
 united kingdom
 united states
 us
 usa
 vienna
-
-[filter_whatcd]
-freely.available
-staff.picks
-vanity.house
 
 [filter_custom_example]
 ihatethistag
