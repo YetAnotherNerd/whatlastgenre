@@ -41,7 +41,7 @@ SCORE_SPLIT = 0.33
 SCORE_USER = 0.66
 
 
-__version__ = "0.1.10"
+__version__ = "0.1.11"
 
 
 print_verbose = lambda *a, **k: None
@@ -65,20 +65,21 @@ class GenreTags:
         # year related
         '^(19)?([3-9])[0-9](s|er)?$': '19\g<2>0s',
         '^(20)?([0-2])[0-9](s|er)?$': '20\g<2>0s',
-        'best of ([0-9]{2}){1,2}s?': 'charts',
+        'best.*of ([0-9]{2}){1,2}s?': 'charts',
         'top [0-9]{2,3}': 'charts',
         # abbreviation related
+        '^alt(ern)?\.?( |-)': 'alternative ',
+        '^prog(ess)?\.?( |-)': 'progressive ',
+        '^goth( |-|$)': 'gothic',
         'electro$': 'electronic',
+        'world ?music$': 'world',
         '(chill$|relax(ing)?)': 'chillout',
-        '^prog\.?( |-)': 'progressive ',
-        'goth( |-|$)': 'gothic',
         '^(ost|vgm|scores?)$': 'soundtrack',
         '^sci(ence)?( |-)?fi(ction)?$': 'science fiction',
         # country/language related
-        'deutsch(er | )?': 'german',
+        'deutsch(sprachig)?(er?)? ': 'german ',
         'liedermacher(in)?': 'singer-songwriter',
         # misc.
-        '^world ?music$': 'world',
         '^(movie|t(ele)?v(ision)?) ?(score|soundtrack)?$': 'soundtrack',
         'rapper': 'rap',
         ' and ': ' & ',
@@ -101,23 +102,19 @@ class GenreTags:
         """Resets the genre tags."""
         self.tags = defaultdict(float)
 
-    def add_tags(self, tags, meta, multi=1):
+    def add_tags(self, tags, multi=1):
         """Adds tags with counts and scoring based on count-ratio
         or without count and scoring based on amount."""
-        reg = re.compile('.*(' + '|'.join([DataProvider._searchstr(meta.get(t))
-                                        for t in ['artist', 'aartist', 'album']
-                                        if t in meta]) + ').*', re.I)
         if not tags:
             return
         if isinstance(tags, dict):
             top = max(1, max(tags.iteritems(), key=operator.itemgetter(1))[1])
             for name, count in tags.iteritems():
-                if not reg.match(name) and count > top * .1:
+                if count > top * .1:
                     self.add(name, count / top * multi)
         elif isinstance(tags, list):
             for name in tags:
-                if not reg.match(name):
-                    self.add(name, .85 ** (len(tags) - 1) * multi)
+                self.add(name, .85 ** (len(tags) - 1) * multi)
 
     def add(self, name, score):
         """Adds a genre tag with a given score."""
@@ -409,13 +406,14 @@ class DataProvider:
                                'mbidrelgrp', 'mbidrelease']:
                         album.meta[key] = val
             if 'tags' in data:
+                tags = self.__filter_tags(album, data.get('tags'))
                 print_verbose("%s: %s search found %d tags."
-                              % (self.name, part, len(data.get('tags'))))
+                              % (self.name, part, len(tags)))
                 multi = self.multi * SCORE_ARTIST if part != 'album' else 1
-                album.tags.add_tags(data.get('tags'), album.meta, multi)
+                album.tags.add_tags(tags, multi)
 
     def __filter_data(self, meta, data, part):
-        """Get data from a DataProvider (this should be overridden by DPs)"""
+        """Filters the data."""
         # filter by title
         if len(data) > 1 and part == 'album':
             for i in range(6):
@@ -440,6 +438,34 @@ class DataProvider:
             data = self._interactive(meta.get('album'), data)
         return data
 
+    def __filter_tags(self, album, tags):
+        """Filters the genre tags."""
+        badtags = []
+        # album metadata
+        for tag in ['artist', 'aartist', 'album']:
+            if tag in album.meta:
+                badtag = album.meta.get(tag)
+                for pat in ['[\(\[{].*[\)\]}]', '[^\w]', ' +']:
+                    badtag = re.sub(pat, ' ', badtag, re.I)
+                badtags.append(badtag)
+        # source specific
+        if isinstance(self, WhatCD):
+            badtags += album.tags.basetags.get('filter_whatcd', [])
+        elif isinstance(self, LastFM):
+            badtags += album.tags.basetags.get('filter_lastfm', [])
+        elif isinstance(self, MusicBrainz):
+            badtags += album.tags.basetags.get('filter_mbrain', [])
+        elif isinstance(self, Discogs):
+            badtags += album.tags.basetags.get('filter_discog', [])
+        # filter
+        rebad = re.compile('.*(' + '|'.join(badtags) + ').*', re.I)
+        if isinstance(tags, dict):
+            return {k: v for k, v in tags.iteritems() if not
+                    (rebad.match(k) or get_close_matches(k, badtags, 1))}
+        elif isinstance(tags, list):
+            return [k for k in tags if not
+                    (rebad.match(k) or get_close_matches(k, badtags, 1))]
+
 
 class DataProviderError(Exception):
     """If something went wrong with a DataProvider."""
@@ -459,7 +485,13 @@ class WhatCD(DataProvider):
         self.authkey = self.__query({'action': 'index'}).get('authkey')
 
     def __del__(self):
-        self.session.get("https://what.cd/logout.php?auth=%s" % self.authkey)
+        # bug with new requests version
+#        try:
+#            self.session.get("https://what.cd/logout.php?auth=%s"
+#                             % self.authkey)
+#        except requests.exceptions.TooManyRedirects:
+#            pass
+        pass
 
     def __query(self, params, sparams=None):
         """Query What.CD API"""
@@ -471,22 +503,15 @@ class WhatCD(DataProvider):
             return None
         return data['response']
 
-    @classmethod
-    def __filter_tags(cls, tags):  # (waiting on getting all tags with counts)
-        """Filter the tags from What.CD"""
-        badtags = ['freely.available', 'staff.picks', 'vanity.house']
-        if tags and isinstance(tags[0], dict):
-            return {tag['name'].replace('.', ' '): int(tag['count'])
-                    for tag in tags if tag['name'] not in badtags}
-        return [tag.replace('.', ' ') for tag in tags if tag not in badtags]
-
     def _get_data(self, meta, what):
         """Get data from What.CD"""
         if what in ['artist', 'aartist']:
             data = self.__query({'action': 'artist', 'id': 0},
                                 {'artistname': meta.get(what)})
             if data and data.get('tags'):
-                return [{'tags': self.__filter_tags(data.get('tags'))}]
+                return [{'tags': {tag['name'].replace('.', ' '):
+                                  int(tag['count'])
+                                  for tag in data.get('tags')}}]
         elif what == 'album':
             searchstr = meta.get('album') + ' ' + (
                         meta.get('artist') or meta.get('aartist') or '')
@@ -504,7 +529,7 @@ class WhatCD(DataProvider):
                                  d.get('groupYear'), d.get('releaseType'))),
                      'title': d.get('artist') + ' - ' + d.get('groupName'),
                      'releasetype': d.get('releaseType'),
-                     'tags': self.__filter_tags(d.get('tags')),
+                     'tags': [tag.replace('.', ' ') for tag in d.get('tags')],
                      'year': d.get('groupYear')} for d in data]
         return None
 
@@ -525,20 +550,6 @@ class LastFM(DataProvider):
         if 'error' in data:
             return None
         return data
-
-    @classmethod
-    def __filter_tags(cls, tags):
-        """Filter the tags from Last.FM"""
-        # list of dict for multiple tags; single dict for just one tag
-        if not isinstance(tags, list):
-            tags = [tags]
-        badtags = [  # be aware of matching below when adding here
-            'amazing', 'awesome', 'back to', 'cool$', 'drjazzmrfunkmusic',
-            'epic', 'favorite', 'fett', 'fuck', 'good', 'here', 'herre',
-            'like', 'love', 'own', 'radio', 'seen', 'sexy', 'television']
-        reg = re.compile('.*(' + '|'.join(badtags) + ').*', re.IGNORECASE)
-        return {tag['name']: int(tag['count']) for tag in tags
-                if not reg.match(tag['name']) and int(tag['count']) > 2}
 
     def _get_data(self, meta, what):
         """Get data from Last.FM"""
@@ -567,8 +578,11 @@ class LastFM(DataProvider):
                                      meta.get('aartist') or 'Various Artists'})
 
         if data and data.get('toptags') and data.get('toptags').get('tag'):
-            return [{'tags': self.__filter_tags
-                     (data.get('toptags').get('tag'))}]
+            tags = data.get('toptags').get('tag')
+            if not isinstance(tags, list):
+                tags = [tags]
+            return [{'tags': {tag['name']: int(tag['count']) for tag in tags
+                              if int(tag['count']) > 2}}]
         return None
 
 
@@ -580,13 +594,6 @@ class MusicBrainz(DataProvider):
                               session, interactive)
         mb.set_useragent("whatlastgenre", __version__,
                          "http://github.com/YetAnotherNerd/whatlastgenre")
-
-    @classmethod
-    def __filter_tags(cls, tags):
-        """Filter the tags from MusicBrainz"""
-        badtags = ['producer', 'production music']
-        return {tag['name']: int(tag['count']) for tag in tags or []
-                if tag['name'].lower() not in badtags}
 
     def _get_data(self, meta, what):
         """Get data from MusicBrainz"""
@@ -603,8 +610,8 @@ class MusicBrainz(DataProvider):
                                   % what)
                     meta['mbid' + what] = None
                 else:
-                    return [{'tags': self.__filter_tags(req.get('artist').
-                                                        get('tag-list')),
+                    return [{'tags': {tag['name']: int(tag['count']) for tag in
+                                      req.get('artist').get('tag-list', [])},
                              'mbid' + what: req.get('artist').get('id')}]
             if not data:
                 req = mb.search_artists(artist=self._searchstr(meta.get(what)))
@@ -632,7 +639,8 @@ class MusicBrainz(DataProvider):
                         x.get('life-span', {}).get('end', '')[:4],
                         x.get('id')),
                      'title': x.get('name', ''),
-                     'tags': self.__filter_tags(x.get('tag-list')),
+                     'tags': {tag['name']: int(tag['count']) for tag in
+                              x.get('tag-list', [])},
                      'mbid' + what: x.get('id')} for x in data]
 
         elif what == 'album':
@@ -683,7 +691,8 @@ class MusicBrainz(DataProvider):
                         x.get('type'), x.get('id')),
                      'title': x.get('artist-credit-phrase', '') + ' - '
                         + x.get('title', ''),
-                     'tags': self.__filter_tags(x.get('tag-list')),
+                     'tags': {tag['name']: int(tag['count']) for tag in
+                              x.get('tag-list', [])},
                      'mbidrelgrp': x.get('id')} for x in data]
         return None
 
