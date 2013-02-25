@@ -7,7 +7,8 @@
 # [filters_<name>] sections:
 #   define your own filters by adding [filter_<name>] sections
 #   activate them by adding the name to the filters list in your config file
-# 	don't use this reserved names: blacklist, year
+# 	don't use this reserved names:
+#	  whatcd, lastfm, mbrain, discog, blacklist, year
 #
 # all tags should be lowercase
 # empty lines and lines starting with # are ignored
@@ -145,6 +146,7 @@ stage & screen
 [splitprefix]
 acoustic
 alternative
+christian
 experimental
 folk
 gothic
@@ -163,7 +165,44 @@ idm
 nyc
 usa
 
-# filter sections
+## filter sections
+
+# source filters (regex + fuzzymatch)
+
+[filter_whatcd]
+freely available
+staff picks
+vanity house
+
+[filter_lastfm]
+amazing
+awesome
+back to
+cool$
+drjazzmrfunkmusic
+epic
+favorite
+fett
+fuck
+garbit
+good
+here
+like
+love
+own
+radio
+seen
+sexy
+television
+
+[filter_mbrain]
+producer
+production music
+sude
+
+[filter_discog]
+
+# predefined filters (exact match)
 
 [filter_instruments]
 guitar
@@ -205,10 +244,12 @@ canada
 canadien
 china
 chinese
+east coast
 england
 english
 europe
 european
+dirty south
 finnish
 franais
 france
@@ -244,8 +285,12 @@ united states
 us
 usa
 vienna
+welsh
+west coast
 
-[filter_custom_example]
+# custom filters (exact match)
+
+[filter_customexample]
 ihatethistag
 shitty tag
 thistagiswrong
