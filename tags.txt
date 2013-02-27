@@ -1,19 +1,22 @@
 # whatlastgenre basic tags and filter file
 #
-# [basictags]: list of basic tags to know the right diction
-# [dontsplit]: tags that contain &, +, /, , or and but shouldn't get split
-# [splitprefix]: prefix of tags that contain SPACE and should get split
-# [uppercase]: list of tags with length>2 which should be uppercase
+# [basictags]	list of basic tags to know the right diction
+# [dontsplit]	tags that contain &, +, /, , or and but shouldn't get split
+# [splitprefix]	prefixes of tags that contain SPACE and should get split,
+#					everything from filter_location is splitprefix too
+# [uppercase]	list of tags with length>2 which should be uppercase
+# [replace]		regex replacements: pattern~~replacement~~
 # [filters_<name>] sections:
-#   define your own filters by adding [filter_<name>] sections
+#	define your own filters by adding [filter_<name>] sections
 #   activate them by adding the name to the filters list in your config file
-# 	don't use this reserved names:
-#	  whatcd, lastfm, mbrain, discog, blacklist, year
+#   regular expressions: ^<filterline>$
+# 	don't use this reserved names: generic, blacklist, year
 #
 # all tags should be lowercase
 # empty lines and lines starting with # are ignored
 
 [basictags]
+8bit
 acapella
 acid jazz
 acid punk
@@ -34,7 +37,9 @@ cabaret
 celtic
 chamber music
 chanson
+charts
 chillout
+chiptune
 chorus
 christian
 classic rock
@@ -99,6 +104,7 @@ oldies
 opera
 other
 pop
+post-rock
 progressive
 progressive rock
 psychedelic
@@ -147,12 +153,14 @@ stage & screen
 acoustic
 alternative
 christian
+electronic
 experimental
 folk
 gothic
 indie
 industrial
 instrumental
+latin
 pop
 progressive
 psychedelic
@@ -162,135 +170,169 @@ uk
 [uppercase]
 ebm
 idm
+mpb
 nyc
 usa
+
+[replace]
+ and ~~ & ~~
+(h|tr)ip ?hop~~\g<1>ip-hop~~
+^(19)?([3-9])[0-9](s|er)?$~~19\g<2>0s~~
+^(20)?([0-2])[0-9](s|er)?$~~20\g<2>0s~~
+^([1-2][0-9])th century$~~\g<1>00s~~
+^(movie|t(ele)?v(ision)?) ?(score|soundtrack)?$~~soundtrack~~
+^(ost|vgm|scores?)$~~soundtrack~~
+^deutsch(sprachig)?(er?)? ~~german ~~
+^goth( |-|$)~~gothic~~
+^sci(ence)?( |-)?fi(ction)?$~~science fiction~~
+^singer(( |/)?songwriter)?$~~singer-songwriter~~
+^songwriter$~~singer-songwriter~~
+_~~-~~
+alt(ern)?\.?( |-)~~alternative ~~
+best.*of ([0-9]{2}){1,2}s?~~charts~~
+chill(ed)?$~~chillout~~
+d(rum)? ?(and|\'?n\'?|&) ?b(ass)?~~drum & bass~~
+drill ?(and|\'?n\'?|&)? ?bass~~drill & bass~~
+electro(nica)?( |$)~~electronic\g<2>~~
+female$~~female vocalist~~
+hard ?(and|\'?n\'?|&)? ?heavy~~hard & heavy~~
+liedermacher(in)?~~singer-songwriter~~
+lo ?fi~~lo-fi~~
+nu-(.+)~~nu \g<1>~~
+prog(ess)?\.?( |-)~~progressive ~~
+psytrace~~psychedelic trance~~
+r(hythm)? ?(and|\'?n\'?|&)? ?b(lues)?~~rhythm & blues~~
+rapper~~rap~~
+relax(ing)?$~~chillout~~
+rock ?(and|\'?n\'?|&)? ?roll~~rock & roll~~
+scratch~~turntablism~~
+stage ?(and|\'?n\'?|&)? ?screen~~stage & screen~~
+synth( |-)pop~~synthpop~~
+top [0-9]{2,3}~~charts~~
+world ?music$~~world~~
+
 
 ## filter sections
 
-# source filters (regex + fuzzymatch)
-
-[filter_whatcd]
-freely available
-staff picks
-vanity house
-
-[filter_lastfm]
-amazing
-awesome
-back to
-cool$
+[filter_generic]
+(.* )?my .*
+.*albums?.*
+.*check.*out.*
+.*fav(orites?)?.*
+.*good.*
+.*like.*
+.*live.*
+.*must ?have.*
+.*own.*
+.*radio.*
+.*recommended.*
+.*seen.*
+amazing.*
+awesome.*
+back to.*
+beautiful.*
+cd extra
+composi(er|t(eur|ion)).*
+cool
 drjazzmrfunkmusic
-epic
-favorite
-fett
-fuck
+epic.*
+fett.*
+freely available
+fuck.*
 garbit
-good
-here
-like
-love
-own
-radio
-seen
+happ(y|iness)
+loudness war
+love(ly)?.*
+nice.*
+produc(er|t(eur|ion)).*
+(re)?mix
 sexy
-television
-
-[filter_mbrain]
-producer
-production music
+staff picks
+standards?
+studio.*
 sude
-
-[filter_discog]
-
-# predefined filters (exact match)
+television
+todo.*
+vanity house
+wunschliste
 
 [filter_instruments]
+accordion
 guitar
 piano
 trumpet
+violin
 vocal
 
 [filter_label]
+.* records
+.*label.*
 4ad
+aaahh
 anticon
 blue note
 creative commons
+cup of tea
 leftfield
-pretty lights
-pretty lights music
 ninja tune
+pretty lights( music)?
 smalltown supersound
 tru thoughts
+warp
 
 [filter_location]
+(north|east|south|west)(ern)?.*
+african?
+america(na?)?
 atlanta
-afrcian
-africa
-america
-american
-australia
-australian
-austria
-austrian
+austr(al)?ian?
 balkan
-belgian
-belgien
+belgi((a|e)?n?|um)
 berlin
 bristol
-britain
-britannique
-british
-canada
-canadien
-china
-chinese
-east coast
-england
-english
-europe
-european
-dirty south
+brit(ain|annique|ish)
+canad(a|i(a|e)n)
+chin(a|ese)
+cuba(no?)?
+danish
+deutsch(land)?
+engl(and|ish)
+europe(an)?
 finnish
-franais
-france
-french
-german
-germany
+fr(an(ce|ais)|ench)?
+germany?
 hamburg
-iceland
-icelandic
+ibiza
+iceland(ic)?
+ire?lande?
 irish
-japan
-japanese
+irland(ais)?
+japan(ese)?
 los angeles
 minden
-new york
-new york city
+new york( city)?
 new zealand
-nyc
-norvge
-norvgien
-norway
-norwegian
-nyc
+norvg(e|ien)?
+norw(ay|egian)
+ny(c)?
+pol(and|ish)?
 quebec
 roma
+russian?
+san francisco
 scandinavie
+scott(ish|land)
+spa(in|nish)
 stuttgart
-sweden
-swedish
+swed(en|ish)
 uk
-united kingdom
-united states
-us
-usa
+united (kingdom|states)
+usa?
 vienna
 welsh
-west coast
-
-# custom filters (exact match)
 
 [filter_customexample]
 ihatethistag
 shitty tag
 thistagiswrong
+
