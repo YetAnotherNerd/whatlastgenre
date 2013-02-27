@@ -59,8 +59,8 @@ There is a score multiplier for modifying the score of the base tag from a tag
 that got split up, this enables you to decide whether to keep, prefer or ban
 the base tag. For example, lets say we have 'Alternative Rock' with a score of
 10. It will end up as Alternative with score 10, Rock with score 10, and
-Alternative Rock with score 10 * SCORE_SPLIT.
-So if you dont want to keep Alternative Rock, just set SCORE_SPLIT = 0. 
+Alternative Rock with score 10 * <splitscore>.
+So if you don't want to keep Alternative Rock, just set it to 0. 
 
 #### Artist score multiplier
 There is an extra multiplier for tags gathered by searching for artists to
@@ -70,10 +70,8 @@ enable multiple albums from one artist getting more equal tags.
 One can set a list of tags that will get a multiplier bonus. Consider this as
 some kind of "soft" white-/blacklist, where you can reduce the occurrence of
 hated or inaccurate tags without fully banning them.
+
 See Configuration for more details.
-
-You can adjust this multipliers at the beginning of the source code.
-
 If you have any ideas on improving this scoring, please let me know :)
 
 ## Installation
@@ -87,9 +85,7 @@ If you have any ideas on improving this scoring, please let me know :)
 
 ## Configuration
 
-An empty configuration file will be created on the first run. The score
-modifiers/multipliers for sources and score_{up,down} can be tuned in the
-source, but act with caution.
+An empty configuration file will be created on the first run.
 
 ### Example configuration file
 	[whatcd]
@@ -99,7 +95,16 @@ source, but act with caution.
 	blacklist = charts, composer, live, unknown
 	score_up = soundtrack
 	score_down = electronic, alternative, indie, other, other
-	filters = label, location, year
+	filters = instruments, label, location, year
+	[scores]
+	what.cd = 1.66
+	last.fm = 0.66
+	mbrainz = 1.00
+	discogs = 1.00
+	artists = 1.33
+	splitup = 0.33
+	userset = 0.66
+
 
 ### Configuration options explained
 
@@ -109,8 +114,7 @@ source, but act with caution.
 This should be considered as "soft" white-/blacklist where you can in-/decrease
 the occurrence of specific tags that you don't like or that are too inaccurate
 for you without fully banning them like with the blacklist option. Tags listed
-here will get an initial score offset and a score multiplier bonus of `+/-0.25`
-per default, to boost this even more, just mention them more then once.
+here will get a score bonus based on the configured multiplier.
 
 ##### filters
 Use this to activate filtering of specific tag groups from genres:
@@ -120,6 +124,41 @@ Use this to activate filtering of specific tag groups from genres:
 * create your own filter lists by adding filter sections to the tags.txt file
 
 Consider custom filter lists as large blacklists.
+
+#### scores section
+
+Be careful when adjusting the score multipliers, setting them out of a
+reasonable range may lead to unexpected results and bad tags. Don't set them
+to negative values!
+
+##### what.cd, last.fm, mbrainz, discogs
+
+Score multipliers for the different sources. Default 1.0, increase if you
+trust the tags from a source, lower if the source provides many inaccurate
+or personal tags. Should be between 0.5 and 2.0
+
+##### artists
+
+Score multiplier for tags found by artist/albumartist searches.
+This enables that multiple albums from one artist get more equal tags.
+* =0 is NOT recommended
+* <1 means prefer album tags
+* =1 means no difference between album and artist tags
+* >1 means prefer artist tags
+
+##### splitup
+
+Score multiplier for the "base"-tag of tags that got split up.
+* =0 means forget about the "base" tags
+* <1 means prefer splitted parts
+* =1 means handle them equally
+* >1 is not recommended
+better set it to 0.01 instead of 0 if you don't like the base tags
+
+##### userset
+
+`1+/-x` score multiplier for tags set in score_{up,down}
+
 
 ## Usage
 	  
