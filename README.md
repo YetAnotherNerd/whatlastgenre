@@ -1,25 +1,26 @@
 # whatlastgenre
 
-Improves genre metadata of audio files based on tags from various music-sites.
+Improves genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3
-* Supported music-sites: What, Last.FM, MusicBrainz, Discogs
+* Supported music sites: What, Last.FM, MusicBrainz, Discogs
 * Feature Overview
-	* Gets genre tags from various music sites and splits, merges, scores and
-	filters them.
+	* Gets genre tags from various music sites and merges, splits, filters and
+	scores them.
+		* Merges similar tags in different writings, eg.
+		DnB, D&B, Drum and Bass -> Drum & Bass
 		* Splitting by common separators, eg. Jazz+Funk -> Jazz, Funk;
 		Rock/Pop -> Rock, Pop; Jazz&Funk+Rock -> Jazz, Funk, Rock
 		* Splitting by space for common prefixes,
 		like Alternative, Progressive, etc. (see tags.txt)
-		* Merges similar tags in different writings,
-		eg. DnB, D&B, Drum and Bass -> Drum & Bass
+		* Filters them by personal preferences and preset or custom filters
 		* Scores them with different methods while taking personal
 		preferences into account
-		* Filters them by personal preferences and preset or custom filters
 	* Optional: writes release type (Album, EP, Anthology, ...) (from What)
 	* Optional: writes MusicBrainz IDs
 	* Optional: caches already proceeded albums to speed things up next time
 	* Makes use of MusicBrainz IDs when possible
+		* Recognizes and deletes invalid MBIDs.
 	* Interactive mode, especially for release types and mbids
 	(it's not guessing wrong data)
 		* Progressive fuzzy matching to reduce needed user input
@@ -27,12 +28,12 @@ Improves genre metadata of audio files based on tags from various music-sites.
 	* Dry-mode for safe testing
 
 ## How it works
-It scans through folders for albums and receives genre tags for this releases
-and their artists from different music-sites. The tags get scored and put
-together, then the best scored tags will be saved as genre metadata in the
-corresponding album tracks. If a tag is supplied from more then one source,
-their individual scores will be summed up. Equal tags in different writings
-will be merged together.
+It scans through folders for albums and receives genre tags for them and their
+artists from different music sites. The tags get merged, split up, filtered,
+scored and put together, then the best scored tags will be saved as genre
+metadata in the corresponding album tracks. If a tag is supplied from more
+then one source, their individual scores will be summed up. Equal tags in
+different writings will be merged together.
 
 ### Tags scoring with count (Last.FM, MusicBrainz, What partially)
 If counts are supplied for the tags, they will get scored by `count/topcount`,
@@ -85,17 +86,19 @@ If you have any ideas on improving this scoring, please let me know :)
 
 ## Configuration
 
-An empty configuration file will be created on the first run.
+An empty configuration file will be created on the first run. Make sure to
+check if your config file needs to be updated after installing a new version
+(although there shouldn't be much config file changes).
 
 ### Example configuration file
 	[whatcd]
 	username = whatusername
 	password = whatpassword
 	[genres]
-	blacklist = charts, composer, live, unknown
+	blacklist = charts, other, unknown
 	score_up = soundtrack
-	score_down = electronic, alternative, indie, other, other
-	filters = instruments, label, location, year
+	score_down = alternative, electronic, indie
+	filters = instrument, label, location, year
 	[scores]
 	what.cd = 1.66
 	last.fm = 0.66
@@ -118,18 +121,19 @@ here will get a score bonus based on the configured multiplier.
 
 ##### filters
 Use this to activate filtering of specific tag groups from genres:
+* instrument: filters instrument names, like guitar or piano
 * label: filters label names
 * location: filters country, city and nationality names
 * year: filters year tags, like 1980s
 * create your own filter lists by adding filter sections to the tags.txt file
 
-Consider custom filter lists as large blacklists.
+Consider custom filters as large blacklists.
 
 #### scores section
 
 Be careful when adjusting the score multipliers, setting them out of a
-reasonable range may lead to unexpected results and bad tags. Don't set them
-to negative values!
+reasonable range may lead to unexpected results and bad tags.
+Don't set them to negative values!
 
 ##### what.cd, last.fm, mbrainz, discogs
 
@@ -149,11 +153,11 @@ This enables that multiple albums from one artist get more equal tags.
 ##### splitup
 
 Score multiplier for the "base"-tag of tags that got split up.
-* =0 means forget about the "base" tags
-* <1 means prefer splitted parts
-* =1 means handle them equally
-* >1 is not recommended
-better set it to 0.01 instead of 0 if you don't like the base tags
+* =0: forget about the "base" tags
+* <1: prefer split parts
+* =1: handle them equally
+* >1: not recommended
+consider using 0.01 instead of 0 if you don't like the base tags
 
 ##### userset
 
@@ -192,7 +196,7 @@ should also enable interactive-mode (-i). Consider to save the mbids (-m) when
 not using --no-mbrainz, you searched for them, why not save them? ;)
 Think about using the cache feature (-c) if you have a large set of albums to
 speed up things next time. Disabling music-sites is not recommended, the more
-sources, the better tags.
+sources the better tags.
 
 ### Examples
 
@@ -204,9 +208,9 @@ Tag max. 3 genre tags for all albums in /home/user/music:
 
 	$ whatlastgenre.py -cl 3 /home/user/music
 
-To get the most of it for all albums in /media/music:
+To get the most of it for all albums in /home/user/music and /media/music:
 
-	$ whatlastgenre.py -cirml 5 /media/music
+	$ whatlastgenre.py -cirml 5 /home/user/music /media/music
 	
 Just tag release-types and mbids (this is not intended) on /media/music:
 
