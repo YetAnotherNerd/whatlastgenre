@@ -205,7 +205,7 @@ breaks~~breakbeat~~
 chill(e(d|n)| out)?( |$)~~chillout\g<3>~~
 classic( |$)~~classical\g<1>~~
 electronica~~electronic~~
-electro ?(.+)~~electronic \g<1>~~
+electro (.+)~~electronic \g<1>~~
 goth( |-)~~gothic~~
 jazzy~~jazz~~
 prog(ess)?\.?( |-)~~progressive ~~
