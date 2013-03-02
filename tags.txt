@@ -2,9 +2,8 @@
 #
 # [basictags]	list of basic tags to know the right diction
 # [uppercase]	list of tags with length>2 which should be uppercase
-# [dontsplit]	tags that contain separators but shouldn't get split
-# [splitprefix]	prefixes of tags that should get split up by space,
-#				everything on filter_* is splitprefix too
+# [dontsplit]	tags that contain & but shouldn't get split
+# [splitpart]	parts contained in tags that should get split up by space, some filters are splitpart too
 # [replace]		regex replacements: pattern~~replacement~~
 # [filters_<name>] sections:
 #	define your own filters by adding [filter_<name>] sections
@@ -143,6 +142,7 @@ ebm
 idm
 mpb
 nyc
+nyhc
 usa
 
 [dontsplit]
@@ -151,44 +151,66 @@ drum & bass
 rhythm & blues
 rock & roll
 stage & screen
+mushroom jazz
 
-[splitprefix]
+[splitpart]
 acoustic
 alternative
+atmospheric
+black
+brutal
+chaotic
 christian
-classic
+classical
+con(scious|temporary)
+cool
+dark
+death
+deep
+depressive?
+doom
 electronic
 experimental
 folk
+fre(ak|e)
+funeral
+future
+ganst(a|er)
 gothic
-indie
-industrial
+hard
+harsh
+ind(ie|ustrial)
 instrumental
 jazz
 latin
-melodic
+light
+mel(anchol|od)ic
+metal
+noise
 pop
+power
 progressive
 psychedelic
 punk
-traditional
-uk
+rhythmic
+romantic
+soft
+soulful
+space
+stoner
+tra(ditional|sh)
+uplifting
 
 [replace]
-# separators
--~~ ~~
-([_/,;\.\+\*]| and )~~&~~
-# tags by pre-/suffix
-([^ -]+)( |-)?(jazz|metal)~~\g<1> \g<3>~~
-([^ -]+)( |-)?hop~~\g<1>-hop~~
-(post|neo)( |-)?(.+)~~\g<1>-\g<3>~~
-j( |-)?(.+)~~j\g<2>~~
+# tags by affix
+([^ -]+)( |-|&)?(jazz|metal)~~\g<1> \g<3>~~
+([^ -]+)( |-|&)?hop~~\g<1>-hop~~
+(neo|post)( |-|&)?(.+)~~\g<1>-\g<3>~~
+euro( |-|&)?([^p][^e][^a].*)~~euro-\g<2>~~
+electr(o(nica?)?|ic)( |-|&)?(.*)~~electronic \g<4>~~
+goth(ic)?( |-|&)?(.*)~~gothic \g<3>~~
+j( |-|&)?(.+)~~j\g<2>~~
 nu( |-|&)(.+)~~nu \g<2>~~
-# tags with separators
-8( |-)?bit~~8bit~~
-^(singer( |&)?songwriter)$~~singer-songwriter~~
-^(singer|songwriter|lyricist|chanteur|parolier|liedermacher(in))$~~singer-songwriter~~
-lo ?fi~~lo-fi~~
 # tags with ampersands
 d(rum)? ?(and|'?n'?|&) ?b(ass)?~~drum & bass~~
 drill ?(and|'?n'?|&)? ?bass~~drill & bass~~
@@ -196,158 +218,249 @@ hard ?(and|'?n'?|&)? ?heavy~~hard & heavy~~
 r(hythm)? ?(and|'?n'?|&)? ?b(lues)?~~rhythm & blues~~
 rock ?(and|'?n'?|&)? ?roll~~rock & roll~~
 stage ?(and|'?n'?|&)? ?screen~~stage & screen~~
+# tags with other separators
+8( |-)?bit~~8bit~~
+^singer( |&)?songwriter$~~singer-songwriter~~
+avant( |-|&)garde~~avantgarde~~
+down( |-|&)tempo~~downtempo~~
+lo( |&)?fi~~lo-fi~~
+synth( |-|&)pop~~synthpop~~
 # abbreviation related
-((film|game|movie|t(ele)?v(ision)?|video) ?)?(ost|vgm|scores?|soundtracks?)~~soundtrack~~
-^female$~~female vocalist~~
-^male$~~male vocalist~~
+^(ost|vgm|scores?)$~~soundtrack~~
 alt(ern)?\.?( |-)~~alternative ~~
-breaks~~breakbeat~~
+beatboxing~~beatbox~~
 chill(e(d|n)| out)?( |$)~~chillout\g<3>~~
 classic( |$)~~classical\g<1>~~
-electronica~~electronic~~
-electro (.+)~~electronic \g<1>~~
-goth( |-)~~gothic~~
+independent~~indie~~
 jazzy~~jazz~~
-prog(ess)?\.?( |-)~~progressive ~~
+minimal ?electro(nic)?~~minimal~~
+progg?(ess)?\.?( |-)~~progressive ~~
 psy( |-)?trance~~psychedelic trance~~
 rapper~~rap~~
 sci(ence)?( |-)?fi(ction)?~~science fiction~~
+trad\.?( |-)~~traditional ~~
 world ?music~~world~~
-# year related
-.*best.*of( ([0-9]{2}){1,2}s?)?.*~~charts~~
+# charts / year related
+.*best.*of( ([0-9]{2}){1,2}'?s?)?.*~~charts~~
+.*top ?[0-9]{2,3}.*~~charts~~
 ^(19)?([3-9])[0-9]'?(s|er)?$~~19\g<2>0s~~
 ^(20)?([0-2])[0-9]'?(s|er)?$~~20\g<2>0s~~
 ^([1-2][0-9])th century$~~\g<1>00s~~
-# language related
-^deutsch(sprachig)?(er?)? ~~german ~~
 # other
-.*top [0-9]{2,3}.*~~charts~~
-relax(ing)?$~~chillout~~
+(cabaret|humour)~~comedy~~
+^(fem|m)ale( artists?)?$~~\g<1>ale vocalist~~
+^(film|game|movie|t(ele)?v(ision)?|video( ?game)?) ?(scores?|soundtracks?|music)$~~soundtrack~~
+^(singer|songwrit(er|ing)|lyricist|chanteur|parolier|liedermacher(in)|troubadour)$~~singer-songwriter~~
+^deutsch(sprachig)?(er?)? ~~german ~~
+br(eaks|oken ?beat)~~breakbeat~~
+relax(ed|i(ng|on))?$~~chillout~~
 scratch~~turntablism~~
-synth( |-)pop~~synthpop~~
 
 
 ## filter sections
 
 [filter_generic]
-((sa|hd|bonus).?)?cd( extra)?
+# dont surround with .* if its valid in combination with something else
 (.* )?my .*
 (e?tm|staff) picks
+(one|two|three|four|five|six|seven|eight|nine|ten)
 .* by .*
 .* is .*
 .* of .*
+.* on .*
 .* to .*
-.*(freely )?available.*
-.*(hidden|bonus|pregap).?track.*
-.*(re)?mix.*
+.*((bonus|hd|sa|top).?)?(cd|dis[ck])(.?(baby|extra))?.*
+.*((jan|febr)uary|march|april|may|ju(ne|ly)|august|(septem|octo|novem|decem)ber).*
+.*(autumn|sprint|summer|winter).*
+.*(hidden|bonus|pregap)?.?tracks?.*
+.*(morning|noon|afternoon|evening|night).*
+.*(re)?(mix|rip).*
+.*[0-9].*
 .*alb(ums?|en).*
-.*alles?.*
+.*all(es?)?.*
 .*amazing.*
+.*angry.*
+.*aor.*
+.*aquire.*
+.*artists?.*
 .*automod.*
+.*available.*
 .*awesome.*
-.*beach.*
-.*beautiful.*
+.*b.tch.*
+.*bea(ch|utiful).*
+.*beg[ai]nn?.*
 .*blaze.*
+.*bueno.*
+.*buy.*
 .*c64.*
-.*check.*out.*
+.*c[ao]vers?.*
+.*che(ese|ck).*
+.*collect(ed|ion)?.*
 .*composi?(er|t(eur|ion)).*
-.*cover.*
+.*cut.*
+.*damn.*
+.*deads.*
+.*digital.*
 .*dirty.*
-.*disc.*
-.*djs? .*
+.*djs?.*
 .*dopeness.*
 .*dr\.? .*
+.*eclectic.*
+.*emotional.*
 .*enfp.*
 .*epic.*
 .*ethereal.*
+.*every.*
+.*fading.*
+.*fantas(y|tic).*
 .*fav(orites?)?.*
+.*fear.*
 .*fett.*
-.*ficitonal.*
+.*fictional.*
+.*filth.*
+.*fm[0-9].*
 .*format.*
+.*fre(ely|i).*
 .*fuck.*
+.*fun.*
 .*gameboy.*
 .*garbit.*
-.*genre.*
-.*good.*
+.*gen(iu|re)s?.*
+.*girl.*
+.*goo?d.*
 .*great.*
-.*groove.*
+.*groov.*
+.*haengemattenmusik.*
 .*happ(y|iness).*
-.*international.*
+.*hidden.*
+.*high.*
+.*holiday.*
+.*i(book|mac|pod|phone|tunes).*
+.*insomnia.*
+.*inte(llegent|rnational).*
 .*invasion.*
 .*jewel.*case.*
+.*juicy.*
+.*keep.*
+.*kick.*
 .*languages.*
 .*laptop.*
 .*ldt.*
+.*library.*
 .*like.*
-.*listeners?.*
+.*listen(ers?)?
 .*live.*
 .*loudness war.*
 .*love(ly)?.*
+.*luvstep.*
 .*mbs.*
+.*mersey.*
+.*misc.*
+.*mood.*
+.*moviemeter.*
+.*mugge.*
 .*multiple.*
 .*musician.*
-.*must ?have.*
+.*must.*
+.*near.*
+.*nerds.*
+.*new re.*
 .*nice.*
+.*novely.*
+.*obsessive.*
 .*official*
+.*output.*
 .*own.*
-.*produc(er|t(eur|ion)).*
-.*purchased.*
+.*phantom.*
+.*place.*
+.*positive.*
+.*pro(duc(er|t(eur|ion))|ject).*
+.*purchase.*
+.*quiet.*
 .*radio.*
+.*rainy.*
 .*rec(ent|ommend|ord).*
-.*release.*
+.*rel(ated|ease).*
 .*remember.*
-.*romantic.*
-.*seen.*
+.*revival.*
+.*sad.*
+.*see[kn].*
 .*sexy.*
+.*shit.*
+.*sleep.*
+.*smart.*
+.*solo.*
 .*sound.*
 .*spotify.*
 .*standards?.*
+.*star.*
 .*streamable.*
-.*studio.*
+.*stud(io|y).*
 .*sude.*
-.*television
+.*test.*
+.*there.*
 .*time.*
 .*todo.*
-.*w(ish|unsch)liste?.*
+.*totec.*
+.*touch.*
+.*user.*
+.*vermiform.*
+.*vinyl.*
+.*visa.*
+.*w(ish|ant|unsch)liste?.*
+.*web.*
+.*ween.*
+.*weird.*
+.*winner.*
+.*wonky.*
 .*years?.*
+adult
+art
+band
+bass
+best
+brutal
+chaotic
 conscious
 cool
 dark
-ganst(a|er)
+death
+deep
+depressive
+doom
+dream
+freak
+free
+funeral
+fusion
+future
+game
+gangst(a|er)
+hard
+harsh
+jam
+light
+melancholic
+melodic
+modern
+movie
 music
+power
+rhythm
+rhythmic
+romantic
+smooth
 soft
-
-[filter_instrument]
-accordi?on(iste)?
-beatbox
-guitar(iste)?
-percussions?
-piano
-saxophone
-trumpet
-violin
-vocal
-
-[filter_label]
-.*label.*
-.*records.*
-4ad
-aaahh
-anticon
-bandcamp
-blue note
-creative commons
-cup of tea
-e[ck]topla[sz]m
-interscope
-left ?field( house)?
-ninja tune
-pretty lights( music)?
-saddle creek
-smalltown supersound
-tru thoughts
-vanity house
-warp
+soulful
+space
+stoner
+t(ele)?v(ision)?
+tape
+tempo
+top
+trash
+uplifting
+video
 
 [filter_location]
 (middle )?(north|east|south|west)(ern)?.*
@@ -356,64 +469,131 @@ ame?rica(in|na?)?
 atlanta
 austr(al)?ian?
 bakersfield
-balkan
+bal(earic|kan|timore)
 belgi([ae]?n?|um)
+bengalini
 berlin
 birmingham
 bra[sz]il(ian)?
-bristol
-brit(ain|annique|ish)
+bri(stol|t(ain|annique|ish))
+broadway
+brussel
 canad(a|i[ae]n)
-chicago
-chin(a|ese)
+chi(cago|n(a|ese))
 cuba(no?)?
+czech
 danish
+ddr
 denmark
 deutsch(land)?
+dutch
 engl(and|ish)
 europe(an)?
-finnish
-fr(an(ce|ais)|ench)?
+fin(land|nish)
+fr(an(c(e|ophone)|ais)|ench)?
 germany?
+glasgow
 gree(ce|k)
 hamburg
 ibiza
 iceland(ic)?
+indian?
 ir(ish|land(ais)?)
 ire?lande?
+israel
 ital(ian|y)
+jamaican?
 japan(ese)?
+korean?
 london
 los angeles
 manchester
 minden
-new (york( city)?|zealand)
-norvg(e|ien)?
-norw(ay|egian)
+new ?(hampshire|orleans|york( ?city)?|zealand)
+nor(eg|dic|ge|sk|vg(e|ien)?|w(ay|egian))
 nyc?
+oakland
 oxford
 paris
+pittsburgh
 pol(and|ish)?
 portland
 quebec
-roma
+roma(nian?)
 russ(ian?|o)
 san( .* )
-scandinavie
+scandinavi[ae]n?
 scott(ish|land)
 seattle
 spa(in|nish)
 stuttgart
-sverige
+sve(nsk(t|akrusbar)|rige)
 swed(en|ish)
 swiss
-uk
-united (kingdom|states)
+texas
+uk(rainian)?
+united ?(kingdom|states)
 usa?
 vienna
 welsh
 
+[filter_label]
+.*label.*
+.*records.*
+4ad
+aaahh
+anticon
+archaic ?horizon
+bandcamp
+beggars ?banquet
+blocsonic
+blue ?note
+bmg
+creative ?commons
+cup ?of ?tea
+e[ck]topla[sz]m
+eimsbush
+emi
+interscope
+left ?field( house)?
+ninja tune
+parlophone
+plytoteka
+pretty lights( music)?
+saddle ?creek
+sentrax
+shiny ?entertainment
+sic( ?music)?
+sleaze
+smalltown supersound
+soma( ?fm)?
+sony( ?bmg( ?music)?)?
+t(hree )?b(lind )?m(ice)?
+too ?poor
+tru ?thoughts
+vanity house
+warp
+
+[filter_instrument]
+accordi?on(iste)?
+beatbox
+computer
+computer ?synthesizer
+flute
+guitar(iste|s)?
+harp
+keyboard
+percussions?
+piano
+saxophone
+synthesizer
+trumpet
+violin
+vocal
+
+# custom filters
+
 [filter_customexample]
 ihatethistag
-shitty tag
+shittytag
 thistagiswrong
