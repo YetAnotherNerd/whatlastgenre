@@ -11,7 +11,7 @@ Improves genre metadata of audio files based on tags from various music sites.
 		DnB, D&B, Drum and Bass -> Drum & Bass
 		* Splitting by common separators, eg. Jazz+Funk -> Jazz, Funk;
 		Rock/Pop -> Rock, Pop; Jazz&Funk+Rock -> Jazz, Funk, Rock
-		* Splitting by space for common prefixes,
+		* Splitting by space if tag contains specific parts,
 		like Alternative, Progressive, etc. (see tags.txt)
 		* Filters them by personal preferences and preset or custom filters
 		* Scores them with different methods while taking personal
@@ -32,35 +32,35 @@ It scans through folders for albums and receives genre tags for them and their
 artists from different music sites. The tags get merged, split up, filtered,
 scored and put together, then the best scored tags will be saved as genre
 metadata in the corresponding album tracks. If a tag is supplied from more
-then one source, their individual scores will be summed up. Equal tags in
+then one source their individual scores will be summed up. Equal tags in
 different writings will be merged together.
 
 ### Tags scoring with count (Last.FM, MusicBrainz, What partially)
-If counts are supplied for the tags, they will get scored by `count/topcount`,
+If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
-tag gets a score of 1.0, a tag having only half of the top tag's count gets a
-score of 0.5 and so on. 
+tag gets a score of `1.0`, a tag having only half of the top tag's count gets
+a score of `0.5` and so on. 
 
 ### Tags scoring without count (Discogs, What partially)
 Tags supplied without a count will be scored `0.85^(n-1)`, where `n` is the
 total number of tags supplied by this source. The more tags the lower the
 score for each tag will be. So if only one tag is supplied, it will get a
-score of 1.0, two tags will get a score of 0.85 each, three get 0.72 each
-and so on...
+score of `1.0`, two tags will get a score of `0.85` each, three get `0.72`
+each and so on...
 
 ### Score multiplier/modifier
 
 #### Score multiplier for different sources
-Every source (What, Last.FM, MusicBrainz, Discogs) has its own score
-multiplier, so sources that generally provide higher quality tags can be given
-advantage over sources that often provide bad, inaccurate or personal tags.
+Every source has its own score multiplier, so sources that generally provide
+higher quality tags can be given advantage over sources that often provide
+bad, inaccurate or personal tags.
 
 #### Split score multiplier
 There is a score multiplier for modifying the score of the base tag from a tag
-that got split up, this enables you to decide whether to keep, prefer or ban
-the base tag. For example, lets say we have 'Alternative Rock' with a score of
-10. It will end up as Alternative with score 10, Rock with score 10, and
-Alternative Rock with score 10 * <splitscore>.
+that got split up by space, this enables you to decide whether to keep, prefer
+or ban the base tags. For example, lets say we have 'Alternative Rock' with a
+score of `1`. It will end up as Alternative with score `1`, Rock with score `1`
+and Alternative Rock with score `1 * <splitscore>`.
 So if you don't want to keep Alternative Rock, just set it to 0. 
 
 #### Artist score multiplier
@@ -77,12 +77,10 @@ If you have any ideas on improving this scoring, please let me know :)
 
 ## Installation
 
-	$ python setup.py install
+You'll need Python 2.7. Running the following should automatically install all
+needed dependencies (musicbrainzngs, mutagen, requests):
 
-### Dependencies
-* musicbrainzngs
-* mutagen
-* requests
+	$ python setup.py install
 
 ## Configuration
 
@@ -125,9 +123,8 @@ Use this to activate filtering of specific tag groups from genres:
 * label: filters label names
 * location: filters country, city and nationality names
 * year: filters year tags, like 1980s
-* create your own filter lists by adding filter sections to the tags.txt file
-
-Consider custom filters as large blacklists.
+* create your own filter lists by adding filter sections to the tags.txt file,
+consider them as large blacklists.
 
 #### scores section
 
@@ -137,27 +134,29 @@ Don't set them to negative values!
 
 ##### what.cd, last.fm, mbrainz, discogs
 
-Score multipliers for the different sources. Default 1.0, increase if you
+Score multipliers for the different sources. Default `1.0`, increase if you
 trust the tags from a source, lower if the source provides many inaccurate
-or personal tags. Should be between 0.5 and 2.0
+or personal tags. Should be between `0.5` and `2.0`
 
 ##### artists
 
 Score multiplier for tags found by artist/albumartist searches.
 This enables that multiple albums from one artist get more equal tags.
-* =0 is NOT recommended
-* <1 means prefer album tags
-* =1 means no difference between album and artist tags
-* >1 means prefer artist tags
+* `<0.5`: not recommended
+* `<1.0`: prefer album tags
+* `=1.0`: no difference between album and artist tags
+* `>1.0`: prefer artist tags
+* `>2.0`: not recommended
 
 ##### splitup
 
 Score multiplier for the "base"-tag of tags that got split up.
-* =0: forget about the "base" tags
-* <1: prefer split parts
-* =1: handle them equally
-* >1: not recommended
-consider using 0.01 instead of 0 if you don't like the base tags
+* `=0.0`: forget about the "base" tags
+* `<1.0`: prefer split parts
+* `=1.0`: handle them equally
+* `>1.0`: not recommended
+consider using `0.01` instead of `0` if you don't like the base tags to avoid
+banning them totally
 
 ##### userset
 
