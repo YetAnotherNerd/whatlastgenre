@@ -4,7 +4,7 @@ Improves genre metadata of audio files based on tags from various music sites.
 http://github.com/YetAnotherNerd/whatlastgenre"""
 
 from __future__ import division, print_function
-from ConfigParser import SafeConfigParser
+from ConfigParser import SafeConfigParser, NoSectionError, NoOptionError
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import namedtuple, defaultdict
 from datetime import timedelta
@@ -21,7 +21,7 @@ import re
 import requests
 import struct
 
-__version__ = "0.1.15"
+__version__ = "0.1.16"
 
 
 class GenreTags:
@@ -87,10 +87,10 @@ class GenreTags:
         if len(name) not in range(3, 21):
             return
         # replace
-        name = re.sub(r'([_/,;\.\+\*]| and )', '&', name, re.I)
-        name = re.sub('-', ' ', name, re.I).strip()
+        name = re.sub(r'([_/,;\.\+\*]| and )', '&', name, flags=re.I)
+        name = re.sub('-', ' ', name, flags=re.I).strip()
         for pat, rep in self.basetags['replace'].iteritems():
-            name = re.sub(pat, rep, name, re.I).strip()
+            name = re.sub(pat, rep, name, flags=re.I).strip()
         # split
         sep, tags = self.split(name)
         if sep:
@@ -185,7 +185,7 @@ class Album:
             if tag in self.meta:
                 badtag = self.meta[tag]
                 for pat in [r'[\(\[{].*[\)\]}]', r'[^\w]', ' +']:
-                    badtag = re.sub(pat, ' ', badtag, re.I)
+                    badtag = re.sub(pat, ' ', badtag, flags=re.I)
                 badtags.append(badtag)
                 if tag in ['artist', 'aartist'] and ' ' in badtag:
                     badtags += badtag.split(' ')
@@ -390,9 +390,9 @@ class DataProvider:
             for i in range(6):
                 title = ('Various Artist' if meta['is_va'] else
                          (meta.get('artist') or meta.get('aartist', ''))
-                         + ' - ' + meta['album'])
-                tmp = [d for d in data if SequenceMatcher
-                       (None, title, d['title']).ratio() > (10 - i) * 0.1]
+                         + ' - ' + meta['album']).lower()
+                tmp = [d for d in data if SequenceMatcher(None, title,
+                                d['title'].lower()).ratio() > (10 - i) * 0.1]
                 if tmp:
                     data = tmp
                     break
@@ -416,7 +416,7 @@ class DataProvider:
             return ''
         for pat in [r'[\(\[{].*[\)\]}]', r' (vol(ume|\.)?|and) ',
                     r'(:| -) .*', r' +']:
-            searchstr = re.sub(pat, ' ', searchstr, re.I).strip()
+            searchstr = re.sub(pat, ' ', searchstr, flags=re.I).strip()
         return searchstr
 
 
@@ -574,17 +574,18 @@ class MusicBrainz(DataProvider):
             req = mb.search_artists(artist=searchstr)
             data = req.get('artist-list', [])
             if len(data) > 1:
-                data = [d for d in data if SequenceMatcher(None,
-                        meta[what], d.get('name', '')).ratio() > .9]
-            if len(data) > 1:
+                data = [d for d in data if SequenceMatcher
+                        (None, meta[what].lower(),
+                         d.get('name', '').lower()).ratio() > .8]
+            if len(data) in range(2, 9):
                 # filter by looking at artist's release-groups
                 tmp = []
                 for dat in data:
                     req = mb.get_artist_by_id(dat['id'],
                                         includes=['tags', 'release-groups'])
                     for rel in req['artist']['release-group-list']:
-                        if SequenceMatcher(None, meta['album'],
-                                           rel['title']).ratio() > .9:
+                        if SequenceMatcher(None, meta['album'].lower(),
+                                        rel['title'].lower()).ratio() > .8:
                             tmp.append(dat)
                             break
                 if tmp:
@@ -638,7 +639,8 @@ class MusicBrainz(DataProvider):
             data = req.get('release-group-list', [])
             if len(data) > 1:
                 data = [d for d in data if 'title' in d and SequenceMatcher
-                        (None, meta['album'], d['title']).ratio() > .9]
+                        (None, meta['album'].lower(),
+                         d['title'].lower()).ratio() > .8]
         return [{'info': "%s - %s [%s]: http://musicbrainz.org"
                  "/release-group/%s"
                  % (x.get('artist-credit-phrase'), x.get('title'),
@@ -685,10 +687,6 @@ class Cache:
             pickle.dump(self.cache, open(self.file, 'wb'))
 
     def __del__(self):
-        self.save()
-
-    def save(self):
-        VPRINT("Saving cache...")
         pickle.dump(self.cache, open(self.file, 'wb'))
 
     def __init(self, dapr, what):
@@ -728,7 +726,7 @@ def get_arguments():
     argparse.add_argument(
         '-v', '--verbose', action='store_true', help='more detailed output')
     argparse.add_argument(
-        '-n', '--dry-run', action='store_true', help='don\'t save metadata')
+        '-n', '--dry', action='store_true', help='don\'t save metadata')
     argparse.add_argument(
         '-i', '--interactive', action='store_true', help='interactive mode')
     argparse.add_argument(
@@ -797,14 +795,19 @@ def get_configuration(configfile):
         exit(2)
 
     conf = namedtuple('conf', '')
-    conf.whatcd_user = config.get('whatcd', 'username')
-    conf.whatcd_pass = config.get('whatcd', 'password')
-    conf.blacklist = config_list(config.get('genres', 'blacklist'))
-    conf.score_up = config_list(config.get('genres', 'score_up'))
-    conf.score_down = config_list(config.get('genres', 'score_down'))
-    conf.filters = config_list(config.get('genres', 'filters'))
-    conf.scores = {k: config.getfloat("scores", k)
-                   for k, _ in config.items("scores")}
+    try:
+        conf.whatcd_user = config.get('whatcd', 'username')
+        conf.whatcd_pass = config.get('whatcd', 'password')
+        conf.blacklist = config_list(config.get('genres', 'blacklist'))
+        conf.score_up = config_list(config.get('genres', 'score_up'))
+        conf.score_down = config_list(config.get('genres', 'score_down'))
+        conf.filters = config_list(config.get('genres', 'filters'))
+        conf.scores = {k: config.getfloat("scores", k)
+                       for k, _ in config.items("scores")}
+    except (NoSectionError, NoOptionError):
+        print("Seems you are using an old config file. Please update it "
+              "manually or delete it to have it recreated.")
+        exit()
     return conf
 
 
@@ -840,14 +843,14 @@ def read_tagsfile(tagsfile):
 
 def validate(args, conf, tags):
     """Validates argument and config settings and fixes them if necessary."""
-    if not conf.whatcd_user or not conf.whatcd_pass:
-        print("No What.CD credentials specified. What.CD support disabled.\n")
-        args.no_whatcd = True
     if args.no_whatcd and args.no_lastfm and args.no_mbrainz and \
             args.no_discogs:
         print("Where do you want to get your data from?\nAt least one source "
-              "must be activated (multiple sources recommended)!\n")
+              "must be activated (multiple sources recommended)!")
         exit()
+    if not args.no_whatcd and (not conf.whatcd_user or not conf.whatcd_pass):
+        print("No What.CD credentials specified. What.CD support disabled.\n")
+        args.no_whatcd = True
     if args.no_whatcd and args.tag_release:
         print("Can't tag release with What support disabled. "
               "Release tagging disabled.\n")
@@ -856,13 +859,22 @@ def validate(args, conf, tags):
         print("Can't tag MBIDs with MusicBrainz support disabled. "
               "MBIDs tagging disabled.\n")
         args.tag_mbids = False
-    if not tags or 'basictags' not in tags:
-        print("Got no basic tags from the tag.txt file.")
+    if args.dry and (args.tag_release or args.tag_mbids):
+        print("Can't tag release or MBIDs in dry-mode. Both disabled.\n")
+        args.tag_release = False
+        args.tag_mbids = False
+    if not tags:
+        print("FATAL: Got no tags from the tag.txt file.")
         exit()
+    for tag in ['basictags', 'replace']:
+        if tag not in tags:
+            print("FATAL: Got no [%s] from the tag.txt file." % tag)
+            exit()
     for filt in conf.filters:
         if filt != 'year' and 'filter_' + filt not in tags:
             print("The filter '%s' you set in your config doesn't have a "
-                  "[filter_%s] section in the tags.txt file.\n" % (filt, filt))
+                  "[filter_%s] section in the tags.txt file." % (filt, filt))
+            exit()
 
 
 def find_albums(paths):
@@ -917,7 +929,7 @@ def handle_album(albumpath, albumext, dps, genretags, args):
         print("Genres (%d): %s" % (len(genretags.get()), ', '.join(genres)))
     else:
         print("No genres found :-(")
-    if args.dry_run:
+    if args.dry:
         print("DRY-RUN! Not saving metadata.")
     else:
         album.save(genres, args)
