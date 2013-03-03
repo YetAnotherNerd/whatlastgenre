@@ -16,9 +16,9 @@ Improves genre metadata of audio files based on tags from various music sites.
 		* Filters them by personal preferences and preset or custom filters
 		* Scores them with different methods while taking personal
 		preferences into account
+	* Caches all data received from music sites to make reruns super fast.
 	* Optional: writes release type (Album, EP, Anthology, ...) (from What)
 	* Optional: writes MusicBrainz IDs
-	* Optional: caches already proceeded albums to speed things up next time
 	* Makes use of MusicBrainz IDs when possible
 		* Recognizes and deletes invalid MBIDs.
 	* Interactive mode, especially for release types and mbids
@@ -165,9 +165,9 @@ banning them totally
 
 ## Usage
 	  
-	usage: whatlastgenre.py [-h] [-v] [-n] [-i] [-r] [-m] [-c] [-l N]
-	                        [--no-whatcd] [--no-lastfm] [--no-mbrainz]
-	                        [--no-discogs] [--config CONFIG] [--cache CACHE]
+	usage: whatlastgenre.py [-h] [-v] [-n] [-i] [-r] [-m] [-l N] [--no-whatcd]
+	                        [--no-lastfm] [--no-mbrainz] [--no-discogs]
+	                        [--config CONFIG] [--cache CACHE]
 	                        path [path ...]
 	
 	positional arguments:
@@ -180,7 +180,6 @@ banning them totally
 	  -i, --interactive    interactive mode (default: False)
 	  -r, --tag-release    tag release type (from What) (default: False)
 	  -m, --tag-mbids      tag musicbrainz ids (default: False)
-	  -c, --use-cache      cache processed albums (default: False)
 	  -l N, --tag-limit N  max. number of genre tags (default: 4)
 	  --no-whatcd          disable lookup on What (default: False)
 	  --no-lastfm          disable lookup on Last.FM (default: False)
@@ -193,9 +192,8 @@ banning them totally
 If you seriously want to tag release-types (-r) or musicbrainz-ids (-m) you
 should also enable interactive-mode (-i). Consider to save the mbids (-m) when
 not using --no-mbrainz, you searched for them, why not save them? ;)
-Think about using the cache feature (-c) if you have a large set of albums to
-speed up things next time. Disabling music-sites is not recommended, the more
-sources the better tags.
+Disabling music-sites is not recommended, the more sources the better tags.
+Cache can be cleaned by removing the cache file, default timeout is 7 days.
 
 ### Examples
 
@@ -205,15 +203,15 @@ Do a verbose dry-run on your albums in /home/user/music changing nothing:
 
 Tag max. 3 genre tags for all albums in /home/user/music:
 
-	$ whatlastgenre.py -cl 3 /home/user/music
+	$ whatlastgenre.py -l 3 /home/user/music
 
 To get the most of it for all albums in /home/user/music and /media/music:
 
-	$ whatlastgenre.py -cirml 5 /home/user/music /media/music
+	$ whatlastgenre.py -irml 5 /home/user/music /media/music
 	
 Just tag release-types and mbids (this is not intended) on /media/music:
 
-	$ whatlastgenre.py -cirml 0 --no-lastfm --no-discogs /media/music
+	$ whatlastgenre.py -irml 0 --no-lastfm --no-discogs /media/music
 
 
 ### Ended up with a tag that shouldn't be there?
