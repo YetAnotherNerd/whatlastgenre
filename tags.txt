@@ -318,6 +318,7 @@ scratch~~turntablism~~
 .*fett.*
 .*fictional.*
 .*filth.*
+.*flawless.*
 .*fm[0-9].*
 .*format.*
 .*fre(ely|i).*
@@ -339,6 +340,7 @@ scratch~~turntablism~~
 .*insomnia.*
 .*inte(llegent|rnational).*
 .*invasion.*
+.*jam band.*
 .*jewel.*case.*
 .*juicy.*
 .*keep.*
@@ -353,6 +355,7 @@ scratch~~turntablism~~
 .*loudness war.*
 .*love(ly)?.*
 .*luvstep.*
+.*masterpiece.*
 .*mbs.*
 .*mersey.*
 .*misc.*
@@ -383,6 +386,7 @@ scratch~~turntablism~~
 .*rel(ated|ease).*
 .*remember.*
 .*revival.*
+.*rules.*
 .*sad.*
 .*see[kn].*
 .*sexy.*
@@ -394,7 +398,7 @@ scratch~~turntablism~~
 .*spotify.*
 .*standards?.*
 .*star.*
-.*streamable.*
+.*stre(amable|ss).*
 .*stud(io|y).*
 .*sude.*
 .*test.*
@@ -475,7 +479,7 @@ bengalini
 berlin
 birmingham
 bra[sz]il(ian)?
-bri(stol|t(ain|annique|ish))
+bri(stol|t(ain|annique|ish)?)
 broadway
 brussel
 canad(a|i[ae]n)
@@ -500,7 +504,7 @@ iceland(ic)?
 indian?
 ir(ish|land(ais)?)
 ire?lande?
-israel
+israeli?
 ital(ian|y)
 jamaican?
 japan(ese)?
@@ -558,6 +562,7 @@ interscope
 left ?field( house)?
 ninja tune
 parlophone
+playhouse
 plytoteka
 pretty lights( music)?
 saddle ?creek
