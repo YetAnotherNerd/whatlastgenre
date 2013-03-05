@@ -16,12 +16,11 @@ Improves genre metadata of audio files based on tags from various music sites.
 		* Filters them by personal preferences and preset or custom filters
 		* Scores them with different methods while taking personal
 		preferences into account
-	* Caches all data received from music sites to make reruns super fast.
-	* Optional: writes release type (Album, EP, Anthology, ...) (from What)
-	* Optional: writes MusicBrainz IDs
-	* Makes use of MusicBrainz IDs when possible
-		* Recognizes and deletes invalid MBIDs.
-	* Interactive mode, especially for release types and mbids
+	* Caches all data received from music sites to make reruns super fast
+	* Makes use of MusicBrainz IDs when possible and recognizes invalid ones
+	* Optional: saves release type (Album, EP, Anthology, ...) (from What)
+	* Optional: saves MusicBrainz IDs
+	* Interactive mode, especially for release types and MBIDs
 	(it's not guessing wrong data)
 		* Progressive fuzzy matching to reduce needed user input
 		* eg. MusicBrainz: Tries to identify artists by looking at its albums 
@@ -29,11 +28,10 @@ Improves genre metadata of audio files based on tags from various music sites.
 
 ## How it works
 It scans through folders for albums and receives genre tags for them and their
-artists from different music sites. The tags get merged, split up, filtered,
-scored and put together, then the best scored tags will be saved as genre
-metadata in the corresponding album tracks. If a tag is supplied from more
-then one source their individual scores will be summed up. Equal tags in
-different writings will be merged together.
+artists from different music sites. Equal tags in different writings will be
+merged together. Tags containing seperators or specific parts will get split
+up. The tags get filtered, scored and put together, then the best scored tags
+will be saved as genre metadata in the corresponding album tracks.
 
 ### Tags scoring with count (Last.FM, MusicBrainz, What partially)
 If counts are supplied for the tags they will get scored by `count/topcount`,
@@ -60,8 +58,8 @@ There is a score multiplier for modifying the score of the base tag from a tag
 that got split up by space, this enables you to decide whether to keep, prefer
 or ban the base tags. For example, lets say we have 'Alternative Rock' with a
 score of `1`. It will end up as Alternative with score `1`, Rock with score `1`
-and Alternative Rock with score `1 * <splitscore>`.
-So if you don't want to keep Alternative Rock, just set it to 0. 
+and Alternative Rock with score `1 * <splitscore>`. So if you don't want to
+keep Alternative Rock, just set it to 0. 
 
 #### Artist score multiplier
 There is an extra multiplier for tags gathered by searching for artists to
@@ -74,6 +72,12 @@ hated or inaccurate tags without fully banning them.
 
 See Configuration for more details.
 If you have any ideas on improving this scoring, please let me know :)
+
+### Caching
+All data received from music sites will get cached after prefiltering so that
+rerunning the script will be super fast. The hardcoded cache timeout is 7 days.
+The cache gets saved to disk every 10 minutes and will get cleaned up at the
+end of the script. Remove the cache file to manually reset the cache.
 
 ## Installation
 
@@ -119,7 +123,7 @@ here will get a score bonus based on the configured multiplier.
 
 ##### filters
 Use this to activate filtering of specific tag groups from genres:
-* instrument: filters instrument names, like guitar or piano
+* instrument: filters instrument related names, like piano or guitarist
 * label: filters label names
 * location: filters country, city and nationality names
 * year: filters year tags, like 1980s
@@ -135,8 +139,10 @@ Don't set them to negative values!
 ##### what.cd, last.fm, mbrainz, discogs
 
 Score multipliers for the different sources. Default `1.0`, increase if you
-trust the tags from a source, lower if the source provides many inaccurate
-or personal tags. Should be between `0.5` and `2.0`
+trust the tags from a source, lower if the source provides many inaccurate or
+personal tags. Should be between `0.5` and `2.0`. If you dont want tags from a
+specific source you should use the --no-<source> commandline option instead of
+setting it to `0.0`.
 
 ##### artists
 
@@ -155,8 +161,8 @@ Score multiplier for the "base"-tag of tags that got split up.
 * `<1.0`: prefer split parts
 * `=1.0`: handle them equally
 * `>1.0`: not recommended
-consider using `0.01` instead of `0` if you don't like the base tags to avoid
-banning them totally
+Consider using a very small number instead of `0` if you don't like the base
+tags to avoid banning them totally.
 
 ##### userset
 
@@ -176,24 +182,27 @@ banning them totally
 	optional arguments:
 	  -h, --help           show this help message and exit
 	  -v, --verbose        more detailed output (default: False)
-	  -n, --dry-run        don't save metadata (default: False)
+	  -n, --dry            don't save metadata (default: False)
 	  -i, --interactive    interactive mode (default: False)
 	  -r, --tag-release    tag release type (from What) (default: False)
 	  -m, --tag-mbids      tag musicbrainz ids (default: False)
 	  -l N, --tag-limit N  max. number of genre tags (default: 4)
-	  --no-whatcd          disable lookup on What (default: False)
+	  --no-whatcd          disable lookup on What.CD (default: False)
 	  --no-lastfm          disable lookup on Last.FM (default: False)
-	  --no-mbrainz         disable lookup on MusicBrainz (default: False)
+	  --no-mbrainz         disable lookup on MBrainz (default: False)
 	  --no-discogs         disable lookup on Discogs (default: False)
 	  --config CONFIG      location of the configuration file (default: ~/.whatlastgenre/config)
-	  --cache CACHE        location of the cache (default: ~/.whatlastgenre/cache)
+	  --cache CACHE        location of the cache file (default: ~/.whatlastgenre/cache)
 
 
 If you seriously want to tag release-types (-r) or musicbrainz-ids (-m) you
-should also enable interactive-mode (-i). Consider to save the mbids (-m) when
+should also enable interactive mode (-i). Consider to save the mbids (-m) when
 not using --no-mbrainz, you searched for them, why not save them? ;)
 Disabling music-sites is not recommended, the more sources the better tags.
-Cache can be cleaned by removing the cache file, default timeout is 7 days.
+
+I recommend first doing a dry-run to fill the cache and then doing a normal
+run with interactivity enabled. This way you can answer all interactivity
+questions without much waiting time in between.
 
 ### Examples
 
@@ -208,20 +217,16 @@ Tag max. 3 genre tags for all albums in /home/user/music:
 To get the most of it for all albums in /home/user/music and /media/music:
 
 	$ whatlastgenre.py -irml 5 /home/user/music /media/music
-	
-Just tag release-types and mbids (this is not intended) on /media/music:
-
-	$ whatlastgenre.py -irml 0 --no-lastfm --no-discogs /media/music
 
 
 ### Ended up with a tag that shouldn't be there?
 
 * If it's an impartial correct tag, just use score_down or blacklist to get
 rid of it.
-* If it's a label or location tag that should have been filtered, please name
-it to me so i can add it to the tags.txt file (do it yourself until i did it).
+* If it's an instrument, label or location tag that should have been filtered,
+please name it to me so i can add it to the tags.txt file.
 * If the tag is personal, crappy or somehow else bad, just talk to me and i'll
-try to find out what's happening and improve the scoring.
+try to improve the scoring by adding it to the generic filter.
 
 ## How to help
 
@@ -229,9 +234,12 @@ Thanks for being interested in helping to improve it :)
 Things you can tell me about:
 * Tag that are similar but haven't been merged or naming inconsistencies,
 e.g. 'Trip Hop' <-> 'Trip-Hop'
-* Tags that doesn't get split but should, or do get split but shouldn't.
+* Tags that doesn't get split but should, or do get split but shouldn't
+* Tags that get filtered but shouldn't
+* If your unhappy with the tag results
 * Did i miss something in tags.txt?
-* If your unhappy with the tag results.
 * Any errors of course ;)
 
-I'm also happy for any other suggestions :)
+I'm also happy for any other kind of suggestions or just send me your tags
+statistics output for a `-nl 10`-run, i'll try to improve tags.txt with it. :)
+
