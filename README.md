@@ -2,7 +2,7 @@
 
 Improves genre metadata of audio files based on tags from various music sites.
 
-* Supported audio files: flac, ogg, mp3
+* Supported audio files: flac, ogg, mp3, m4a
 * Supported music sites: What, Last.FM, MusicBrainz, Discogs
 * Feature Overview
 	* Gets genre tags from various music sites and merges, splits, filters and
@@ -141,32 +141,32 @@ Don't set them to negative values!
 Score multipliers for the different sources. Default `1.0`, increase if you
 trust the tags from a source, lower if the source provides many inaccurate or
 personal tags. Should be between `0.5` and `2.0`. If you dont want tags from a
-specific source you should use the --no-<source> commandline option instead of
+specific source you should use the `--no-<source>` commandline option instead of
 setting it to `0.0`.
 
 ##### artists
 
 Score multiplier for tags found by artist/albumartist searches.
 This enables that multiple albums from one artist get more equal tags.
-* `<0.5`: not recommended
-* `<1.0`: prefer album tags
-* `=1.0`: no difference between album and artist tags
-* `>1.0`: prefer artist tags
-* `>2.0`: not recommended
+* `<0.5` not recommended
+* `<1.0` prefer album tags
+* `=1.0` no difference between album and artist tags
+* `>1.0` prefer artist tags
+* `>2.0` not recommended
 
 ##### splitup
 
 Score multiplier for the "base"-tag of tags that got split up.
-* `=0.0`: forget about the "base" tags
-* `<1.0`: prefer split parts
-* `=1.0`: handle them equally
-* `>1.0`: not recommended
+* `=0.0` forget about the "base" tags
+* `<1.0` prefer split parts
+* `=1.0` handle them equally
+* `>1.0` not recommended
 Consider using a very small number instead of `0` if you don't like the base
 tags to avoid banning them totally.
 
 ##### userset
 
-`1+/-x` score multiplier for tags set in score_{up,down}
+`1+x` score multiplier for tags set in score_up and `1-x` for tags in score_down
 
 
 ## Usage
