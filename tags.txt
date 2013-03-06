@@ -192,7 +192,8 @@ romantic
 so(ft|ulful)
 space
 stoner
-tra(ditional|sh)
+traditional
+thrash
 uplifting
 
 [replace]
@@ -244,12 +245,12 @@ trad\.?( |-)~~traditional ~~
 (cabaret|comedi(an|e)|humour|parod(ie|y))~~comedy~~
 ^(fem|m)ale( artists?)?$~~\g<1>ale vocalist~~
 ^(film|games?|movies?|t(ele)?v(ision)?|video(s| )?games?) ?(scores?|music)?$~~soundtrack~~
-^(singer|songwrit(er|ing)|lyricist|chanteur|parolier|liedermacher(in)|troubadour)$~~singer-songwriter~~
+^(singer|songwrit(er|ing)|lyricist|chanteur|parolier|liedermacher(in)?|troubadour)$~~singer-songwriter~~
 ^deutsch(sprachig)?(er?)? ~~german ~~
 br(eaks|oken ?beat)~~breakbeat~~
 relax(ed|i(ng|on))?$~~chillout~~
 scratch~~turntablism~~
-weihnacht(en)?~~christmas~~
+(weihnacht(en)?|x.?mas)~~christmas~~
 
 
 ## filter sections
@@ -285,6 +286,7 @@ har(d|sh)
 hrte
 hypnotic
 jam
+jese
 light
 los
 mel(anchol(i[ce]|y)|odic)
@@ -294,7 +296,9 @@ music
 neue?
 new
 non
+pie
 power
+repetto
 rhythm(ic)?
 romantic
 smooth
@@ -306,19 +310,20 @@ stoner
 t(ele)?v(ision)?
 tapes?
 tempo
+thug
 top
-trash
+thrash
 uplifting
 video( ?game)?s?
 
 [filter_generic_fuzzy]
 # like generic, but will be surrounded with .*
 ((bonus|hd|sa|top).?)?(blue.?ray|cd|dis[ck]|dvd)(.?(baby|extra))?
-((jan|febr)uary|march|april|may|june|july|august|(septem|octo|novem|decem)ber)
-()[ ](a|by|i[ns]|not|o[fn]|so|t(he|o)|up)[ ]
+((jan|febr)uary?|march|april|ma[iy]|jun[ei]|jul[iy]|august|(septem|o[ck]to|novem|de[cz]em)ber)
+()[ ](a|by|for|i[ns]|not|o[fn]|so|the|to|up)[ ]
 ()[0-9]
-(autumn|sprint|summer|winter)
-(morning|noon|after ?noon|evening|night)
+(autumn|herbst|spring|s[ou]mmer|winter)
+(abend|mor(gen|ning)|noon|after ?noon|nach ?mittag|evening|nacht|night)
 alb(um|en)
 all
 amazing
@@ -341,6 +346,7 @@ beg[ai]n
 blaze
 boo(m|tleg)
 boring
+bounce
 box ?set
 brood
 bueno
@@ -352,11 +358,13 @@ catch
 ccm
 che(ese|ck)
 child
+code
 colle(ct|ge)
-compos[iet]
+com(ic|pos[iet])
 conduct
 cut
 damn
+data
 dead
 design
 digital
@@ -391,21 +399,24 @@ fuck
 fun
 gameboy
 garbit
-gen(iu|re)
+gen(eral|iu|re)
 girl
 goo?d
+grammy
 great
 gro(ov|up)
-haengematte
+hae(ngematte|ven)
 happ[iy]
 hidden
 high
 holiday
+home
 hot
 i(book|mac|pod|phone|tunes)
+incredible
 initial
-insomnia
-inte(llegent|rnational|pol)
+ins(ane|omnia)
+inte(llegent|rnational|rview|pol)
 intim
 invasion
 issue
@@ -413,6 +424,7 @@ iveldie
 jam band
 jewel.*case
 juicy
+jugend
 keep
 kick
 languages
@@ -433,8 +445,10 @@ mbs
 memor[iy]
 mersey
 milestone
+mine
 misc
 mix
+mongo
 mood
 moviemeter
 mugge
@@ -451,12 +465,13 @@ official
 ofwgkta
 output
 own
-park
+par(k|ty)
 per(fect|manent)
 phantom
 picks
 pirate
 place
+podcast
 poet
 popular
 positiv
@@ -477,9 +492,12 @@ revival
 rip
 rules
 sad
+school
+schule
 secret ?agent
 see[kn]
 sega
+serie
 sex
 shit
 single
@@ -507,7 +525,9 @@ totec
 touch
 tra(ck|iler|p)
 twee
+unbekannt
 univers
+unknown
 user
 vermiform
 vinyl
@@ -534,21 +554,26 @@ ame?rica(in|na?)?
 arizona
 asi[ae]n?
 atlant(a|ic)
+athens?
 aus(sie|tr(al)?i(an?)?)
 bakersfield
 bal(earic|kan|timore)
+bavarian?
+bayern
 belgi([ae]n?|que|um)
 bengalini
 berlin
 birmingham
 boston
 bra[sz]il(ian)?
+bremen
 bri(stol|t(ain|annique|ish)?)
 bro(adway|oklyn)
 brussel
 california
 canad(a|i[ae]n)
-chi(cago|na|nese)
+caribbean
+chi(cago|le(an)|na|nese)
 cuba(no?)?
 czech
 danish
@@ -558,16 +583,18 @@ detroit
 deutsch
 dutch
 gothenburg
-engish
+english
 estonian?
 europ(a|e(an)?)
 finnish
 fr(ench)?
 fran(ce|cophone|c?ais)
+georgia
 germany?
 glasgow
 gree(ce|k)
 hamburg
+hebrew
 houston
 hungari(an)?
 ibiza
@@ -582,19 +609,25 @@ korean?
 london
 los ?angeles
 lyon
+lyric
 manchester
 melbourne
+miami
+michigan
 minden
+munich
 nashville
 new ?(hampshire|jersey|orleans|york( ?city)?)
 nor(eg|dic|ge|sk|vg(e|ien)?|way|wegian)
 nyc?
+ohio
 oxford
 paris
 pittsburgh
 pol(and|ish)?
 que?bec
-roma(nian?)
+rom[ae]
+romanian?
 russ(ian?|o)
 san( .* )
 scandinavi?[ae]n?
@@ -625,6 +658,7 @@ beggars ?banquet
 blocsonic
 blue ?note
 bmg
+border ?community
 creative ?commons
 cup ?of ?tea
 domino
@@ -635,6 +669,8 @@ emi
 gomma
 interscope
 left ?field( house)?
+marvel
+moving ?shadow
 ninja tune
 parlophone
 playhouse
@@ -659,6 +695,7 @@ accordi?on(iste)?
 beatbox
 clarinet
 computer( ?synthesizer)?
+didgeridoo
 drum(mer|s)?
 flute
 guitar(iste?|s)?
@@ -671,6 +708,7 @@ pian(ist|o)
 saxophone
 synthesizer
 trumpet
+vibraphone
 violin(ist)?
 vocal
 
