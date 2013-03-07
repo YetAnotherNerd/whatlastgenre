@@ -3,7 +3,7 @@
 Improves genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
-* Supported music sites: What, Last.FM, MusicBrainz, Discogs
+* Supported music sites: What, Last.FM, MusicBrainz, Discogs, Idiomag, EchoNest
 * Feature Overview
 	* Gets genre tags from various music sites and merges, splits, filters and
 	scores them.
@@ -33,13 +33,13 @@ merged together. Tags containing seperators or specific parts will get split
 up. The tags get filtered, scored and put together, then the best scored tags
 will be saved as genre metadata in the corresponding album tracks.
 
-### Tags scoring with count (Last.FM, MusicBrainz, What partially)
+### Tags scoring with count (Last.FM, MusicBrainz, Idiomag, What partially)
 If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of `1.0`, a tag having only half of the top tag's count gets
 a score of `0.5` and so on. 
 
-### Tags scoring without count (Discogs, What partially)
+### Tags scoring without count (Discogs, EchoNest, What partially)
 Tags supplied without a count will be scored `0.85^(n-1)`, where `n` is the
 total number of tags supplied by this source. The more tags the lower the
 score for each tag will be. So if only one tag is supplied, it will get a
@@ -61,10 +61,6 @@ score of `1`. It will end up as Alternative with score `1`, Rock with score `1`
 and Alternative Rock with score `1 * <splitscore>`. So if you don't want to
 keep Alternative Rock, just set it to 0. 
 
-#### Artist score multiplier
-There is an extra multiplier for tags gathered by searching for artists to
-enable multiple albums from one artist getting more equal tags.
-
 #### Personal score modifiers
 One can set a list of tags that will get a multiplier bonus. Consider this as
 some kind of "soft" white-/blacklist, where you can reduce the occurrence of
@@ -75,9 +71,10 @@ If you have any ideas on improving this scoring, please let me know :)
 
 ### Caching
 All data received from music sites will get cached after prefiltering so that
-rerunning the script will be super fast. The hardcoded cache timeout is 7 days.
-The cache gets saved to disk every 10 minutes and will get cleaned up at the
-end of the script. Remove the cache file to manually reset the cache.
+rerunning the script will be super fast. The cache timeout can be set in the
+configuration file. The cache gets saved to disk every 10 minutes and will get
+cleaned up at the end of the script. Use `-c` to ignore cache hits. Remove the
+cache file to manually reset the cache.
 
 ## Installation
 
@@ -93,9 +90,11 @@ check if your config file needs to be updated after installing a new version
 (although there shouldn't be much config file changes).
 
 ### Example configuration file
-	[whatcd]
-	username = whatusername
-	password = whatpassword
+	[wlg]
+	sources = whatcd, mbrainz, lastfm, discogs, idiomag, echonest
+	whatcduser = whatusername
+	whatcdpass = whatpassword
+	cachetimeout = 7
 	[genres]
 	blacklist = charts, other, unknown
 	score_up = soundtrack
@@ -106,22 +105,35 @@ check if your config file needs to be updated after installing a new version
 	last.fm = 0.66
 	mbrainz = 1.00
 	discogs = 1.00
-	artists = 1.33
+	idiomag = 1.00
+	echonest = 1.00
 	splitup = 0.33
 	userset = 0.66
 
 
 ### Configuration options explained
 
+#### whatlastgenre (wlg) section
+
+#### sources option
+The sources/music sites/data providers where to get the tags from.
+Possible values: whatcd, mbrainz, lastfm, discogs, idiomag, echonest
+Will be called in the order you named them, since lastfm supports search
+by MBIDs make sure to mention mbrainz before lastfm.
+Disabling music-sites is not recommended, the more sources the better tags.
+
+#### cachetimout option
+Time in days after which cache hits get invalid.
+
 #### genres section
 
-##### score_up, score_down option
+##### score_up, score_down options
 This should be considered as "soft" white-/blacklist where you can in-/decrease
 the occurrence of specific tags that you don't like or that are too inaccurate
 for you without fully banning them like with the blacklist option. Tags listed
 here will get a score bonus based on the configured multiplier.
 
-##### filters
+##### filters option
 Use this to activate filtering of specific tag groups from genres:
 * instrument: filters instrument related names, like piano or guitarist
 * label: filters label names
@@ -136,43 +148,33 @@ Be careful when adjusting the score multipliers, setting them out of a
 reasonable range may lead to unexpected results and bad tags.
 Don't set them to negative values!
 
-##### what.cd, last.fm, mbrainz, discogs
+##### what.cd, last.fm, mbrainz, discogs, idiomag, echonest options
 
 Score multipliers for the different sources. Default `1.0`, increase if you
 trust the tags from a source, lower if the source provides many inaccurate or
-personal tags. Should be between `0.5` and `2.0`. If you dont want tags from a
-specific source you should use the `--no-<source>` commandline option instead of
+personal tags. Should be between `0.5` and `2.0`. If you don't want tags from a
+specific source you should remove it from the sources list option instead of
 setting it to `0.0`.
 
-##### artists
-
-Score multiplier for tags found by artist/albumartist searches.
-This enables that multiple albums from one artist get more equal tags.
-* `<0.5` not recommended
-* `<1.0` prefer album tags
-* `=1.0` no difference between album and artist tags
-* `>1.0` prefer artist tags
-* `>2.0` not recommended
-
-##### splitup
+##### splitup option
 
 Score multiplier for the "base"-tag of tags that got split up.
 * `=0.0` forget about the "base" tags
 * `<1.0` prefer split parts
 * `=1.0` handle them equally
 * `>1.0` not recommended
+
 Consider using a very small number instead of `0` if you don't like the base
 tags to avoid banning them totally.
 
-##### userset
+##### userset option
 
 `1+x` score multiplier for tags set in score_up and `1-x` for tags in score_down
 
 
 ## Usage
 	  
-	usage: whatlastgenre.py [-h] [-v] [-n] [-i] [-r] [-m] [-l N] [--no-whatcd]
-	                        [--no-lastfm] [--no-mbrainz] [--no-discogs]
+	usage: whatlastgenre.py [-h] [-v] [-n] [-c] [-i] [-r] [-m] [-l N]
 	                        [--config CONFIG] [--cache CACHE]
 	                        path [path ...]
 	
@@ -183,22 +185,18 @@ tags to avoid banning them totally.
 	  -h, --help           show this help message and exit
 	  -v, --verbose        more detailed output (default: False)
 	  -n, --dry            don't save metadata (default: False)
+	  -c, --cacheignore    ignore cache hits (default: False)
 	  -i, --interactive    interactive mode (default: False)
 	  -r, --tag-release    tag release type (from What) (default: False)
 	  -m, --tag-mbids      tag musicbrainz ids (default: False)
 	  -l N, --tag-limit N  max. number of genre tags (default: 4)
-	  --no-whatcd          disable lookup on What.CD (default: False)
-	  --no-lastfm          disable lookup on Last.FM (default: False)
-	  --no-mbrainz         disable lookup on MBrainz (default: False)
-	  --no-discogs         disable lookup on Discogs (default: False)
 	  --config CONFIG      location of the configuration file (default: ~/.whatlastgenre/config)
 	  --cache CACHE        location of the cache file (default: ~/.whatlastgenre/cache)
 
 
 If you seriously want to tag release-types (-r) or musicbrainz-ids (-m) you
 should also enable interactive mode (-i). Consider to save the mbids (-m) when
-not using --no-mbrainz, you searched for them, why not save them? ;)
-Disabling music-sites is not recommended, the more sources the better tags.
+using mbrainz, you searched for them, why not save them? ;)
 
 I recommend first doing a dry-run to fill the cache and then doing a normal
 run with interactivity enabled. This way you can answer all interactivity
