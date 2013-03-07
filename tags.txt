@@ -1,4 +1,4 @@
-# whatlastgenre tags and filter file
+# whatlastgenre tags and filters file
 #
 # [basictags]	list of basic tags to know the right diction
 # [uppercase]	list of tags with length>2 which should be uppercase
@@ -150,10 +150,10 @@ usa
 (fe)?male vocalist
 drill & bass
 drum & bass
+mushroom jazz
 rhythm & blues
 rock & roll
 stage & screen
-mushroom jazz
 
 [splitpart]
 acoustic
@@ -181,6 +181,7 @@ jazz
 latin
 light
 me(l(anchol|od)ic|tal)
+minimal
 noise
 po(p|wer)
 progressive
@@ -192,8 +193,8 @@ romantic
 so(ft|ulful)
 space
 stoner
-traditional
 thrash
+traditional
 uplifting
 
 [replace]
@@ -243,14 +244,16 @@ sci(ence)?( |-)?fi(ction)?~~science fiction~~
 trad\.?( |-)~~traditional ~~
 # other
 (cabaret|comedi(an|e)|humour|parod(ie|y))~~comedy~~
+(weihnacht(en)?|x.?mas)~~christmas~~
 ^(fem|m)ale( artists?)?$~~\g<1>ale vocalist~~
 ^(film|games?|movies?|t(ele)?v(ision)?|video(s| )?games?) ?(scores?|music)?$~~soundtrack~~
 ^(singer|songwrit(er|ing)|lyricist|chanteur|parolier|liedermacher(in)?|troubadour)$~~singer-songwriter~~
 ^deutsch(sprachig)?(er?)? ~~german ~~
 br(eaks|oken ?beat)~~breakbeat~~
+mittelalter(lich)?~~medieval~~
 relax(ed|i(ng|on))?$~~chillout~~
 scratch~~turntablism~~
-(weihnacht(en)?|x.?mas)~~christmas~~
+unplug(ged)?~~acoustic~~
 
 
 ## filter sections
@@ -259,6 +262,7 @@ scratch~~turntablism~~
 (.* )?my .*
 (one|two|three|four|five|six|seven|eight|nine|ten)
 adult
+and
 art
 band
 bass
@@ -274,6 +278,7 @@ deep
 depressive
 doom
 dream
+easy
 euro
 films?
 fre(ak|e)
@@ -295,7 +300,10 @@ movies?
 music
 neue?
 new
+ninja
 non
+or
+pagan
 pie
 power
 repetto
@@ -310,9 +318,9 @@ stoner
 t(ele)?v(ision)?
 tapes?
 tempo
+th?rash
 thug
 top
-thrash
 uplifting
 video( ?game)?s?
 
@@ -320,10 +328,11 @@ video( ?game)?s?
 # like generic, but will be surrounded with .*
 ((bonus|hd|sa|top).?)?(blue.?ray|cd|dis[ck]|dvd)(.?(baby|extra))?
 ((jan|febr)uary?|march|april|ma[iy]|jun[ei]|jul[iy]|august|(septem|o[ck]to|novem|de[cz]em)ber)
-()[ ](a|by|for|i[ns]|not|o[fn]|so|the|to|up)[ ]
+()[ ](a|by|for|i[ns]?|not|o[fn]|so|the|to|up)[ ]
 ()[0-9]
-(autumn|herbst|spring|s[ou]mmer|winter)
+()[ck]ompa[ck]t
 (abend|mor(gen|ning)|noon|after ?noon|nach ?mittag|evening|nacht|night)
+(autumn|herbst|spring|s[ou]mmer|winter)
 alb(um|en)
 all
 amazing
@@ -360,7 +369,7 @@ che(ese|ck)
 child
 code
 colle(ct|ge)
-com(ic|pos[iet])
+com(ic|pil[ae]|pos[iet])
 conduct
 cut
 damn
@@ -392,17 +401,17 @@ fear
 fett
 fiction
 filth
+fine
 flawless
 format
 fre[ei]
 fuck
 fun
 gameboy
-garbit
-gen(eral|iu|re)
+gen(eral|iaa?l|iu|re)
 girl
 goo?d
-grammy
+gra(b|mmy)
 great
 gro(ov|up)
 hae(ngematte|ven)
@@ -416,15 +425,15 @@ i(book|mac|pod|phone|tunes)
 incredible
 initial
 ins(ane|omnia)
-inte(llegent|rnational|rview|pol)
+inte(ll[ei]gent|rnational|rview|pol)
 intim
 invasion
 issue
 iveldie
 jam band
 jewel.*case
+jug(al|end)
 juicy
-jugend
 keep
 kick
 languages
@@ -446,6 +455,7 @@ memor[iy]
 mersey
 milestone
 mine
+mirror
 misc
 mix
 mongo
@@ -476,7 +486,7 @@ poet
 popular
 positiv
 praise
-primary
+pri(mary|vat)
 pro(duc|je[ck])
 purchase
 pussy
@@ -492,6 +502,7 @@ revival
 rip
 rules
 sad
+sampl
 school
 schule
 secret ?agent
@@ -501,13 +512,16 @@ serie
 sex
 shit
 single
+slang
 sleep
 smart
 solo
 sound
 spirit
 spotify
+squeeze
 sta(ndard|r)
+stone(?!er)
 stre(am|ss)
 stud(io|y)
 styl
@@ -537,6 +551,7 @@ want
 web
 ween
 weird
+welcome
 winner
 wish
 wonky
@@ -549,12 +564,13 @@ yea[hr]
 (mid(dle)? ?)?(north|east|south|west)(ern| ?coast)?.*
 .*land(ais|e|ic)?
 .*ville
+Mmmphis
 african?
 ame?rica(in|na?)?
 arizona
 asi[ae]n?
-atlant(a|ic)
 athens?
+atlant(a|ic)
 aus(sie|tr(al)?i(an?)?)
 bakersfield
 bal(earic|kan|timore)
@@ -582,19 +598,21 @@ denmark
 detroit
 deutsch
 dutch
-gothenburg
 english
 estonian?
 europ(a|e(an)?)
 finnish
+florida
 fr(ench)?
 fran(ce|cophone|c?ais)
 georgia
 germany?
 glasgow
+gothenburg
 gree(ce|k)
 hamburg
 hebrew
+hertford
 houston
 hungari(an)?
 ibiza
@@ -605,11 +623,13 @@ israeli?
 ital(ian|y)
 jamaican?
 japan(ese)?
+ken[iy]an?
 korean?
 london
 los ?angeles
 lyon
 lyric
+madrid
 manchester
 melbourne
 miami
@@ -638,6 +658,7 @@ stuttgart
 sve(nsk(t|akrusbar)|rige)
 swed(en|ish)
 swiss
+sydney
 texas
 uk(rainian)?
 united ?(kingdom|states)
@@ -653,6 +674,7 @@ wisconsin
 aaahh
 anticon
 archaic ?horizon
+audiolith
 bandcamp
 beggars ?banquet
 blocsonic
@@ -692,7 +714,7 @@ warp
 
 [filter_instrument]
 accordi?on(iste)?
-beatbox
+beat.?box
 clarinet
 computer( ?synthesizer)?
 didgeridoo
