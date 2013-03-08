@@ -162,6 +162,7 @@ atmospheric
 black
 brutal
 ch(aotic|ristian)
+classic
 classical
 co(ol|n(scious|temporary))
 dark
@@ -203,7 +204,7 @@ uplifting
 ([^ -]+)( |-|&)?hop~~\g<1>-hop~~
 ([^ -]+)( |-|&)?musi[ck]~~\g<1>~~
 (neo|post)( |-|&)?(.+)~~\g<1>-\g<3>~~
-electr(o(nica?)?|ic)( |-|&)?(?!swing)(.*)~~electronic \g<4>~~
+elec[tr]{2}(o(nica?)?|ic)( |-|&)?(?!swing)(.*)~~electronic \g<4>~~
 euro( |-|&)?(?!p[ea]|pean)(.*)~~euro-\g<2>~~
 goth(ic)?( |-|&)?(?!enburg)(.*)~~gothic \g<3>~~
 j(apan(ese)?)?( |-|&)?(.+)~~j\g<4>~~
@@ -233,7 +234,6 @@ synth( |-|&)pop~~synthpop~~
 alt(ern)?\.?( |-)~~alternative ~~
 beatboxing~~beatbox~~
 chill(?!out)(e(d|n)|ing?|( |-|&)out( bar)?)?~~chillout~~
-classic(?!al)~~classical~~
 independent~~indie~~
 jazzy~~jazz~~
 minimal ?electro(nic)?~~minimal~~
@@ -269,6 +269,7 @@ bass
 best
 brutal
 chaotic
+classic
 coast
 conscious
 cool
@@ -293,6 +294,7 @@ hypnotic
 jam
 jese
 light
+listen(ers?)?
 los
 mel(anchol(i[ce]|y)|odic)
 mod(al|ern)?
@@ -434,6 +436,7 @@ jam band
 jewel.*case
 jug(al|end)
 juicy
+jukebox
 keep
 kick
 languages
@@ -470,6 +473,7 @@ nice
 nintendo
 noodle
 novely
+number
 obsessive
 official
 ofwgkta
@@ -501,17 +505,17 @@ remember
 revival
 rip
 rules
+rusbeh
 sad
 sampl
-school
-schule
+sch(merz|ool|ule)
 secret ?agent
 see[kn]
 sega
 serie
 sex
 shit
-single
+sing(en|le)
 slang
 sleep
 smart
@@ -531,7 +535,7 @@ surf
 swag
 teen
 test
-there
+the(me|re)
 throw
 time
 todo
@@ -552,6 +556,7 @@ web
 ween
 weird
 welcome
+wexp
 winner
 wish
 wonky
@@ -564,7 +569,6 @@ yea[hr]
 (mid(dle)? ?)?(north|east|south|west)(ern| ?coast)?.*
 .*land(ais|e|ic)?
 .*ville
-Mmmphis
 african?
 ame?rica(in|na?)?
 arizona
@@ -617,7 +621,7 @@ houston
 hungari(an)?
 ibiza
 indian?
-iran(ian?)?
+ira(ck?|n(ian?)?)
 irish
 israeli?
 ital(ian|y)
@@ -632,6 +636,7 @@ lyric
 madrid
 manchester
 melbourne
+memphis
 miami
 michigan
 minden
@@ -646,8 +651,7 @@ paris
 pittsburgh
 pol(and|ish)?
 que?bec
-rom[ae]
-romanian?
+rom[ae](nian?)?
 russ(ian?|o)
 san( .* )
 scandinavi?[ae]n?
