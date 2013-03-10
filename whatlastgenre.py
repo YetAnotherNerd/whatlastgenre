@@ -5,6 +5,7 @@ http://github.com/YetAnotherNerd/whatlastgenre'''
 
 from __future__ import division, print_function
 from collections import defaultdict
+from math import factorial as fac
 from requests.exceptions import ConnectionError, HTTPError
 import ConfigParser
 import argparse
@@ -21,45 +22,46 @@ import sys
 import time
 
 
-__version__ = "0.1.20"
+__version__ = "0.1.21"
 
 VPRINT = lambda *a, **k: None
 
 
 class GenreTags:
-    '''Class for managing the genre tags'''
+    '''Class for managing the genre tags.'''
 
     def __init__(self, basetags, scores, filters):
         self.basetags = basetags
         self.scores = scores
+        self.filters = ['album', 'blacklist', 'generic'] + filters
         self.tags = None
-        # matchlist
+        # fill matchlist
         self.matchlist = []
-        for taglist in ['basictags', 'love', 'hate', 'filter_blacklist']:
+        for taglist in ['basictags', 'filter_blacklist', 'hate', 'love']:
             self.matchlist += self.basetags.get(taglist, [])
-        # filters and regex
+        # compile filters and other regex
         self.regex = {}
-        self.filters = ['generic', 'generic_fuzzy', 'blacklist'] + filters
-        for fil in self.filters + ['dontsplit', 'splitpart']:
-            if fil == 'year':
-                pat = '([0-9]{2}){1,2}s?'
-            elif fil == 'generic_fuzzy':
-                pat = '.*(' + '|'.join(self.basetags['filter_' + fil]) + ').*'
-            elif 'filter_' + fil in self.basetags:
-                pat = '(' + '|'.join(self.basetags['filter_' + fil]) + ')'
+        for reg in [x for x in self.basetags if x.startswith('filter_')] \
+                + ['splitpart', 'dontsplit']:
+            if reg.endswith('_fuzzy'):
+                pat = '.*(' + '|'.join(self.basetags[reg]) + ').*'
+                reg = reg[:-6]
             else:
-                pat = '(' + '|'.join(self.basetags[fil]) + ')'
-            self.regex[fil] = re.compile(pat, re.I)
-        self.filters.append('album')
+                pat = '(' + '|'.join(self.basetags[reg]) + ')'
+            if len(pat) < 10:
+                if reg.startswith('filter_') and reg[7:] in self.filters:
+                    self.filters.remove(reg[7:])
+                continue
+            self.regex[reg] = re.compile(pat, re.I)
 
     def reset(self, albumfilter):
-        '''Resets the genre tags.'''
+        '''Resets the genre tags and album filter.'''
         self.tags = {'artist': defaultdict(float), 'album': defaultdict(float)}
-        self.regex['album'] = albumfilter
+        self.regex['filter_album'] = albumfilter
 
     def add_tags(self, tags, source, part):
-        '''Adds tags with counts and scoring based on count-ratio
-        or without count and scoring based on amount.'''
+        '''Adds tags with or without counts to a given part, scores them
+        while taking the source score multiplier into account.'''
         if not tags:
             return
         multi = self.scores.get('src_' + source, 1)
@@ -73,27 +75,31 @@ class GenreTags:
                 self.add(part, name, .85 ** (len(tags) - 1) * multi)
 
     def add(self, part, name, score):
-        '''Adds a genre tag with a given score.'''
-        name = name.encode('ascii', 'ignore').lower().strip()
-        # filter by length
-        if len(name) not in range(3, 21):
+        '''Adds a genre tag with a given score to a given part after doing
+        all the replace, split, filter, etc. magic.'''
+        name = name.encode('ascii', 'ignore').strip().lower()
+        # prefilter
+        if self.regex['filter_badtags'].match(name):
             return
         # replace
         name = re.sub(r'([_/,;\.\+\*]| and )', '&', name, 0, re.I)
-        name = re.sub('-', ' ', name, 0, re.I).strip()
-        for pat, rep in self.basetags['replace'].iteritems():
-            name = re.sub(pat, rep, name, 0, re.I).strip()
+        name = re.sub('-', ' ', name).strip()
+        for pat, rep in self.basetags['replaceme'].iteritems():
+            name = re.sub(pat, rep, name, 0, re.I)
+        name = re.sub(' +', ' ', name).strip()
         # split
-        tags, keep = self.split(name)
-        if len(tags) > 1:
+        tags, pscore, keep = self.split(name, score)
+        if tags:
             for tag in tags:
-                self.add(part, tag, score)
+                self.add(part, tag, pscore)
             if not keep:
                 return
             score *= self.scores['splitup']
         # filter
+        if len(name) not in range(3, 19) or score < 0.1:
+            return
         for fil in self.filters:
-            if self.regex[fil].match(name):
+            if self.regex['filter_' + fil].match(name):
                 return
         # matching existing tag (don't change cutoff, add replaces instead)
         mli = []
@@ -103,45 +109,49 @@ class GenreTags:
         if match:
             name = match[0]
         # score bonus
-        if name in self.basetags['love']:
-            score *= 1 + self.scores['personal']
-        elif name in self.basetags['hate']:
-            score *= 1 - self.scores['personal']
+        if name in self.basetags['love'] + self.basetags['hate']:
+            score *= 2 if name in self.basetags['love'] else 0.5
         # finally add it
         self.tags[part][name] += score
 
-    def split(self, name):
-        '''Split tag and return it parts and wheter to keep the base'''
-        name = name.strip()
+    def split(self, name, score):
+        '''Splits a tag, modifies the score of the parts if appropriate
+        and decided whether to keep the base tag or not.'''
         if self.regex['dontsplit'].match(name):
-            pass
-        elif '&' in name:
-            return name.split('&'), False
-        elif ' ' in name:
+            return None, None, True
+        if '&' in name:
+            return name.split('&'), score, False
+        if ' ' in name:
             split = name.split(' ')
-            for part in split:
-                if (self.regex['splitpart'].match(part) or
-                        self.regex['location'].match(part) or
-                        self.regex['instrument'].match(part)):
-                    for part in split:
-                        if self.regex['generic'].match(part):
-                            return [name], None
-                    return split, True
-        return [name], None
+            if len(split) > 2:  # length>2: split into all parts of length 2
+                tags = []
+                count = len(split)
+                for i in range(count):
+                    for j in range(i + 1, count):
+                        tags.append(split[i].strip() + ' ' + split[j].strip())
+                count = 0.5 * fac(count) / fac(count - 2)
+                return tags, score / count, False
+            elif any([self.regex['filter_instrument'].match(x) or
+                      self.regex['filter_location'].match(x) or
+                      self.regex['splitpart'].match(x) for x in split]):
+                return split, score, any([self.regex['filter_generic'].match(x)
+                                          for x in split])
+        return None, None, True
 
     def get(self):
-        '''Gets the tags, merges artist and album tags.'''
+        '''Gets the tags after merging artist and album tags and formatting.'''
         tags = defaultdict(float)
         # merge artist and album tags
         for part, ptags in self.tags.iteritems():
             VPRINT("Best %s tags (%d): %s" % (part, len(ptags), ', '.join([
-                    "%s (%.2f)" % (self.format(k), v) for k, v in sorted(ptags.
-                    iteritems(), key=lambda (k, v): (v, k), reverse=1)][:10])))
+                   "%s (%.2f)" % (self.format(k), v) for k, v in sorted(ptags.
+                   iteritems(), key=lambda (k, v): (v, k), reverse=1)][:10])))
             if ptags:
                 top = max(1, max(ptags.itervalues()))
                 multi = self.scores['artist'] if part == 'artist' else 1
                 for tag, score in ptags.iteritems():
                     tags[tag] += (score / top) * multi
+        # format and sort
         tags = {self.format(k): v for k, v in tags.iteritems()}
         return sorted(tags, key=tags.get, reverse=True)
 
@@ -154,9 +164,6 @@ class GenreTags:
                 split[i] = split[i].upper()
             elif re.match('[0-9]{4}s', name, re.I):
                 split[i] = split[i].lower()
-            elif split[i][0] in ['j', 'k'] and \
-                    split[i][1:] in self.basetags['basictags']:
-                split[i] = split[i][0].upper() + split[i][1:].title()
             else:
                 split[i] = split[i].title()
         return ' '.join(split)
@@ -195,7 +202,7 @@ class Album:
                                 r'[\W\d]', r'(vol(ume)?|and|the|feat)',
                                 r'(\.\*)+']:
                         badtag = re.sub(pat, '.*', badtag, 0, re.I).strip()
-                    badtag = re.sub('(^\.\*|\.\*$)', '', badtag, 0, re.I)
+                    badtag = re.sub(r'(^\.\*|\.\*$)', '', badtag, 0, re.I)
                     if len(badtag) > 2:
                         badtags.append(badtag.strip().lower())
         self.filter = re.compile('.*(' + '|'.join(badtags) + ').*', re.I)
@@ -229,7 +236,7 @@ class Album:
             metadata[tag].append(value)
 
     def __handle_metadata(self, metadata):
-        '''Understands, validates and saves the metadata.'''
+        '''Understands, validates and stores the metadata.'''
         for tag, tlist in metadata.iteritems():
             num = len(set(tlist))
             if num > 1 and tag in ['album', 'mbidrelease', 'mbidrelgrp']:
@@ -267,33 +274,38 @@ class Album:
         return substr
 
     def save_metadata(self, genres, args):
-        '''Saves the metadata to the tracks.'''
-
+        '''Saves the metadata to all tracks.'''
         if args.dry:
             print("DRY-RUN! Not saving metadata.")
             return
-
-        print("Saving metadata...")
+        print("Saving metadata... ", end='')
+        gdirty = False
         for track in self.tracks:
+            dirty = False
             try:
                 meta = mutagen.File(os.path.join(self.path, track), easy=True)
-                self.__set_meta(meta, 'genre', genres)
+                dirty = self.__set_meta(meta, 'genre', genres, dirty)
                 if args.tag_release and 'releasetype' in self.meta:
-                    self.__set_meta(meta, 'releasetype',
-                                    self.meta['releasetype'])
+                    dirty = self.__set_meta(meta, 'releasetype',
+                                            self.meta['releasetype'], dirty)
                 if args.tag_mbids:
-                    for key, val in {'mbidartist': 'musicbrainz_artistid',
+                    for key, val in {
+                            'mbidartist': 'musicbrainz_artistid',
                             'mbidaartist': 'musicbrainz_albumartistid',
                             'mbidrelgrp': 'musicbrainz_releasegroupid',
                             'mbidrelease': 'musicbrainz_albumid'}.iteritems():
                         if key in self.meta:
-                            self.__set_meta(meta, val, self.meta[key])
-                meta.save()
+                            dirty = self.__set_meta(meta, val, self.meta[key],
+                                                    dirty)
+                if dirty:
+                    gdirty = True
+                    meta.save()
             except IOError as err:
                 raise AlbumError("Error saving album: %s" % err.message)
+        print("done!" if gdirty else "(no changes)")
 
-    def __set_meta(self, meta, key, value):
-        '''Sets a given meta key to a given value.'''
+    def __set_meta(self, meta, key, value, dirty):
+        '''Sets a given meta key to a given value if needed.'''
         if self.ext in ['flac', 'ogg']:
             key = key.upper()
         elif self.ext in ['mp3', 'm4a']:
@@ -301,7 +313,10 @@ class Album:
                 return
             elif key == 'releasetype':
                 key = 'musicbrainz_albumtype'
+        if meta.get(key) == (value if isinstance(value, list) else [value]):
+            return dirty
         meta[key] = value
+        return True
 
 
 class AlbumError(Exception):
@@ -328,29 +343,29 @@ class Cache:
         self.save()
 
     @classmethod
-    def __get_key(cls, dapr, what, meta):
-        '''Helper method to get the key.'''
+    def __get_key(cls, dapr, part, meta):
+        '''Helper method to get the cache key.'''
         key = dapr + '###'
-        if what == 'album':
+        if part == 'album':
             key += (meta.get('artist') or meta.get('aartist') or 'VA') + '###'
-        key += meta[what]
+        key += meta[part]
         for pat in [r'[^\w#]', ' +']:
             key = re.sub(pat, '', key, 0, re.I)
         return key.lower().strip()
 
-    def get(self, dapr, what, meta):
-        '''Gets cache data.'''
+    def get(self, dapr, part, meta):
+        '''Gets cache data for a given DataProvider and part.'''
         if self.ignore:
             return None
-        key = self.__get_key(dapr, what, meta)
+        key = self.__get_key(dapr, part, meta)
         if key not in self.cache or \
                 time.time() - self.cache[key]['time'] > self.timeout:
             return None
         return self.cache[key]
 
-    def set(self, dapr, what, meta, data):
-        '''Sets cache data.'''
-        key = self.__get_key(dapr, what, meta)
+    def set(self, dapr, part, meta, data):
+        '''Sets cache data for a given DataProvider and part.'''
+        key = self.__get_key(dapr, part, meta)
         if data:
             keep = ['tags', 'mbid', 'releasetype']
             if len(data) > 1:
@@ -389,7 +404,7 @@ class DataProvider:
         self.name = self.__class__.__name__
 
     def _jsonapiquery(self, url, params, sparams=None):
-        '''Method for querying json-apis.'''
+        '''Queries json-APIs.'''
         if sparams:
             for key, val in sparams.iteritems():
                 params.update({key: self.searchstr(val)})
@@ -419,25 +434,26 @@ class DataProvider:
         return [data[num - 1]] if num else data
 
     def _get_artistdata(self, meta, what):
-        '''Get data from a DataProvider (this should be overridden by DPs)'''
+        '''Get artist data from a DataProvider.'''
         raise NotImplementedError()
 
     def _get_albumdata(self, meta):
-        '''Get data from a DataProvider (this should be overridden by DPs)'''
+        '''Get album data from a DataProvider.'''
         raise NotImplementedError()
 
     def get_data(self, part, meta):
         '''Getting data from DataProviders.'''
-        if part not in meta or part not in self.caps:
+        if part not in meta or part == 'aartist' and \
+                'artist' not in self.caps or part not in self.caps:
             return None
         # VPRINT("%s: %s search..." % (self.name, part))
         data = None
         cached = self.cache.get(self.name.lower(), part, meta)
-        cmsg = ''
         if cached:
             data = cached['data']
             cmsg = ' (cached)'
         else:
+            cmsg = ''
             try:
                 if(part == 'album'):
                     data = self._get_albumdata(meta)
@@ -469,7 +485,7 @@ class DataProvider:
         return data[0]
 
     def __filter_data(self, what, meta, data):
-        '''Filters data.'''
+        '''Prefilters data to reduce needed interactivity.'''
         if not data or len(data) == 1:
             return data
         # filter by title
@@ -487,8 +503,8 @@ class DataProvider:
         title += meta[what]
         title = self.searchstr(title)
         for i in range(5):
-            tmp = [d for d in data if difflib.SequenceMatcher(None, title,
-                                d['title'].lower()).ratio() >= (10 - i) * 0.1]
+            tmp = [d for d in data if difflib.SequenceMatcher
+                   (None, title, d['title'].lower()).ratio() >= (10 - i) * 0.1]
             if tmp:
                 data = tmp
                 break
@@ -519,11 +535,11 @@ class DataProviderError(Exception):
 
 
 class WhatCD(DataProvider):
-    '''Class for the DataProvider WhatCD'''
+    '''Class for the DataProvider WhatCD.'''
 
     def __init__(self, cache, session, interact, cred):
-        DataProvider.__init__(self, ['artist', 'aartist', 'album'], cache,
-                              session, interact)
+        DataProvider.__init__(self, ['artist', 'album'], cache, session,
+                              interact)
         self.cred = cred
         self.loggedin = False
         self.last_request = time.time()
@@ -535,7 +551,7 @@ class WhatCD(DataProvider):
         pass
 
     def __login(self, out=False):
-        '''Login or Logout from What'''
+        '''Login or -out from WhatCD.'''
         if not self.loggedin and not out:
             self.session.post('https://what.cd/login.php',
                               {'username': self.cred[0],
@@ -547,7 +563,7 @@ class WhatCD(DataProvider):
             self.session.get("https://what.cd/logout.php?auth=%s" % authkey)
 
     def __query(self, params, sparams=None):
-        '''Query What.CD API'''
+        '''Queries the WhatCD json-API.'''
         self.__login()
         while time.time() - self.last_request < self.rate_limit:
             time.sleep(.1)
@@ -559,7 +575,7 @@ class WhatCD(DataProvider):
         return data['response']
 
     def _get_artistdata(self, meta, what):
-        '''Gets artist data.'''
+        '''Gets a/artist data from WhatCD.'''
         data = self.__query({'action': 'artist', 'id': 0},
                             {'artistname': meta[what]})
         if not data or not data.get('tags'):
@@ -568,7 +584,7 @@ class WhatCD(DataProvider):
                           for tag in data['tags']}}]
 
     def _get_albumdata(self, meta):
-        '''Gets album data.'''
+        '''Gets album data from WhatCD.'''
         searchstr = meta['album'] + ' ' + (meta.get('artist') or
                                            meta.get('aartist', ''))
         data = self.__query({'action': 'browse', 'filter_cat[1]': 1},
@@ -586,14 +602,14 @@ class WhatCD(DataProvider):
 
 
 class LastFM(DataProvider):
-    '''Class for the DataProvider LastFM'''
+    '''Class for the DataProvider LastFM.'''
 
     def __init__(self, cache, session, interact):
-        DataProvider.__init__(self, ['artist', 'aartist', 'album'], cache,
-                              session, interact)
+        DataProvider.__init__(self, ['artist', 'album'], cache, session,
+                              interact)
 
     def __query(self, params, sparams=None):
-        '''Query Last.FM API'''
+        '''Queries the LastFM json-API.'''
         theparams = {'api_key': "54bee5593b60d0a5bf379cedcad79052",
                      'format': 'json'}
         theparams.update(params)
@@ -604,7 +620,7 @@ class LastFM(DataProvider):
         return data
 
     def _get_artistdata(self, meta, what):
-        '''Gets artist data.'''
+        '''Gets a/artist data from LastFM.'''
         data = None
         if 'mbid' + what in meta:
             VPRINT("  Using %s-MBID: %s" % (what, meta['mbid' + what]))
@@ -616,7 +632,7 @@ class LastFM(DataProvider):
         return self.__handle_data(data)
 
     def _get_albumdata(self, meta):
-        '''Gets album data.'''
+        '''Gets album data from LastFM.'''
         data = None
         for mbid in ['release', 'relgrp']:
             if 'mbid' + mbid in meta and not data:
@@ -632,7 +648,7 @@ class LastFM(DataProvider):
 
     @classmethod
     def __handle_data(cls, data):
-        '''Handles the data from Last.FM ;)'''
+        '''Shared datahandling for artist and album data from LastFM.'''
         if not data or not data.get('toptags') or \
                 not data['toptags'].get('tag'):
             return None
@@ -644,16 +660,15 @@ class LastFM(DataProvider):
 
 
 class MBrainz(DataProvider):
-    '''Class for the DataProvider MusicBrainz'''
+    '''Class for the DataProvider MusicBrainz.'''
 
     def __init__(self, cache, interact):
-        DataProvider.__init__(self, ['artist', 'aartist', 'album'], cache,
-                              None, interact)
+        DataProvider.__init__(self, ['artist', 'album'], cache, None, interact)
         mb.set_useragent('whatlastgenre', __version__,
                          'http://github.com/YetAnotherNerd/whatlastgenre')
 
     def _get_artistdata(self, meta, what):
-        '''Get a/artist data from MusicBrainz'''
+        '''Get a/artist data from MusicBrainz.'''
         data = None
         # search a/artist by mbid
         if 'mbid' + what in meta:
@@ -680,13 +695,15 @@ class MBrainz(DataProvider):
                          d.get('name', '').lower()).ratio() > .8]
             if len(data) in range(2, 9):
                 # filter by looking at artist's release-groups
+                album = meta['album'].lower()
                 tmp = []
                 for dat in data:
                     req = mb.get_artist_by_id(dat['id'],
-                                        includes=['tags', 'release-groups'])
+                                              includes=['tags',
+                                                        'release-groups'])
                     for rel in req['artist']['release-group-list']:
-                        if difflib.SequenceMatcher(None, meta['album'].lower(),
-                                        rel['title'].lower()).ratio() > .8:
+                        if difflib.SequenceMatcher(None, rel['title'].lower(),
+                                                   album).ratio() > .8:
                             tmp.append(dat)
                             break
                 if tmp:
@@ -702,7 +719,7 @@ class MBrainz(DataProvider):
                  'mbid': x['id']} for x in data]
 
     def _get_albumdata(self, meta):
-        '''Get album data from MusicBrainz'''
+        '''Get album data from MusicBrainz.'''
         data = None
         # search release-group mbid by release mbid
         if 'mbidrelgrp' not in meta and 'mbidrelease' in meta:
@@ -728,11 +745,11 @@ class MBrainz(DataProvider):
         if not data:
             try:
                 req = mb.search_release_groups(
-                        release=self.searchstr(meta['album']),
-                        artist=self.searchstr(meta.get('artist') or
-                                              meta.get('aartist', '')),
-                        arid=meta.get('mbidartist') or
-                        meta.get('mbidaartist', ''))
+                    release=self.searchstr(meta['album']),
+                    artist=self.searchstr(meta.get('artist') or
+                                          meta.get('aartist', '')),
+                    arid=meta.get('mbidartist') or
+                    meta.get('mbidaartist', ''))
             except ValueError:
                 return None
             data = req.get('release-group-list', [])
@@ -740,8 +757,8 @@ class MBrainz(DataProvider):
                  "http://musicbrainz.org/release-group/%s"
                  % (x.get('artist-credit-phrase'), x.get('title'),
                     x.get('type'), x['id']),
-                 'title': x.get('artist-credit-phrase', '') + ' - '
-                    + x.get('title', ''),
+                 'title': (x.get('artist-credit-phrase', '') + ' - ' +
+                           x.get('title', '')),
                  'tags': {tag['name']: int(tag['count']) for tag in
                           x.get('tag-list', [])},
                  'mbid': x['id']} for x in data]
@@ -754,13 +771,13 @@ class Discogs(DataProvider):
         DataProvider.__init__(self, ['album'], cache, session, interact)
 
     def _get_artistdata(self, meta, what):
-        '''Gets artist data.'''
+        '''Gets a/artist data from Discogs.'''
         pass
 
     def _get_albumdata(self, meta):
-        '''Gets album data.'''
-        searchstr = (meta.get('artist') or meta.get('aartist', '')) \
-                        + ' ' + meta['album']
+        '''Gets album data from Discogs.'''
+        searchstr = ((meta.get('artist') or meta.get('aartist', '')) + ' ' +
+                     meta['album'])
         data = self._jsonapiquery('http://api.discogs.com/database/search',
                                   {'type': 'master'}, {'q': searchstr})
         if not data or not data.get('results'):
@@ -774,18 +791,17 @@ class Discogs(DataProvider):
 
 
 class Idiomag(DataProvider):
-    '''Class for the DataProvider Idomag.'''
+    '''Class for the DataProvider Idiomag.'''
 
     def __init__(self, cache, session, interact):
-        DataProvider.__init__(self, ['artist', 'aartist'], cache, session,
-                              interact)
+        DataProvider.__init__(self, ['artist'], cache, session, interact)
 
     def __query(self, params):
-        '''Query Idiomag API'''
+        '''Queries the Idiomag json-API.'''
         try:
             data = self._jsonapiquery(
-                    'http://www.idiomag.com/api/artist/tags/json',
-                    {'key': "77744b037d7b32a615d556aa279c26b5"}, params)
+                'http://www.idiomag.com/api/artist/tags/json',
+                {'key': "77744b037d7b32a615d556aa279c26b5"}, params)
         except DataProviderError:
             return None
         if not data or not data.get('profile'):
@@ -793,7 +809,7 @@ class Idiomag(DataProvider):
         return data['profile']
 
     def _get_artistdata(self, meta, what):
-        '''Gets artist data.'''
+        '''Gets a/artist data from Idiomag.'''
         data = self.__query({'artist': meta[what]})
         if not data:
             return None
@@ -801,7 +817,7 @@ class Idiomag(DataProvider):
                           for tag in data['tag']}}]
 
     def _get_albumdata(self, meta):
-        '''Gets artist data.'''
+        '''Gets album data from Idiomag.'''
         pass
 
 
@@ -809,38 +825,37 @@ class EchoNest(DataProvider):
     '''Class for the DataProvider EchoNest.'''
 
     def __init__(self, cache, session, interact):
-        DataProvider.__init__(self, ['artist', 'aartist'], cache, session,
-                              interact)
+        DataProvider.__init__(self, ['artist'], cache, session, interact)
 
     def __query(self, params):
-        '''Query EchoNest API'''
+        '''Queries the EchoNest json-API.'''
         data = self._jsonapiquery(
-                'http://developer.echonest.com/api/v4/artist/search',
-                {'api_key': "ZS0LNJH7V6ML8AHW3", 'format': 'json',
-                 'bucket': 'genre', 'results': 1}, params)
+            'http://developer.echonest.com/api/v4/artist/search',
+            {'api_key': "ZS0LNJH7V6ML8AHW3", 'format': 'json',
+             'bucket': 'genre', 'results': 1}, params)
         if not data or not data.get('response') or \
                 'artists' not in data['response']:
             return None
         return data['response']['artists']
 
     def _get_artistdata(self, meta, what):
-        '''Gets artist data.'''
+        '''Gets artist data from EchoNest.'''
         data = self.__query({'name': meta[what]})
         if not data:
             return None
         return [{'tags': [tag['name'] for tag in x['genres']]} for x in data]
 
     def _get_albumdata(self, meta):
-        '''Gets artist data.'''
+        '''Gets album data from EchoNest.'''
         pass
 
 
 def get_args():
     '''Gets the cmdline arguments from ArgumentParser.'''
     args = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-            description='Improves genre metadata of audio files '
-                        'based on tags from various music sites.')
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description='Improves genre metadata of audio files '
+                    'based on tags from various music sites.')
     args.add_argument(
         'path', nargs='+', help='folder(s) to scan for albums')
     args.add_argument(
@@ -873,19 +888,21 @@ def get_args():
 
 
 def get_conf(configfile):
-    '''Reads and maintains the configuration file'''
+    '''Reads, maintains and writes the configuration file.'''
     # [section, option, default, required, [min, max]]
     conf = [['wlg', 'sources',
-             'whatcd, mbrainz, lastfm, discogs, idiomag, echonest', 1, []],
+             'whatcd, mbrainz, discogs, echonest, lastfm, idiomag', 1, []],
             ['wlg', 'tagsfile', 'tags.txt', 1, []],
-            ['wlg', 'cache_timeout', '7', 1, [1, 30]],
-            ['wlg', 'cache_saveint', '10', 1, [1, 30]],
+            ['wlg', 'cache_timeout', '7', 1, [3, 90]],
+            ['wlg', 'cache_saveint', '10', 1, [5, 60]],
             ['wlg', 'whatcduser', '', 0, []],
             ['wlg', 'whatcdpass', '', 0, []],
             ['genres', 'love', 'soundtrack', 0, []],
-            ['genres', 'hate', 'alternative, electronic, indie', 0, []],
-            ['genres', 'blacklist', 'charts, other', 0, []],
-            ['genres', 'filters', 'instrument, label, location, year', 0, []],
+            ['genres', 'hate',
+             'alternative, electronic, indie, pop, rock', 0, []],
+            ['genres', 'blacklist', 'charts, male vocalists, other', 0, []],
+            ['genres', 'filters',
+             'instrument, label, location, name, year', 0, []],
             ['scores', 'src_whatcd', '1.66', 1, [0.3, 2.0]],
             ['scores', 'src_lastfm', '0.66', 1, [0.3, 2.0]],
             ['scores', 'src_mbrainz', '1.00', 1, [0.3, 2.0]],
@@ -893,8 +910,7 @@ def get_conf(configfile):
             ['scores', 'src_idiomag', '1.00', 1, [0.3, 2.0]],
             ['scores', 'src_echonest', '1.00', 1, [0.3, 2.0]],
             ['scores', 'artist', '1.33', 1, [0.5, 2.0]],
-            ['scores', 'splitup', '0.33', 1, [0, 1.0]],
-            ['scores', 'personal', '0.66', 1, [0, 1.0]]]
+            ['scores', 'splitup', '0.33', 1, [0, 1.0]]]
     if not os.path.exists(os.path.dirname(configfile)):
         os.makedirs(os.path.dirname(configfile))
     config = ConfigParser.SafeConfigParser()
@@ -937,13 +953,13 @@ def get_conf(configfile):
 
 
 def get_conf_list(conf, sec, opt):
-    '''Gets a list from a configuration string that should be a list.'''
+    '''Gets a configuration string as list.'''
     return [x.strip() for x in conf.get(sec, opt).lower().split(',')
             if x.strip() != '']
 
 
 def get_tags(tagsfile):
-    '''Reads the tagsfile and returns its contents.'''
+    '''Parses the tagsfile.'''
     if '/' not in tagsfile and '\\' not in tagsfile:
         tagsfile = os.path.join(os.path.dirname(__file__), tagsfile)
     tags = {}
@@ -954,10 +970,10 @@ def get_tags(tagsfile):
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
-            sectionmatch = re.match(r'^\[(.*)\]$', line)
+            sectionmatch = re.match(r'^\[(.*)\]( +#.*)?$', line)
             if sectionmatch:
                 if section and taglist:
-                    if section == 'replace':
+                    if section == 'replaceme':
                         replace = {}
                         for tag in taglist:
                             pat, repl, _ = tag.split('~~')
@@ -974,14 +990,15 @@ def get_tags(tagsfile):
 def validate(args, conf, tags):
     '''Validates args, conf and tags.'''
     # tags file
-    for tag in ['basictags', 'replace', 'dontsplit', 'splitpart']:
-        if tag not in tags or []:
+    for tag in ['basictags', 'splitpart', 'dontsplit', 'replaceme']:
+        if tag not in tags:
             print("Got no [%s] from tag.txt file." % tag)
             exit()
-    for filt in get_conf_list(conf, 'genres', 'filters'):
-        if filt != 'year' and 'filter_' + filt not in tags:
-            print("The filter '%s' you set in your config doesn't have a "
-                  "[filter_%s] section in the tags.txt file." % (filt, filt))
+    for fil in ['filter_' + f for f in
+                get_conf_list(conf, 'genres', 'filters')]:
+        if fil not in tags and fil + '_fuzzy' not in tags:
+            print("The filter '%s' you set in your config doesn't have a [filt"
+                  "er_%s[_fuzzy]] section in the tags.txt file." % (fil, fil))
             exit()
     # sources
     sources = get_conf_list(conf, 'wlg', 'sources')
@@ -1024,8 +1041,6 @@ def get_albums(paths):
                                                    t.lower().endswith(ext)]])
                     break
     print("Found %d album folders!" % len(albums))
-    if len(albums) == 0:
-        exit()
     return albums
 
 
@@ -1052,12 +1067,12 @@ def get_daprs(args, conf, cache):
 
 
 def handle_album(album, dps, genretags, args):
-    ''' Loads metadata, receives tags and saves an album.'''
+    '''Loads metadata, receives tags and saves an album.'''
     print("Loading metadata [%s]: %s" % (album[1].upper(), album[0]))
     album = Album(album[0], album[1], album[2])
     genretags.reset(album.filter)
     print("Receiving tags%s: artist=%s, aartist=%s, album=%s, year=%s"
-          % ((' [VA]' if album.meta['is_va'] else ''),
+          % (' [VA]' if album.meta['is_va'] else '',
              album.meta.get('artist'), album.meta.get('aartist'),
              album.meta['album'], album.meta.get('year')))
     for dapr in dps:
@@ -1066,7 +1081,8 @@ def handle_album(album, dps, genretags, args):
             if not data:
                 continue
             if 'releasetype' in data:
-                album.meta['releasetype'] = data['releasetype']
+                album.meta['releasetype'] = \
+                    genretags.format(data['releasetype'])
             if 'mbid' in data:
                 album.meta['mbid' + ('relgrp' if part == 'album'
                                      else part)] = data['mbid']
@@ -1086,7 +1102,7 @@ def handle_album(album, dps, genretags, args):
 
 
 def print_stats(data):
-    '''Prints out some statistics'''
+    '''Prints out some statistics.'''
     print("Time elapsed: %s\n"
           % datetime.timedelta(seconds=time.time() - data['start']))
     if len(data['stats']):
@@ -1095,16 +1111,17 @@ def print_stats(data):
         print("Tag statistics (%d): %s\n"
               % (len(stats), ', '.join(["%s: %d" % (k, v) for k, v in stats])))
     if data['genres']:
-        print("%d albums with too little genres:\n%s\n" % (len(data['genres']),
-            '\n'.join(sorted(data['genres']))))
+        print("%d albums with too little genres:\n%s\n"
+              % (len(data['genres']), '\n'.join(sorted(data['genres']))))
     if data['errors']:
-        print("%d albums with errors:\n%s\n" % (len(data['errors']),
-            '\n'.join(["%s \t(%s)" % (k, v) for k, v in sorted
-            (data['errors'].iteritems())])))
+        print("%d albums with errors:\n%s\n"
+              % (len(data['errors']), '\n'.join(["%s \t(%s)"
+              % (k, v) for k, v in sorted(data['errors'].iteritems())])))
 
 
 def main():
-    '''The main'''
+    '''Hi codereader! As you might have guessed, this is the main()
+    and a good place to start ;) Feedback welcome.'''
     args = get_args()
     conf = get_conf(args.config)
     tags = get_tags(conf.get('wlg', 'tagsfile'))
@@ -1116,15 +1133,17 @@ def main():
 
     data = {'start': time.time(), 'stats': defaultdict(int),
             'errors': {}, 'genres': []}
+    albums = get_albums(args.path)
+    if len(albums) == 0:
+        exit()
+    genretags = GenreTags(tags, {x: conf.getfloat('scores', x)
+                                 for x, _ in conf.items('scores')},
+                          get_conf_list(conf, 'genres', 'filters'))
     cache = Cache(args.cache, args.cacheignore,
                   conf.getint('wlg', 'cache_timeout'))
-    try:
-        albums = get_albums(args.path)
-        genretags = GenreTags(tags, {x: conf.getfloat('scores', x)
-                                     for x, _ in conf.items('scores')},
-                              get_conf_list(conf, 'genres', 'filters'))
-        dps = get_daprs(args, conf, cache)
+    dps = get_daprs(args, conf, cache)
 
+    try:
         for i, album in enumerate(albums):
             # save cache every x minutes
             if time.time() - cache.time > 60 * \
