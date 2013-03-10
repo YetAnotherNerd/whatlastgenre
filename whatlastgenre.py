@@ -411,7 +411,11 @@ class DataProvider:
         req = self.session.get(url, params=params)
         if (req.status_code != 200):
             raise DataProviderError("Request Error: %s" % req.content)
-        return req.json()
+        try:
+            data = req.json()
+        except ValueError as err:
+                raise DataProviderError("Request Error: %s" % err.message)
+        return data
 
     def _interactive(self, part, meta, data):
         '''Asks the user to choose from a list of possibilities.'''
@@ -757,8 +761,8 @@ class MBrainz(DataProvider):
                  "http://musicbrainz.org/release-group/%s"
                  % (x.get('artist-credit-phrase'), x.get('title'),
                     x.get('type'), x['id']),
-                 'title': (x.get('artist-credit-phrase', '') + ' - ' +
-                           x.get('title', '')),
+                 'title': (x.get('artist-credit-phrase', '') + ' - '
+                           + x.get('title', '')),
                  'tags': {tag['name']: int(tag['count']) for tag in
                           x.get('tag-list', [])},
                  'mbid': x['id']} for x in data]
@@ -776,8 +780,8 @@ class Discogs(DataProvider):
 
     def _get_albumdata(self, meta):
         '''Gets album data from Discogs.'''
-        searchstr = ((meta.get('artist') or meta.get('aartist', '')) + ' ' +
-                     meta['album'])
+        searchstr = ((meta.get('artist') or meta.get('aartist', '')) + ' '
+                     + meta['album'])
         data = self._jsonapiquery('http://api.discogs.com/database/search',
                                   {'type': 'master'}, {'q': searchstr})
         if not data or not data.get('results'):
