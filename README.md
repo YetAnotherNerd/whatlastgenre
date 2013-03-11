@@ -133,11 +133,11 @@ occurrence of specific tags that you don't like or that are too inaccurate for
 you without fully banning them like with the blacklist option.
 
 ##### filters option
-Use this to activate filtering of specific tag groups from genres:
-* `instrument` filters instrument related names, like piano or guitarist
-* `label` filters label names
-* `location` filters country, city and nationality names
-* `year` filters year tags, like 1980s
+Use this to activate filters for specific tag groups:
+* `instrument` instrument related names, like piano or guitarist
+* `label` label names
+* `location` country, city and nationality names
+* `year` year tags, like 1980s
 * create your own filter lists by adding filter sections to the tags.txt file,
 consider them as large blacklists.
 
@@ -158,7 +158,7 @@ then put together while taking this multiplier into account. This enables
 that multiple albums from one artist get more equal tags.
 Default `1.33`, Range `0.5 - 2.0`
 * `< 1.0` prefer album tags
-* `= 1.0` no difference between album and artist tags
+* `= 1.0` handle them equally
 * `> 1.0` prefer artist tags
 
 ##### splitup option
@@ -193,8 +193,10 @@ Default `0.33`, Range `0.0 - 1.0`
 	  -r, --tag-release    tag release type (from What) (default: False)
 	  -m, --tag-mbids      tag musicbrainz ids (default: False)
 	  -l N, --tag-limit N  max. number of genre tags (default: 4)
-	  --config CONFIG      location of the configuration file (default: ~/.whatlastgenre/config)
-	  --cache CACHE        location of the cache file (default: ~/.whatlastgenre/cache)
+	  --config CONFIG      location of the configuration file
+	                       (default: ~/.whatlastgenre/config)
+	  --cache CACHE        location of the cache file
+	                       (default: ~/.whatlastgenre/cache)
 
 
 If you seriously want to tag release-types `-r` or musicbrainz-ids `-m` you
