@@ -358,7 +358,7 @@ class Cache:
         if self.ignore:
             return None
         key = self.__get_key(dapr, part, meta)
-        if key not in self.cache or \
+        if key not in self.cache or not self.cache[key].get('time') or \
                 time.time() - self.cache[key]['time'] > self.timeout:
             return None
         return self.cache[key]
@@ -379,7 +379,7 @@ class Cache:
     def clean(self):
         '''Cleans up old data from the cache'''
         for key, val in self.cache.items():
-            if time.time() - val['time'] > self.timeout:
+            if not val.get('time') or time.time() - val['time'] > self.timeout:
                 del self.cache[key]
                 self.dirty = True
         self.save()
