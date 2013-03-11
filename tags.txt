@@ -16,11 +16,21 @@
 
 [basictags]
 acapella
+alternative
+avantgarde
+bossa nova
 electro-swing
 female vocalist
 instrumental
+jazz
 male vocalist
+minimal
+minimalist
+progressive
+ragga
 reggae
+singer-songwriter
+synthpop
 tech-house
 # c/j/k-genres
 goth
@@ -46,6 +56,7 @@ k-ska
 
 [uppercase]
 ebm
+edm
 idm
 mpb
 ndw
@@ -61,20 +72,13 @@ alternative
 ambient
 atmospheric
 avantgarde
-black
-blues
+bl(ack|ues)
 brutal
 celtic
-chaotic
-chillout
-christian
+ch(aotic|illout|ristian)
 classic(al)?
-comedy
-con(scious|temporary)
-cool
-country
-dance
-dark
+co(medy|nscious|ntemporary|ol|untry)
+da(nce|rk)
 de(ath|ep|pressive?)
 doom
 electronic
@@ -82,21 +86,17 @@ experimental
 folk
 fre(ak|e)
 fu(neral|ture)
-ganst(a|er)
-garage
+ga(nst(a|er)|rage)
 glam
 gothic
 har(d|sh)
 hip-hop
-ind(ie|ustrial)
-instrumental
+in(die|dustrial|strumental)
 jazz
 latin
 light
 math
-medieval
-mel(ancholic|low|odic)
-metal
+me(dieval|lancholic|llow|lodic|tal)
 minimal
 noise
 po(p|wer)
@@ -106,14 +106,11 @@ punk
 rap
 rhythmic
 rock
-romantic
-soft
-soul(ful)?
+so(ft|ul(ful)?)
 space
 stoner
 suicidal
 symphonic
-synth
 techno
 thrash
 traditional
@@ -134,7 +131,7 @@ stage & screen
 ([^ -]+)( |-|&)?hop~~\g<1>-hop~~
 ([^ -]+)( |-|&)?musi[ck]~~\g<1>~~
 (neo|post)( |-|&)?(.+)~~\g<1>-\g<3>~~
-^(c|k|j)( |-|&)?(goth|hip-hop|pop|rock|ska)$~~\g<1>-\g<3>~~
+^(c|k|j)( |-|&)?(folk|goth|hip-hop|pop|rock|ska)$~~\g<1>-\g<3>~~
 elec[tr]{2}(o(nica?)?|ic)( |-|&)?(?!swing)(.*)~~electronic \g<4>~~
 euro( |-|&)?(?!p[ea]|pean)(.*)~~euro-\g<2>~~
 goth(ic)?( |-|&)?(?!enburg)(.*)~~gothic \g<3>~~
@@ -146,11 +143,6 @@ hard ?(and|'?n'?|&)? ?heavy~~hard & heavy~~
 r(hythm)? ?(and|'?n'?|&)? ?b(lues)?~~rhythm & blues~~
 rock ?(and|'?n'?|&)? ?roll~~rock & roll~~
 stage ?(and|'?n'?|&)? ?screen~~stage & screen~~
-# tags with other separators
-^sing(ers?|ing)( |&)?songwrit(ers?|ing)$~~singer-songwriter~~
-avant(( |-|&)?garde)?~~avantgarde~~
-lo( |&)?fi~~lo-fi~~
-synth( |-|&)pop~~synthpop~~
 # year related
 .*best.*of( ([0-9]{2}){1,2}'?s?)?.*~~charts~~
 .*top ?[0-9]{2,3}.*~~charts~~
@@ -158,21 +150,16 @@ synth( |-|&)pop~~synthpop~~
 ^(20)?([0-2])[0-9]'?(s|er)?$~~20\g<2>0s~~
 ^([1-2][0-9])th century$~~\g<1>00s~~
 # abbreviation related
+(?<!be)bop~~bebop~~
 ^(ost|vgm|scores?)$~~soundtrack~~
 alt(ern)?\.?( |-|$)~~alternative ~~
-beatboxing~~beatbox~~
-(?!be)bop~~bebop~~
-chill(?!out)(e(d|n)|ing?|( |-|&)out( bar)?)?~~chillout~~
-g?old(ies?)(=!en)?~~oldies~~
 independent~~indie~~
-jazzy~~jazz~~
 minimal ?electro(nic)?~~minimal~~
 progg?(ess)?\.?( |-|$)~~progressive ~~
-psy( |-)?trance~~psychedelic trance~~
+psy(?!chedelic)\.?~~psychedelic ~~
 rapper~~rap~~
-schlager(hit)?~~charts~~
 sci(ence)?( |-)?fi(ction)?~~science fiction~~
-trad\.?( |-)~~traditional ~~
+trad(?!itional)\.?( |-|$)~~traditional ~~
 # other
 (8( | -)?bit|bitpop|chip(.?tune)?)~~chiptune~~
 (cabaret|comedi(an|e)|humou?r|parod(ie|y))~~comedy~~
@@ -181,12 +168,19 @@ trad\.?( |-)~~traditional ~~
 ^(film|games?|movies?|t(ele)?v(ision)?|video(s| )?games?) ?(scores?|music)?$~~soundtrack~~
 ^(singer|songwrit(er|ing)|lyricist|chanteur|parolier|liedermacher(in)?|troubadour)$~~singer-songwriter~~
 ^deutsch(sprachig)?(er?)? ~~german ~~
+beatboxing~~beatbox~~
 bluesan~~blues~~
 br(eaks|oken ?beat)~~breakbeat~~
+chill(?!out)(e(d|n)|ing?|( |-|&)out( bar)?)?~~chillout~~
+g?old(ies?)(=!en)?~~oldies~~
+jazz( |-)?hip( |-)?hop$~~jazz-hop~~
 kraut( |-)rock~~krautrock~~
-minimalist~~minimalism~~
+latinos?~~latin~~
+lo( |&)?fi~~lo-fi~~
 mittelalter(lich)?~~medieval~~
+regueton~~reggaeton~~
 relax(ed|i(ng|on))?$~~chillout~~
+schlager(hit)?~~charts~~
 scratch~~turntablism~~
 unplug(ged)?~~acoustic~~
 
@@ -195,80 +189,105 @@ unplug(ged)?~~acoustic~~
 
 [filter_badtags_fuzzy]
 ((^|[\D])([\d]|[\d]{3})([\D]|$)|[\d]{5})
-((bonus|hd|sa|top).?)?(blue.?ray|cd|dis[ck]|dvd)(.?(baby|extra))?
 ((jan|febr)uary?|march|april|ma[iy]|jun[ei]|jul[iy]|august|(septem|o[ck]to|novem|de[cz]em)ber)
+((mon|tues|wednes|thurs|fri|satur|sun)day|(mon|diens|donners|frei|sams|sonn)tag|mittwoch)
+([\W])
 ([ck]ompa[ck]t)
-(^| )(a|by|for|i[ns]?|not|o[fn]|so|the|to|up)( |$)
-(abend|mor(gen|ning)|noon|after ?noon|nach ?mittag|evening|nacht|night)
-(autumn|herbst|spring|s[ou]mmer|winter)
+(^| )(a(re)?|by|for|i[ns]?|not|o[fn]|so|the|to|up|we)( |$)
+(ba|u)rh?ythm
+abend
+after
+aggr
 alb(um|en)
 all
 amazing
-ang(le|ry)
+ang([el]{2}|ry)
 anime
 anti
 aor
+apart
 aquire
-archive
+arc(arde|hive)
 area
 arrangeur
 artist
-automod
+audio
+aut(omod|umn)
 available
 awesome
 b.tch
+baby
+background
 balance
 bea(ch|utiful)
-beg[ai]n
+beg
+bizar
 blaze
-boo(m|tleg)
+blue.?ray
+bonus
+boo(k|m|tleg)
 boring
-bounce
+bou(lder|nce)
 box ?set
 brain
+brilliant
 brood
 bueno
 bust
 buy
+c(ompa[ck]t.?)?d(is[ck])?
 c[ao]ver
 calm
 catch
 ccm
 che(ese|ck)
-child
+chi(ck|ld)
+cinema
 classifi
+clever
 code
 colle(ct|ge)
-com(ic|pil[ae]|pos[iet])
+com(ic|pil|pos)
 conduct
+creativ
 cut
 damn
 data
 dead
+default
+delux
 design
+dialog
 digital
 dirty
-disney
+dis([ck]|cogs|ney)
 djs?
 dopeness
 dr\.?[ ]
+drama
 driv
 duet
+dvd
 early
 eclectic
+edit
 effect
-emotional
+emotion
 energ
 enfp
 engel
 epic
 ethereal
-every
+eve(n|ry)
+evil
 excellent
+exotic
+extra
 eye
 fading
 fahr
 family
+fan.?club
 fantas
 fase
 fav
@@ -278,35 +297,45 @@ fett
 fiction
 filth
 fine
+fix
 fla(sh|wless)
 format
 fre[ei]
 fuck
 fun
+fuzz
+g[iu]rl
 gameboy
 ganja
+gay
 geek
 gen(eral|iaa?l|iu|re)
-girl
+ges(ang|chichte)
 goo?l?d
+gr+l
 gra(b|mmy|nt)
 great
 gro(ov|up)
 haben
-hae(ngematte|ven)
+hae(nge|ven)
+hae?rte
 hair
-happ[iy]
-harte
+happ
 hates
+haunt
+have
+herbst
 heul
 hidden
 high
 holiday
-home
+hom
+horn
 host
 hot
 hyphy
 i(book|mac|pod|phone|tunes)
+idol
 incredible
 initial
 ins(ane|omnia)
@@ -318,17 +347,21 @@ iveldie
 jam band
 jecks
 jewel.*case
+journ
 jug(g?al|end)
 juicy
 jukebox
 kappe
 keep
 kick
+kitty
 know
 languages
 laptop
+last.?fm
 ldt
-leg(al|it)
+leg(al|end|it)
+lesbian
 library
 like
 listener
@@ -337,10 +370,11 @@ live
 lore
 lost
 loudness ?war
-love
+lo*ve
 luvstep
+m(usic)?brainz
 magazin
-mas(shup|ter)
+mas(hup|ter)
 mbs
 memor[iy]
 mersey
@@ -348,20 +382,26 @@ milestone
 mine
 mirror
 misc
+mittag
 mix
 mongo
 mood
+mor(gen|n)
 moviemeter
 mugge
 multi
 murder
 mus(ician|t)
 my.*list
+nach
+name
 near
+neighbour
 nerds
 nice
+night
 nintendo
-noodle
+noo(dle|n)
 novely
 number
 obsessive
@@ -371,42 +411,52 @@ output
 own
 pa?c?ka?ge?
 par(k|ty)
+peanut
 per(fect|manent|sistence)
 phantom
 picks
 pirate
-place
+pla(ce|in|tin|y)
 pleasure
+plunder
 podcast
 poet
 popular
 positiv
 praise
-pri(mary|vat)
-pro(duc|je[ck])
+pri(mary|vat|ze)
+pro(duc|je[ck]|of)
 public
 purchase
 pussy
-quiet
+putz
+qui(et|rk)
 racist
 radio
 rainy
 rare
 rate
-rea[dl]
+rea([dl]|son)
 rec(ent|ommend|ord)
+reflect
+regist
 rel(ated|ease)
 remember
+repla
 revival
 rip
+romantic
 rules
+s[ou]mmer
 sad
 sampl
+scar
 scene
 sch(merz|ool|ule)
 secret ?agent
 see[kn]
 sega
+selbst
 sensual
 serie
 sex
@@ -418,39 +468,51 @@ skate
 slang
 sleep
 smart
+sober
 solo
 song
-sound
+sou(ght|nd)
 spirit
 spotify
+spring
 squeeze
 sta(ndard|r)
-stone(?!er)
-stre(am|ss)
-stud(io|y)
+sto(ne(?!er)|ry)
+str(eam|ess|ong)
+stu(dio|dy|n)
 styl
 sud[eo]
-sun(set|rise)
+sun(daze|set|shine|rise)
 super
 surf
 swag
 sweet
 takt
+team
 teen
+tell
 test
+that
 the(atre|me|re)
+thought
 throw
+tight
 time
-todo
+tod(ay|o)
+tomorrow
 totec
 touch
 tra(ck|iler|p|urig|uer)
 tribute
+tro(ll|pic)
+trust
+tune
 twee
 unbekannt
-univers
+uni(on|vers)
 unknown
 user
+vari(ous|t)
 ver(miform|schieden)
 vinyl
 virtuos
@@ -463,25 +525,31 @@ ween
 weird
 welcome
 wexp
-winner
+what.?cd
+who
+win(ner|ter)
 wish
 wolle
 won(der|ky)
 wor(k|ship)
 wunsch
+xx+
 yarr
 yea[hr]
 yes
+you
 yoyo
 zombie
 
 [filter_generic]
-(.* )?my .*
+(^| )my .*
 (one|two|three|four|five|six|seven|eight|nine|ten)
 adult
+age
 and
 arena
 art
+aus
 band
 bass
 beat
@@ -500,6 +568,7 @@ dark
 death
 deep
 depressive
+desi
 die
 doom
 dream
@@ -514,11 +583,14 @@ fusion
 future
 games?
 gangst(a|er)
+ghetto
 gun
 gypsy
 har(d|sh)
 hate
 heavy
+hip
+hop
 hrte
 hypnotic
 jam
@@ -535,10 +607,14 @@ neue?
 new
 ninja
 non
+oma
 or
+out
 pagan
 pie
 power
+pub
+raw
 regional
 repetto
 retro
@@ -546,12 +622,15 @@ rhythm(ic)?
 romantic
 roots?
 row
+slow
 smooth
 soft
+son
 soulful
 space
 speed
 stoner
+sub
 suicid(al)
 t(ele)?v(ision)?
 tag
@@ -559,43 +638,57 @@ tapes?
 tempo
 th?rash
 the .*
+third
 thug
 top
 traditional
 underground
 uplifting
+urdu
 video( ?game)?s?
+vip
 
 [filter_name_fuzzy]
+adam
+amanda
 ascoli
+austin
 bond
+bren
 christoph
 daniel
 fabio
 fergie
 george
+jason
 john
 jones
+katie
+kirsten
 micha
-p!nk
 paul
 robert
 roger
 rusbeh
+ryan
 th?om
 tony
+tristan
+victor
 
 [filter_location]
 (mid(dle)? ?)?(north|east|south|west)(ern| ?coast)?.*
-.*city
+.*cit(ies|y)
 .*land(ais|e|ic)?
 .*ville
+aboriginal
 african?
 ame?rica(in|na?)?
 arizona
 asi[ae]n?
 athens?
 atlant(a|ic)
+augsburg
 aus(sie|tr(al)?i(an?)?)
 bakersfield
 bal(earic|kan|timore)
@@ -616,17 +709,18 @@ california
 canad(a|i[ae]n)
 caribbean
 chi(cago|le(an)|na|nese)
-col(orado|umbia)
+col(ogne|orado|umbia)
 cuba(no?)?
 czech
-danish
+dan(ish|sk)
 ddr
-denmark
+den(mark|ver)
 detroit
 deutsch
 dutch
 english
 estonian?
+ethiopian?
 europ(a|e(an)?)
 finnish
 florida
@@ -638,6 +732,7 @@ glasgow
 gothenburg
 gree(ce|k)
 hamburg
+hawaii
 hebrew
 heidelberg
 helsinki
@@ -655,19 +750,22 @@ japan(ese)?
 k.?ln
 ken[iy]an?
 korean?
+limerick
 london
 los ?angeles
 lyon
 lyric
 m.?nchen
+m[ao]rocc(an|o)
 ma[dn]chester
 madrid
+mali([ae]n)?
 melbourne
 memphis
-mexic(o|an)
+mexic(an|o)
 miami
 michigan
-minden
+min(den|nesotan?)
 munich
 nashville
 new ?(hampshire|jersey|orleans|york( ?city)?)
@@ -678,25 +776,33 @@ oxford
 paris
 pittsburgh
 pol(and|ish)?
+puerto ?rico
 que?bec
 queens
+rio ?de ?janeiro
 rom[ae](nian?)?
 russ(ian?|o)
 san( .* )
 scandinavi?[ae]n?
 scott?ish
 seattle
+soo?maa?liy?an?
 spa(in|nish)
+sri ?lankan?
+stockholm
 stuttgart
 suomi
 sve(nsk(t|akrusbar)|rige)
-swed(en|ish)
+swee?d(en|ish)
 swiss
 sydney
+tchad
 texas
+toronto
 uk(rainian)?
 united ?(kingdom|states)
 usa?
+vancouver
 vermont
 vienna
 wales
@@ -728,6 +834,7 @@ eimsbush
 emi
 gomma
 interscope
+kitsune
 left ?field( house)?
 marvel
 moving ?shadow
@@ -760,6 +867,7 @@ beat.?box
 cello
 clarinet
 computer( ?synthesizer)?
+cumbia
 didgeridoo
 drum(mer|s)?
 flute
@@ -772,7 +880,7 @@ percussions?
 pian(ist|o)
 saxophone
 strings
-synthesizer
+synth(esizers?)?
 trumpet
 vibraphone
 violin(ist)?
