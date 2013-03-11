@@ -22,7 +22,7 @@ import sys
 import time
 
 
-__version__ = "0.1.21"
+__version__ = "0.1.22"
 
 VPRINT = lambda *a, **k: None
 
@@ -198,9 +198,9 @@ class Album:
                 if tag in ['artist', 'aartist'] and ' ' in bts[0]:
                     bts += bts[0].split(' ')
                 for badtag in bts:
-                    for pat in [r'\(.*\)', r'\[.*\]', '{.*}', '- .* -',
-                                r'[\W\d]', r'(vol(ume)?|and|the|feat)',
-                                r'(\.\*)+']:
+                    for pat in [r'\(.*\)', r'\[.*\]', '{.*}', '-.*-', "'.*'",
+                                '".*"', r'vol(\.|ume)? ', ' and ', 'the ',
+                                r'[\W\d]', r'(\.\*)+']:
                         badtag = re.sub(pat, '.*', badtag, 0, re.I).strip()
                     badtag = re.sub(r'(^\.\*|\.\*$)', '', badtag, 0, re.I)
                     if len(badtag) > 2:
@@ -369,7 +369,7 @@ class Cache:
         if data:
             keep = ['tags', 'mbid', 'releasetype']
             if len(data) > 1:
-                keep.append('info')
+                keep += ['info', 'title', 'year']
             for dat in data:
                 for k in [k for k in dat.keys() if k not in keep]:
                     del dat[k]
@@ -414,12 +414,14 @@ class DataProvider:
         try:
             data = req.json()
         except ValueError as err:
-                raise DataProviderError("Request Error: %s" % err.message)
+            raise DataProviderError("Request Error: %s" % err.message)
         return data
 
     def _interactive(self, part, meta, data):
         '''Asks the user to choose from a list of possibilities.'''
         print("Multiple %s-results from %s, which is it?" % (part, self.name))
+        print("Right album doesnt appear? Rerun with -c if cache hit is old.")
+        print("Doesn't help? Please report it so this can be improved.")
         VPRINT("Metadata: %s" % meta)
         for i in range(len(data)):
             print("#%2d:" % (i + 1), end=' ')
@@ -455,9 +457,7 @@ class DataProvider:
         cached = self.cache.get(self.name.lower(), part, meta)
         if cached:
             data = cached['data']
-            cmsg = ' (cached)'
         else:
-            cmsg = ''
             try:
                 if(part == 'album'):
                     data = self._get_albumdata(meta)
@@ -467,19 +467,19 @@ class DataProvider:
                     mb.ResponseError, mb.NetworkError) as err:
                 print("%s: %s" % (self.name, err.message or err.cause))
                 return None
-            data = self.__filter_data(part, meta, data)
+            if not data or len(data) > 1:
+                self.cache.set(self.name, part, meta, data)
+        cmsg = ' (cached)' if cached else ''
         if not data:
             print("%s: %s search found nothing.%s" % (self.name, part, cmsg))
-            if not cached:
-                self.cache.set(self.name, part, meta, None)
             return None
+        if len(data) > 1:
+            data = self.__filter_data(part, meta, data)
         if len(data) > 1 and self.interactive:
             data = self._interactive(part, meta, data)
         if len(data) > 1:
             print("%s: %s search got too many results: %d (use -i)%s"
                   % (self.name, part, len(data), cmsg))
-            if not cached:
-                self.cache.set(self.name, part, meta, data)
             return None
         # unique data
         VPRINT("%s: %s search found %d tags%s"
@@ -507,8 +507,9 @@ class DataProvider:
         title += meta[what]
         title = self.searchstr(title)
         for i in range(5):
-            tmp = [d for d in data if difflib.SequenceMatcher
-                   (None, title, d['title'].lower()).ratio() >= (10 - i) * 0.1]
+            tmp = [d for d in data if 'title' not in d or difflib.
+                   SequenceMatcher(None, title, d['title'].lower())
+                   .ratio() >= (10 - i) * 0.1]
             if tmp:
                 data = tmp
                 break
@@ -527,8 +528,11 @@ class DataProvider:
         '''Cleans up a string for use in searching.'''
         if not searchstr:
             return ''
-        for pat in [r'\(.*\)', r'\[.*\]', '{.*}', ' - .* - ',
-                    r'(vol(ume|\.)?|and|the)', ': .*', ' +']:
+        for pat in [
+                r'\(.*\)', r'\[.*\]', '{.*}', '-.*-', "'.*'", '".*"',
+                ' (- )?(album|single|ep|(official )?remix(es)?|soundtrack)$',
+                '(ft|feat(\.|uring)?) .*', r'vol(\.|ume)? ',
+                ' and ', 'the ', ' ost', '[!?/&:,.]', ' +']:
             searchstr = re.sub(pat, ' ', searchstr, 0, re.I)
         return searchstr.strip().lower()
 
