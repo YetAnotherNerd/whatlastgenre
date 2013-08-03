@@ -899,7 +899,7 @@ def get_conf(configfile):
     '''Reads, maintains and writes the configuration file.'''
     # [section, option, default, required, [min, max]]
     conf = [['wlg', 'sources',
-             'whatcd, mbrainz, discogs, echonest, lastfm, idiomag', 1, []],
+             'whatcd, mbrainz, discogs, lastfm', 1, []],
             ['wlg', 'tagsfile', 'tags.txt', 1, []],
             ['wlg', 'cache_timeout', '7', 1, [3, 90]],
             ['wlg', 'cache_saveint', '10', 1, [5, 60]],
