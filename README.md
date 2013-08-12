@@ -6,7 +6,7 @@ Improves genre metadata of audio files based on tags from various music sites.
 * Supported music sites: WhatCD, LastFM, MusicBrainz, Discogs, EchoNest, Idiomag 
 * Feature Overview
 	* Gets genre tags for artists and albums from music sites and finds the
-	most eligibles ones by merging, splitting, filtering and scoring them.
+	most eligible ones by merging, splitting, filtering and scoring them.
 		* Merges similar tags in different writings to ensure consistent names,
 		eg. DnB, D&B, Drum and Bass -> Drum & Bass;
 		Alt., Altern, Alterneitif -> Alternative
@@ -14,7 +14,7 @@ Improves genre metadata of audio files based on tags from various music sites.
 		Jazz/Funk&Rock -> Jazz, Funk, Rock;
 		Alternative Rock -> Alternative, Rock
 		* Filters by personal preferences and preset or custom filters
-		* Scores tas while taking personal preferences into account
+		* Scores tags while taking personal preferences into account
 	* Caches all data received from music sites to make reruns super fast
 	* Makes use of MusicBrainz IDs when possible and recognizes invalid ones
 	* Optional: gets release type (Album, EP, Anthology, ...) (from What)
@@ -102,7 +102,7 @@ Disabling music sites is not recommended, the more sources the better tags.
 * `whatcd` [[URL](https://what.cd/)]
 well-kept tags from users
 * `lastfm` [[URL](http://www.last.fm/)]
-mbid search possible, many inaccurate and personal tags from users
+mbid search possible, many personal tags from users
 * `mbrainz` [[URL](http://musicbrainz.org/)]
 home of mbids
 * `discogs` [[URL](http://www.idiomag.com/)]
@@ -233,10 +233,11 @@ Things you can tell me about:
 * Tags that are similar but haven't been merged together
 * Tags that doesn't get split but should, or do get split but shouldn't
 * Tags that get filtered out but shouldn't (!)
-* If your unhappy with the tag results
+* If you are unhappy with the tag results
 * Did i miss something in tags.txt?
 * Any errors of course ;)
 
 I'm also happy for any other kind of suggestions or just send me your tags
 statistics output for a `-nl 10`-run (please append your config if it differs
 much from the default one), i'll try to improve tags.txt with it. :)
+
