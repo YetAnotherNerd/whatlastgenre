@@ -16,13 +16,10 @@ Improves genre metadata of audio files based on tags from various music sites.
 		* Filters by personal preferences and preset or custom filters
 		* Scores tags while taking personal preferences into account
 	* Caches all data received from music sites to make reruns super fast
-	* Makes use of MusicBrainz IDs when possible and recognizes invalid ones
+	* Makes use of MusicBrainz IDs when possible
 	* Optional: gets release type (Album, EP, Anthology, ...) (from What)
 	* Optional: gets MusicBrainz IDs
-	* Interactive mode, especially for release types and MBIDs
-	(it's not guessing wrong data)
-		* Progressive fuzzy matching to reduce needed user input
-		* MusicBrainz: Tries to identify artists by looking at its albums 
+	* Interactive mode (it's not guessing wrong data)
 	* Dry-mode for safe testing
 
 
@@ -34,10 +31,10 @@ separators, too many words or specific parts will get split up. The tags get
 filtered and scored. Artist and album tags get stored separately at first, but
 get merged in the end and the best scored tags will be saved as genre metadata
 in the corresponding album tracks. All data received from music sites will get
-cached after pre-filtering so that rerunning the script will be super fast.
-There are several score multipliers to adjust the scoring to your needs and
-take your personal preferences into account. Please take a look at
-"Configuration options explained" below for more details.
+cached so that rerunning the script will be super fast. There are several
+score multipliers to adjust the scoring to your needs and take your personal
+preferences into account. Please take a look at "Configuration options
+explained" below for more details.
 
 ### Basic Scoring
 
@@ -55,8 +52,8 @@ for each tag will be. So if only one tag is supplied, it will get a score of
 
 
 ## Installation
-You'll need Python 2.7. Running the following should automatically install all
-needed dependencies (musicbrainzngs, mutagen, requests):
+You'll need Python 2.7. Running the following should also automatically install
+all needed dependencies (mutagen, requests):
 
 	$ python setup.py install
 
@@ -66,16 +63,15 @@ A configuration file with default values will be created on first run.
 
 ### Example configuration file
 	[wlg]
-	sources = whatcd, mbrainz, discogs, echonest, lastfm, idiomag
+	sources = whatcd, mbrainz, lastfm, discogs
 	tagsfile = tags.txt
-	cache_timeout = 7
-	cache_saveint = 10
+	cache_timeout = 30
 	whatcduser = whatusername
 	whatcdpass = whatpassword
 	[genres]
 	love = soundtrack
 	hate = alternative, electronic, indie, pop, rock
-	blacklist = charts, male vocalists, other
+	blacklist = charts, male vocalist, other
 	filters = instrument, label, location, name, year
 	[scores]
 	src_whatcd = 1.66
@@ -86,7 +82,6 @@ A configuration file with default values will be created on first run.
 	src_echonest = 1.00
 	artist = 1.33
 	splitup = 0.33
-
 
 ### Configuration options explained
 
@@ -120,15 +115,11 @@ accessing the tagsfile by default.
 Time in days after which cache hits get invalid.
 Default `7`, Range `3 - 90`
 
-##### cache_saveint option
-Interval in minutes to save the cache during runtime.
-Default `10`, Range `5 - 60`
-
 #### genres section
 
 ##### love and hate options
 List of tags that get a multiplier bonus of `2.0` and `0.5` respectively.
-Should be considered as "soft" white-/blacklist where you can in-/decrease the
+Should be considered as "soft white-/blacklist" where you can in-/decrease the
 occurrence of specific tags that you don't like or that are too inaccurate for
 you without fully banning them like with the blacklist option.
 
@@ -176,10 +167,12 @@ Default `0.33`, Range `0.0 - 1.0`
 
 
 ## Usage
-	  
-	usage: whatlastgenre.py [-h] [-v] [-n] [-c] [-i] [-r] [-m] [-l N]
-	                        [--config CONFIG] [--cache CACHE]
-	                        path [path ...]
+
+	usage: whatlastgenre [-h] [-v] [-n] [-c] [-i] [-r] [-m] [-l N]
+	                     [--config CONFIG] [--cache CACHE]
+	                     path [path ...]
+	
+	Improves genre metadata of audio files based on tags from various music sites.
 	
 	positional arguments:
 	  path                 folder(s) to scan for albums
@@ -193,10 +186,10 @@ Default `0.33`, Range `0.0 - 1.0`
 	  -r, --tag-release    tag release type (from What) (default: False)
 	  -m, --tag-mbids      tag musicbrainz ids (default: False)
 	  -l N, --tag-limit N  max. number of genre tags (default: 4)
-	  --config CONFIG      location of the configuration file
-	                       (default: ~/.whatlastgenre/config)
-	  --cache CACHE        location of the cache file
-	                       (default: ~/.whatlastgenre/cache)
+	  --config CONFIG      location of the configuration file (default:
+	                       ~/.whatlastgenre/config)
+	  --cache CACHE        location of the cache file (default:
+	                       ~/.whatlastgenre/cache)
 
 
 If you seriously want to tag release-types `-r` or musicbrainz-ids `-m` you
@@ -214,30 +207,19 @@ for specific albums rerun with `-c` on this albums to ignore cache hits.
 
 Do a verbose dry-run on your albums in /home/user/music changing nothing:
 
-	$ whatlastgenre.py -vn /home/user/music
+	$ whatlastgenre -vn /home/user/music
 
 Tag max. 3 genre tags for all albums in /home/user/music:
 
-	$ whatlastgenre.py -l 3 /home/user/music
+	$ whatlastgenre -l 3 /home/user/music
 
 To get the most of it for all albums in /home/user/music and /media/music:
 
-	$ whatlastgenre.py -irml 5 /home/user/music /media/music
+	$ whatlastgenre -irml 5 /home/user/music /media/music
 
 
-## How to help
 
-Thanks for being interested in helping to improve it :)
-Things you can tell me about:
-* Tag naming inconsistencies
-* Tags that are similar but haven't been merged together
-* Tags that doesn't get split but should, or do get split but shouldn't
-* Tags that get filtered out but shouldn't (!)
-* If you are unhappy with the tag results
-* Did i miss something in tags.txt?
-* Any errors of course ;)
+whatlastgenre doesn't correct any other tags. If your music files are badly or
+not tagged, whatlastgenre won't work well at all.
 
-I'm also happy for any other kind of suggestions or just send me your tags
-statistics output for a `-nl 10`-run (please append your config if it differs
-much from the default one), i'll try to improve tags.txt with it. :)
-
+Please report any bugs and errors you encounter, i would like to fix them :)

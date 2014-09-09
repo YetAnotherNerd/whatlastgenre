@@ -66,7 +66,6 @@ nyhc
 usa
 
 [splitpart]
-acid
 acoustic
 alternative
 ambient
@@ -85,7 +84,7 @@ electronic
 experimental
 folk
 fre(ak|e)
-fu(neral|ture)
+fu(neral|sion|ture)
 ga(nst(a|er)|rage)
 glam
 gothic
@@ -162,7 +161,7 @@ sci(ence)?( |-)?fi(ction)?~~science fiction~~
 trad(?!itional)\.?( |-|$)~~traditional ~~
 # other
 (8( | -)?bit|bitpop|chip(.?tune)?)~~chiptune~~
-(cabaret|comedi(an|e)|humou?r|parod(ie|y))~~comedy~~
+(cabaret|comedi(an|e)|humou?r|kabarett|parod(ie|y))~~comedy~~
 (weihnacht(en)?|x.?mas)~~christmas~~
 ^(fem|m)ale ?(artist|front|mc|singer|vocalist|voice)?[eds]{0,2}$~~\g<1>ale vocalist~~
 ^(film|games?|movies?|t(ele)?v(ision)?|video(s| )?games?) ?(scores?|music)?$~~soundtrack~~
@@ -172,6 +171,7 @@ beatboxing~~beatbox~~
 bluesan~~blues~~
 br(eaks|oken ?beat)~~breakbeat~~
 chill(?!out)(e(d|n)|ing?|( |-|&)out( bar)?)?~~chillout~~
+down( |-)?tempo~~downtempo~~
 g?old(ies?)(=!en)?~~oldies~~
 jazz( |-)?hip( |-)?hop$~~jazz-hop~~
 kraut( |-)rock~~krautrock~~
@@ -191,7 +191,6 @@ unplug(ged)?~~acoustic~~
 ((^|[\D])([\d]|[\d]{3})([\D]|$)|[\d]{5})
 ((jan|febr)uary?|march|april|ma[iy]|jun[ei]|jul[iy]|august|(septem|o[ck]to|novem|de[cz]em)ber)
 ((mon|tues|wednes|thurs|fri|satur|sun)day|(mon|diens|donners|frei|sams|sonn)tag|mittwoch)
-([\W])
 ([ck]ompa[ck]t)
 (^| )(a(re)?|by|for|i[ns]?|not|o[fn]|so|the|to|up|we)( |$)
 (ba|u)rh?ythm
@@ -222,13 +221,13 @@ balance
 bea(ch|utiful)
 beg
 bizar
-blaze
+bla(st|ze)
 blue.?ray
 bonus
 boo(k|m|tleg)
 boring
 bou(lder|nce)
-box ?set
+box.?set
 brain
 brilliant
 brood
@@ -250,6 +249,7 @@ colle(ct|ge)
 com(ic|pil|pos)
 conduct
 creativ
+current
 cut
 damn
 data
@@ -260,7 +260,7 @@ design
 dialog
 digital
 dirty
-dis([ck]|cogs|ney)
+dis(appointing|[ck]|cogs|ney)
 djs?
 dopeness
 dr\.?[ ]
@@ -271,7 +271,7 @@ dvd
 early
 eclectic
 edit
-effect
+eff(ect|ig)
 emotion
 energ
 enfp
@@ -299,6 +299,7 @@ filth
 fine
 fix
 fla(sh|wless)
+flutter
 format
 fre[ei]
 fuck
@@ -309,6 +310,7 @@ gameboy
 ganja
 gay
 geek
+geht.?ab
 gen(eral|iaa?l|iu|re)
 ges(ang|chichte)
 goo?l?d
@@ -335,6 +337,7 @@ host
 hot
 hyphy
 i(book|mac|pod|phone|tunes)
+idiot
 idol
 incredible
 initial
@@ -351,6 +354,7 @@ journ
 jug(g?al|end)
 juicy
 jukebox
+k21
 kappe
 keep
 kick
@@ -408,13 +412,13 @@ obsessive
 official
 ofwgkta
 output
-own
 pa?c?ka?ge?
 par(k|ty)
 peanut
 per(fect|manent|sistence)
 phantom
 picks
+piss
 pirate
 pla(ce|in|tin|y)
 pleasure
@@ -443,8 +447,8 @@ regist
 rel(ated|ease)
 remember
 repla
+retard
 revival
-rip
 romantic
 rules
 s[ou]mmer
@@ -456,13 +460,14 @@ sch(merz|ool|ule)
 secret ?agent
 see[kn]
 sega
-selbst
+sel(bst|ect)
 sensual
 serie
 sex
 shit
 sho(ck|uld)
 side
+simillia
 sing(en|le)
 skate
 slang
@@ -544,6 +549,7 @@ zombie
 [filter_generic]
 (^| )my .*
 (one|two|three|four|five|six|seven|eight|nine|ten)
+actor
 adult
 age
 and
@@ -556,6 +562,7 @@ beat
 best
 big
 black
+box
 boy
 brutal
 bubblegum
@@ -600,8 +607,12 @@ listen(ers?)?
 los
 math
 mel(anchol(i[ce]|y)|odic)
+merkliste
 mod(al|ern)?
+more
 movies?
+mtv
+mundart
 music
 neue?
 new
@@ -610,6 +621,7 @@ non
 oma
 or
 out
+own
 pagan
 pie
 power
@@ -619,11 +631,13 @@ regional
 repetto
 retro
 rhythm(ic)?
+rip
 romantic
 roots?
 row
 slow
 smooth
+snes
 soft
 son
 soulful
@@ -667,6 +681,7 @@ katie
 kirsten
 micha
 paul
+qlencja
 robert
 roger
 rusbeh
@@ -719,6 +734,7 @@ detroit
 deutsch
 dutch
 english
+erfurt
 estonian?
 ethiopian?
 europ(a|e(an)?)
@@ -753,6 +769,7 @@ korean?
 limerick
 london
 los ?angeles
+louisiana
 lyon
 lyric
 m.?nchen
@@ -786,6 +803,7 @@ san( .* )
 scandinavi?[ae]n?
 scott?ish
 seattle
+senegal
 soo?maa?liy?an?
 spa(in|nish)
 sri ?lankan?
