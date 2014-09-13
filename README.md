@@ -52,10 +52,25 @@ for each tag will be. So if only one tag is supplied, it will get a score of
 
 
 ## Installation
-You'll need Python 2.7. Running the following should also automatically install
-all needed dependencies (mutagen, requests):
+You'll need Python 2.7.
 
-	$ python setup.py install
+Install dependencies with your distribution specific packages manager
+
+	# apt get install python-mutagen python-requests
+	
+OR by using python-pip
+
+	# pip install mutagen requests
+
+then clone the git or download and extract the source package and
+
+run whatlastgenre directly without installation
+
+	$ python whatlastgenre --help
+
+or install it by running
+
+	# python setup.py install
 
 
 ## Configuration
@@ -64,7 +79,6 @@ A configuration file with default values will be created on first run.
 ### Example configuration file
 	[wlg]
 	sources = whatcd, mbrainz, lastfm, discogs
-	tagsfile = tags.txt
 	cache_timeout = 30
 	whatcduser = whatusername
 	whatcdpass = whatpassword
@@ -107,13 +121,10 @@ artist search only
 * `echonest` [[URL](http://echonest.com/)]
 artist search only, fixed list of [genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
 
-##### tagsfile option
-Path to the tags.txt file. Use an absolute path here if you have problems
-accessing the tagsfile by default.
 
 ##### cache_timout option
 Time in days after which cache hits get invalid.
-Default `7`, Range `3 - 90`
+Default `30`, Range `3 - 90`
 
 #### genres section
 
@@ -186,10 +197,10 @@ Default `0.33`, Range `0.0 - 1.0`
 	  -r, --tag-release    tag release type (from What) (default: False)
 	  -m, --tag-mbids      tag musicbrainz ids (default: False)
 	  -l N, --tag-limit N  max. number of genre tags (default: 4)
-	  --config CONFIG      location of the configuration file (default:
-	                       ~/.whatlastgenre/config)
-	  --cache CACHE        location of the cache file (default:
-	                       ~/.whatlastgenre/cache)
+	  --config CONFIG      location of the configuration file
+	                       (default: ~/.whatlastgenre/config)
+	  --cache CACHE        location of the cache file
+	                       (default: ~/.whatlastgenre/cache)
 
 
 If you seriously want to tag release-types `-r` or musicbrainz-ids `-m` you
