@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+'''whatlastgenre executable'''
+
+from wlg.whatlastgenre import main
+main()
