@@ -77,7 +77,7 @@ class BunchOfTracks(object):
         LOG.info("albumartist=%s, album=%s, date=%s",
                  aartist, album, self.get_common_meta('date'))
 
-    def get_common_meta(self, key):
+    def get_common_meta(self, key, use_lcs=True):
         '''Gets metadata that all tracks have in common.'''
         val = []
         for track in self.tracks:
@@ -85,8 +85,8 @@ class BunchOfTracks(object):
         # common for all tracks
         if len(set(val)) == 1:
             return val[0]
-        # longest common substring for all tags
-        if key in ['artist', 'albumartist']:
+        # use longest common substring
+        if use_lcs and key in ['artist', 'albumartist']:
             val = [x for x in val if x]
             lcs = self._longest_common_substr(val)
             if lcs and len(lcs) > 2 and lcs == val[0][:len(lcs)]:

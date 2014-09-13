@@ -6,7 +6,7 @@ http://github.com/YetAnotherNerd/whatlastgenre'''
 from __future__ import division, print_function
 from _version import __version__
 from collections import defaultdict
-from math import floor, factorial as fac
+from math import floor, factorial
 import ConfigParser
 import argparse
 import dataprovider as dp
@@ -17,8 +17,8 @@ import json
 import logging
 import mediafile as mf
 import os
+import pkgutil
 import re
-import sys
 import time
 
 LOG = logging.getLogger('whatlastgenre')
@@ -129,7 +129,7 @@ class GenreTags(object):
                 for i in range(count):
                     for j in range(i + 1, count):
                         tags.append(split[i].strip() + ' ' + split[j].strip())
-                count = 0.5 * fac(count) / fac(count - 2)
+                count = 0.5 * factorial(count) / factorial(count - 2)
                 return tags, score / count, False
             elif any([self.regex['filter_instrument'].match(x) or
                       self.regex['filter_location'].match(x) or
@@ -274,30 +274,28 @@ def get_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Improves genre metadata of audio files '
                     'based on tags from various music sites.')
-    args.add_argument(
-        'path', nargs='+', help='folder(s) to scan for albums')
-    args.add_argument(
-        '-v', '--verbose', action='store_true', help='more detailed output')
-    args.add_argument(
-        '-n', '--dry', action='store_true', help='don\'t save metadata')
-    args.add_argument(
-        '-c', '--cacheignore', action='store_true', help='ignore cache hits')
-    args.add_argument(
-        '-i', '--interactive', action='store_true', help='interactive mode')
-    args.add_argument(
-        '-r', '--tag-release', action='store_true',
-        help='tag release type (from What)')
-    args.add_argument(
-        '-m', '--tag-mbids', action='store_true', help='tag musicbrainz ids')
-    args.add_argument(
-        '-l', '--tag-limit', metavar='N', type=int, default=4,
-        help='max. number of genre tags')
-    args.add_argument(
-        '--config', default=os.path.expanduser('~/.whatlastgenre/config'),
-        help='location of the configuration file')
-    args.add_argument(
-        '--cache', default=os.path.expanduser('~/.whatlastgenre/cache'),
-        help='location of the cache file')
+    args.add_argument('path', nargs='+',
+                      help='folder(s) to scan for albums')
+    args.add_argument('-v', '--verbose', action='store_true',
+                      help='more detailed output')
+    args.add_argument('-n', '--dry', action='store_true',
+                      help='don\'t save metadata')
+    args.add_argument('-c', '--cacheignore', action='store_true',
+                      help='ignore cache hits')
+    args.add_argument('-i', '--interactive', action='store_true',
+                      help='interactive mode')
+    args.add_argument('-r', '--tag-release', action='store_true',
+                      help='tag release type (from What)')
+    args.add_argument('-m', '--tag-mbids', action='store_true',
+                      help='tag musicbrainz ids')
+    args.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
+                      help='max. number of genre tags')
+    args.add_argument('--config',
+                      default=os.path.expanduser('~/.whatlastgenre/config'),
+                      help='location of the configuration file')
+    args.add_argument('--cache',
+                      default=os.path.expanduser('~/.whatlastgenre/cache'),
+                      help='location of the cache file')
     args = args.parse_args()
     loglvl = logging.INFO if args.verbose else logging.WARN
     LOG.setLevel(loglvl)
@@ -311,7 +309,6 @@ def get_conf(configfile):
     '''Reads, maintains and writes the configuration file.'''
     # [section, option, default, required, [min, max]]
     conf = [['wlg', 'sources', 'whatcd, mbrainz, discogs, lastfm', 1, []],
-            ['wlg', 'tagsfile', 'tags.txt', 1, []],
             ['wlg', 'cache_timeout', '30', 1, [3, 90]],
             ['wlg', 'whatcduser', '', 0, []],
             ['wlg', 'whatcdpass', '', 0, []],
@@ -376,32 +373,29 @@ def get_conf_list(conf, sec, opt):
             if x.strip() != '']
 
 
-def get_tags(tagsfile):
+def get_tags():
     '''Parses the tagsfile.'''
-    if '/' not in tagsfile and '\\' not in tagsfile:
-        tagsfile = os.path.join(os.path.dirname(__file__), tagsfile)
     tags = {}
     section = None
     taglist = []
-    with open(tagsfile, 'r') as tagfile:
-        for line in tagfile:
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            sectionmatch = re.match(r'^\[(.*)\]( +#.*)?$', line)
-            if sectionmatch:
-                if section and taglist:
-                    if section == 'replaceme':
-                        replace = {}
-                        for tag in taglist:
-                            pat, repl, _ = tag.split('~~')
-                            replace.update({pat: repl})
-                        taglist = replace
-                    tags.update({section: taglist})
-                section = sectionmatch.group(1)
-                taglist = []
-            else:
-                taglist.append(line)
+    for line in pkgutil.get_data('wlg', 'tags.txt').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        sectionmatch = re.match(r'^\[(.*)\]( +#.*)?$', line)
+        if sectionmatch:
+            if section and taglist:
+                if section == 'replaceme':
+                    replace = {}
+                    for tag in taglist:
+                        pat, repl, _ = tag.split('~~')
+                        replace.update({pat: repl})
+                    taglist = replace
+                tags.update({section: taglist})
+            section = sectionmatch.group(1)
+            taglist = []
+        else:
+            taglist.append(line)
     return tags
 
 
@@ -469,10 +463,9 @@ def validate(args, conf, tags):
         args.tag_mbids = False
 
 
-def handle_folder(args, dps, cache, genretags, folder):
+def handle_folder(args, dps, cache, genretags, bot):
     '''Loads metadata, receives tags and saves an album.'''
     # TODO: shrink this method
-    bot = mf.BunchOfTracks(folder[0], folder[1], folder[2])
     genretags.reset(bot)
     artistname = searchstr(bot.get_common_meta('albumartist'))
     albumname = searchstr(bot.get_common_meta('album'))
@@ -556,7 +549,6 @@ def handle_folder(args, dps, cache, genretags, folder):
                                          for k, v in mbids.iteritems()]))
         for mbid in mbids:
             bot.set_common_meta('musicbrainz_' + mbid, mbids[mbid])
-
     # save metadata
     if args.dry:
         print("DRY-RUN! Not saving metadata.")
@@ -654,9 +646,10 @@ def print_stats(stats):
 
 def main():
     '''main function of whatlastgenre.'''
+    print("whatlastgenre v%s\n" % __version__)
     args = get_args()
     conf = get_conf(args.config)
-    tags = get_tags(conf.get('wlg', 'tagsfile'))
+    tags = get_tags()
     tags.update({"love": get_conf_list(conf, 'genres', 'love')})
     tags.update({"hate": get_conf_list(conf, 'genres', 'hate')})
     tags.update({"filter_blacklist":
@@ -678,7 +671,7 @@ def main():
     try:  # main loop
         for i, folder in enumerate(folders):
             # save cache periodically
-            if time.time() - cache.time > 600:
+            if time.time() - cache.time > 60 * 10:
                 cache.save()
             # print progress bar
             print("\n(%2d/%d) [" % (i + 1, len(folders)), end='')
@@ -687,7 +680,8 @@ def main():
             print("] %2.0f%%" % floor(i / len(folders) * 100))
             # handle folders
             try:
-                genres = handle_folder(args, dps, cache, genretags, folder)
+                bot = mf.BunchOfTracks(folder[0], folder[1], folder[2])
+                genres = handle_folder(args, dps, cache, genretags, bot)
                 if not genres:
                     stats['foldernogenres'].append(folder[0])
                     continue
@@ -701,7 +695,3 @@ def main():
     except KeyboardInterrupt:
         pass
     print_stats(stats)
-
-if __name__ == "__main__":
-    print("whatlastgenre v%s\n" % __version__)
-    sys.exit(main())
