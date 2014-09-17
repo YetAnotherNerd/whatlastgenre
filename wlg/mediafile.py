@@ -2,10 +2,13 @@
 '''whatlastgenre mediafile'''
 
 from __future__ import print_function
+
 import logging
-import mutagen
 import os.path
 import re
+
+import mutagen
+
 
 LOG = logging.getLogger('whatlastgenre')
 
@@ -152,17 +155,15 @@ class Track(object):
         key = self._translate_key(key)
         if not key or key not in self.muta:
             return
-#         # TODO: check if needed, remove otherwise
-#         try:
-#             pass
-#         except (KeyError, ValueError, UnicodeEncodeError):
-#             return
-        val = self.muta[key][0].encode('utf-8')
-        if key.lower() == 'date':
-            return int(val[:4])
-        if key.lower() == 'tracknumber':
-            return int(val[:2])
-        return val
+        try:
+            val = self.muta[key][0].encode('utf-8')
+            if key.lower() == 'date':
+                return int(val.split('-')[0]) if '-' in val else int(val)
+            if key.lower() == 'tracknumber':
+                return int(val.split('/')[0]) if '/' in val else int(val)
+            return val
+        except ValueError:
+            return
 
     def set_meta(self, key, val):
         '''Sets metadata for a given key.'''
