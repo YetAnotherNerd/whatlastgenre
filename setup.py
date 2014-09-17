@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 '''whatlastgenre setup'''
 
-from setuptools import setup
-from wlg._version import __version__
 import os
+
+from setuptools import setup
+from wlg import __version__
 
 
 def read(fname):

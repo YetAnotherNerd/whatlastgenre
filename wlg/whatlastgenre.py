@@ -4,22 +4,26 @@ Improves genre metadata of audio files based on tags from various music sites.
 http://github.com/YetAnotherNerd/whatlastgenre'''
 
 from __future__ import division, print_function
-from _version import __version__
-from collections import defaultdict
-from math import floor, factorial
+
 import ConfigParser
 import argparse
-import dataprovider as dp
+from collections import defaultdict
 import datetime
 import difflib
 import itertools
-import json
 import logging
-import mediafile as mf
+from math import floor, factorial
 import os
 import pkgutil
 import re
 import time
+
+from wlg import __version__
+
+from wlg.cache import Cache
+import wlg.dataprovider as dp
+import wlg.mediafile as mf
+
 
 LOG = logging.getLogger('whatlastgenre')
 

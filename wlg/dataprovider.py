@@ -2,11 +2,13 @@
 '''whatlastgenre dataprovider'''
 
 from __future__ import print_function
-from _version import __version__
-from requests.exceptions import ConnectionError, HTTPError
+
 import logging
-import requests
 import time
+
+import requests
+from wlg import __version__
+
 
 LOG = logging.getLogger('whatlastgenre')
 
@@ -33,7 +35,8 @@ class DataProvider(object):
             time.sleep(.1)
         try:
             req = self.session.get(url, params=params)
-        except (ConnectionError, HTTPError) as err:
+        except (requests.exceptions.ConnectionError,
+                requests.exceptions.HTTPError) as err:
             raise DataProviderError("connection error: %s" % err.message)
         self.last_request = time.time()
         if req.status_code != 200:
