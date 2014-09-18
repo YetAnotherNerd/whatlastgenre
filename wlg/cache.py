@@ -4,7 +4,9 @@
 from __future__ import print_function
 
 import json
+import os
 import re
+import tempfile
 import time
 
 
@@ -22,7 +24,7 @@ class Cache(object):
             with open(self.file) as infile:
                 self.cache = json.load(infile)
             self.clean()
-        except IOError:
+        except (IOError, ValueError):
             pass
 
     def __del__(self):
@@ -79,7 +81,15 @@ class Cache(object):
         if not self.dirty:
             return
         print("\nSaving cache...")
-        with open(self.file, 'w') as outfile:
-            json.dump(self.cache, outfile)
-        self.time = time.time()
-        self.dirty = False
+        dirname, basename = os.path.split(self.file)
+        try:
+            with tempfile.NamedTemporaryFile(prefix=basename + '.tmp_',
+                                             dir=dirname,
+                                             delete=False) as tmpfile:
+                tmpfile.write(json.dumps(self.cache))
+                os.fsync(tmpfile)
+            os.rename(tmpfile.name, self.file)
+            self.time = time.time()
+            self.dirty = False
+        except KeyboardInterrupt:
+            pass
