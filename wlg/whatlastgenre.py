@@ -16,6 +16,7 @@ from math import floor, factorial
 import os
 import pkgutil
 import re
+import sys
 import time
 
 from wlg import __version__
@@ -224,11 +225,6 @@ def get_args():
                       default=os.path.expanduser('~/.whatlastgenre/cache'),
                       help='location of the cache file')
     args = args.parse_args()
-    loglvl = logging.INFO if args.verbose else logging.WARN
-    LOG.setLevel(loglvl)
-    hdlr = logging.StreamHandler()
-    hdlr.setLevel(loglvl)
-    LOG.addHandler(hdlr)
     return args
 
 
@@ -581,6 +577,13 @@ def main():
     tags.update({"hate": get_conf_list(conf, 'genres', 'hate')})
     tags.update({"filter_blacklist":
                  get_conf_list(conf, 'genres', 'blacklist')})
+
+    loglvl = logging.INFO if args.verbose else logging.WARN
+    LOG.setLevel(loglvl)
+    hdlr = logging.StreamHandler(sys.stdout)
+    hdlr.setLevel(loglvl)
+    LOG.addHandler(hdlr)
+
     validate(args, conf, tags)
 
     stats = {'starttime': time.time(),
