@@ -3,17 +3,18 @@
 Improves genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
-* Supported music sites: WhatCD, LastFM, MusicBrainz, Discogs, EchoNest, Idiomag 
+* Supported music sites: WhatCD, LastFM, MusicBrainz, Discogs, EchoNest, Idiomag
 * Feature Overview
 	* Gets genre tags for artists and albums from music sites and finds the
 	most eligible ones by merging, splitting, filtering and scoring them.
+		* Heavy filtering of crappy tags to not need a whitelist.
 		* Merges similar tags in different writings to ensure consistent names,
 		eg. DnB, D&B, Drum and Bass -> Drum & Bass;
 		Alt., Altern, Alterneitif -> Alternative
 		* Splits tags in various applicable ways, eg.
 		Jazz/Funk&Rock -> Jazz, Funk, Rock;
 		Alternative Rock -> Alternative, Rock
-		* Filters by personal preferences and preset or custom filters
+		* Filters by personal preferences with preset and custom filters
 		* Scores tags while taking personal preferences into account
 	* Caches all data received from music sites to make reruns super fast
 	* Makes use of MusicBrainz IDs when possible
@@ -42,7 +43,7 @@ explained" below for more details.
 If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of 1.0, a tag having only half of the top tag's count gets
-a score of 0.5 and so on. 
+a score of 0.5 and so on.
 
 #### Tags scoring without count (Discogs, EchoNest, What partially)
 Tags supplied without a count will be scored `0.85^(n-1)`, where `n` is the
@@ -56,8 +57,8 @@ You'll need Python 2.7.
 
 Install dependencies with your distribution specific packages manager
 
-	# apt get install python-mutagen python-requests
-	
+	# apt-get install python-mutagen python-requests
+
 OR by using python-pip
 
 	# pip install mutagen requests
@@ -117,7 +118,7 @@ home of mbids
 * `discogs` [[URL](http://www.idiomag.com/)]
 album search only, fixed list of [genres](http://www.discogs.com/help/submission-guidelines-release-genres-styles.html) and [styles](http://wiki.discogs.com/index.php/Style_Guide)
 * `idiomag` [[URL](http://www.idiomag.com/)]
-artist search only 
+artist search only
 * `echonest` [[URL](http://echonest.com/)]
 artist search only, fixed list of [genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
 
@@ -139,9 +140,8 @@ Use this to activate filters for specific tag groups:
 * `instrument` instrument related names, like piano or guitarist
 * `label` label names
 * `location` country, city and nationality names
+* `name` person names
 * `year` year tags, like 1980s
-* create your own filter lists by adding filter sections to the tags.txt file,
-consider them as large blacklists.
 
 #### scores section
 
@@ -180,14 +180,14 @@ Default `0.33`, Range `0.0 - 1.0`
 ## Usage
 
 	usage: whatlastgenre [-h] [-v] [-n] [-c] [-i] [-r] [-m] [-l N]
-	                     [--config CONFIG] [--cache CACHE]
-	                     path [path ...]
-	
+						 [--config CONFIG] [--cache CACHE]
+						 path [path ...]
+
 	Improves genre metadata of audio files based on tags from various music sites.
-	
+
 	positional arguments:
 	  path                 folder(s) to scan for albums
-	
+
 	optional arguments:
 	  -h, --help           show this help message and exit
 	  -v, --verbose        more detailed output (default: False)
@@ -198,9 +198,9 @@ Default `0.33`, Range `0.0 - 1.0`
 	  -m, --tag-mbids      tag musicbrainz ids (default: False)
 	  -l N, --tag-limit N  max. number of genre tags (default: 4)
 	  --config CONFIG      location of the configuration file
-	                       (default: ~/.whatlastgenre/config)
+						   (default: ~/.whatlastgenre/config)
 	  --cache CACHE        location of the cache file
-	                       (default: ~/.whatlastgenre/cache)
+						   (default: ~/.whatlastgenre/cache)
 
 
 If you seriously want to tag release-types `-r` or musicbrainz-ids `-m` you

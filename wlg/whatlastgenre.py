@@ -81,13 +81,14 @@ class GenreTags(object):
     def add(self, part, name, score):
         '''Adds a genre tag with a given score to a given part after doing
         all the replace, split, filter, etc. magic.'''
-        name = name.encode('ascii', 'ignore').strip().lower()
+        name = name.encode('ascii', 'ignore').lower()
         # prefilter
         if self.regex['filter_badtags'].match(name):
             return
         # replace
         name = re.sub(r'([_/,;\.\+\*]| and )', '&', name, 0, re.I)
         name = re.sub('-', ' ', name)
+        name = re.sub(r'[^a-z0-9\- ]', '', name)
         for pat, rep in self.basetags['replaceme'].iteritems():
             name = re.sub(pat, rep, name, 0, re.I)
         name = re.sub(' +', ' ', name).strip()
@@ -599,14 +600,14 @@ def main():
     genretags = GenreTags(conf, tags)
 
     try:  # main loop
-        for i, folder in enumerate(folders):
+        for i, folder in enumerate(folders, start=1):
             # save cache periodically
-            if time.time() - cache.time > 60 * 10:
+            if time.time() - cache.time > 600:
                 cache.save()
             # print progress bar
-            print("\n(%2d/%d) [" % (i + 1, len(folders)), end='')
+            print("\n(%2d/%d) [" % (i, len(folders)), end='')
             for j in range(60):
-                print('#' if j < (i / len(folders) * 60) else '-', end='')
+                print('#' if j < floor(i / len(folders) * 60) else '-', end='')
             print("] %2.0f%%" % floor(i / len(folders) * 100))
             # handle folders
             try:
