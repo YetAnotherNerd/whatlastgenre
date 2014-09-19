@@ -166,7 +166,7 @@ class LastFM(DataProvider):
         if not isinstance(tags, list):
             tags = [tags]
         return [{'tags': {t['name']: int(t['count']) for t in tags
-                          if t['count'] and int(t['count']) > 2}}]
+                          if t['count'] and int(t['count']) > 40}}]
 
 
 class MBrainz(DataProvider):
