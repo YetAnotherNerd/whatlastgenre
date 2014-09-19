@@ -5,7 +5,7 @@
 # [splitpart]	regex parts in tags that additionally should get split by space
 # [dontsplit]	regex tags that shouldn't get split
 # [replaceme]	regex replacements: pattern~~replacement~~
-# [filters_<name>[_fuzzy]] sections: regular expressions
+# [filter_<name>[_fuzzy]] sections: regular expressions filters
 #	define your own filters by adding [filter_<name>[_fuzzy]] sections
 #	activate them by adding <name> to filters in your config file
 #	lines will get surrounded by .* if you append _fuzzy
@@ -26,6 +26,7 @@ jazz
 male vocalist
 minimal
 minimalist
+pop rock
 progressive
 ragga
 reggae
@@ -202,7 +203,7 @@ all
 amazing
 ang([el]{2}|ry)
 anime
-anti
+ant(hology|i)
 aor
 apart
 aquire
@@ -237,6 +238,7 @@ buy
 c(ompa[ck]t.?)?d(is[ck])?
 c[ao]ver
 calm
+cash
 catch
 ccm
 che(ese|ck)
@@ -267,6 +269,7 @@ dr\.?[ ]
 drama
 driv
 duet
+dumb
 dvd
 early
 eclectic
@@ -284,6 +287,8 @@ excellent
 exotic
 extra
 eye
+fabryka
+factor
 fading
 fahr
 family
@@ -349,6 +354,7 @@ issue
 iveldie
 jam band
 jecks
+jerk
 jewel.*case
 journ
 jug(g?al|end)
@@ -367,7 +373,9 @@ ldt
 leg(al|end|it)
 lesbian
 library
+lieb
 like
+liquid
 listener
 little
 live
@@ -388,7 +396,7 @@ mirror
 misc
 mittag
 mix
-mongo
+mon(ey|go)
 mood
 mor(gen|n)
 moviemeter
@@ -398,11 +406,12 @@ murder
 mus(ician|t)
 my.*list
 nach
+naked
 name
 near
 neighbour
-nerds
-nice
+ner(ds|vous)
+nic(e|kelodeon)
 night
 nintendo
 noo(dle|n)
@@ -414,12 +423,14 @@ ofwgkta
 output
 pa?c?ka?ge?
 par(k|ty)
+patience
 peanut
 per(fect|manent|sistence)
 phantom
 picks
 piss
 pirate
+pizza
 pla(ce|in|tin|y)
 pleasure
 plunder
@@ -448,8 +459,9 @@ rel(ated|ease)
 remember
 repla
 retard
-revival
+rev(ival|olution)
 romantic
+rough
 rules
 s[ou]mmer
 sad
@@ -457,6 +469,7 @@ sampl
 scar
 scene
 sch(merz|ool|ule)
+screw
 secret ?agent
 see[kn]
 sega
@@ -481,9 +494,9 @@ spirit
 spotify
 spring
 squeeze
-sta(ndard|r)
+sta(nd(ard)?|r|te)
 sto(ne(?!er)|ry)
-str(eam|ess|ong)
+str(ange|eam|ess|ong)
 stu(dio|dy|n)
 styl
 sud[eo]
@@ -493,6 +506,7 @@ surf
 swag
 sweet
 takt
+talent
 team
 teen
 tell
@@ -513,6 +527,7 @@ tro(ll|pic)
 trust
 tune
 twee
+ugly
 unbekannt
 uni(on|vers)
 unknown
@@ -523,6 +538,9 @@ vinyl
 virtuos
 vis(a|ual)
 voodoo
+vox
+wayne
+watch
 want
 web
 wedding
@@ -549,6 +567,7 @@ zombie
 [filter_generic]
 (^| )my .*
 (one|two|three|four|five|six|seven|eight|nine|ten)
+acid
 actor
 adult
 age
@@ -562,15 +581,18 @@ beat
 best
 big
 black
+bow
 box
 boy
 brutal
 bubblegum
 chaotic
 classic
+club
 coast
 conscious
 cool
+core
 dark
 death
 deep
@@ -581,6 +603,7 @@ doom
 dream
 easy
 euro
+fast
 films?
 fox
 fre(ak|e)
@@ -615,9 +638,11 @@ mtv
 mundart
 music
 neue?
+nerd
 new
 ninja
 non
+odd
 oma
 or
 out
@@ -631,10 +656,11 @@ regional
 repetto
 retro
 rhythm(ic)?
-rip
+(re-?)?rip
 romantic
 roots?
 row
+san
 slow
 smooth
 snes
@@ -656,11 +682,14 @@ third
 thug
 top
 traditional
+trip
 underground
 uplifting
 urdu
 video( ?game)?s?
 vip
+wave
+white
 
 [filter_name_fuzzy]
 adam
@@ -690,6 +719,7 @@ th?om
 tony
 tristan
 victor
+wagner
 
 [filter_location]
 (mid(dle)? ?)?(north|east|south|west)(ern| ?coast)?.*
@@ -775,6 +805,7 @@ lyric
 m.?nchen
 m[ao]rocc(an|o)
 ma[dn]chester
+massachusetts
 madrid
 mali([ae]n)?
 melbourne
@@ -820,6 +851,7 @@ toronto
 uk(rainian)?
 united ?(kingdom|states)
 usa?
+utah
 vancouver
 vermont
 vienna
@@ -854,6 +886,7 @@ gomma
 interscope
 kitsune
 left ?field( house)?
+lilith
 marvel
 moving ?shadow
 ninja tune
@@ -907,6 +940,7 @@ vocal
 [filter_year]
 # since [replacme] that's all needed
 ([0-9]{2}){1,2}s?
+.*(19|20)[0-9]{2}.*
 
 
 # custom filters
@@ -915,4 +949,7 @@ vocal
 ihatethistag
 shittytag
 thistagiswrong
+
+[dummy_section] # FIXME: code that reads this file needs ending section
+
 
