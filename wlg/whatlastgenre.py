@@ -37,10 +37,17 @@ class GenreTags(object):
     def __init__(self, conf):
         self.conf = conf
         self.tags = None
+        self.filters = ['badtags', 'generic', 'album'] + \
+                       get_conf_list(conf, 'genres', 'filters')
+        self.conftags = {
+            'blacklist': get_conf_list(conf, 'genres', 'blacklist'),
+            'love': get_conf_list(conf, 'genres', 'love'),
+            'hate': get_conf_list(conf, 'genres', 'hate')}
         # tags file parsing
         self.parser = ConfigParser.SafeConfigParser(allow_no_value=True)
         tagfp = StringIO.StringIO(pkgutil.get_data('wlg', 'tags.txt'))
         self.parser.readfp(tagfp)
+        # tags file validation
         for sec in ['basictags', 'uppercase', 'splitpart', 'dontsplit',
                     'replaceme']:
             if not self.parser.has_section(sec):
@@ -54,11 +61,20 @@ class GenreTags(object):
                       "[filter_%s[_fuzzy]] section in the tags.txt file."
                       % (sec, sec))
                 exit()
+        # set up matchlist
+        self.matchlist = [self.parser.options('basictags') +
+                          self.conftags['blacklist'] +
+                          self.conftags['love'] +
+                          self.conftags['hate']]
+        # set up replaces
+        self.replaces = {}
+        for pattern, repl in self.parser.items("replaceme", True):
+            self.replaces.update({pattern: repl})
         # compile filters and other regex
         self.regex = {}
         for sec in self.parser.sections():
             if not (sec.startswith('filter_') or
-                    sec in ['splitpart', 'dontsplit']):
+                    sec in ['splitpart', 'dontsplit', 'replaceme']):
                 continue
             pat = '(%s)' % '|'.join(self.parser.options(sec))
             if sec.endswith('_fuzzy'):
@@ -94,8 +110,9 @@ class GenreTags(object):
         name = re.sub(r'([_/,;\.\+\*]| and )', '&', name, 0, re.I)
         name = re.sub(r'-', ' ', name)
         name = re.sub(r'[^a-z0-9 ]', '', name, 0, re.I)
-        for pattern, repl in self.parser.items("replaceme", True):
-            name = re.sub(pattern, repl, name, 0, re.I)
+        if self.regex['replaceme'].match(name):
+            for pattern, repl in self.replaces.items():
+                name = re.sub(pattern, repl, name, 0, re.I)
         name = re.sub(' +', ' ', name).strip()
         # split
         tags, pscore, keep = self.split(name, score)
@@ -108,26 +125,20 @@ class GenreTags(object):
         if len(name) not in range(3, 19) or score < 0.1:
             return
         # matching existing tag (don't change cutoff, add replaces instead)
-        mli = [self.parser.options('basictags')
-                + get_conf_list(self.conf, 'genres', 'blacklist')
-                + get_conf_list(self.conf, 'genres', 'love')
-                + get_conf_list(self.conf, 'genres', 'hate')
-                + [t.keys() for t in self.tags.itervalues()]]
+        mli = [t.keys() for t in self.tags.values()] + self.matchlist
         match = difflib.get_close_matches(name, mli, 1, .8572)
         if match:
             name = match[0]
         # filter
-        if name in get_conf_list(self.conf, 'genres', 'blacklist'):
+        if name in self.conftags['blacklist']:
             return
-        for fil in get_conf_list(self.conf, 'genres', 'filters') + ['badtags',
-                                                                    'generic',
-                                                                    'album']:
-            if self.regex['filter_' + fil].match(name):
+        for fil in self.filters:
+            if self.regex['filter_%s' % fil].match(name):
                 return
         # score bonus
-        if name in get_conf_list(self.conf, 'genres', 'love'):
+        if name in self.conftags['love']:
             score *= 2
-        elif name in get_conf_list(self.conf, 'genres', 'hate'):
+        elif name in self.conftags['hate']:
             score *= 0.5
         # finally add it
         self.tags[part][name] += score
