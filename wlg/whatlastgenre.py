@@ -6,6 +6,7 @@ http://github.com/YetAnotherNerd/whatlastgenre'''
 from __future__ import division, print_function
 
 import ConfigParser
+import StringIO
 import argparse
 from collections import defaultdict
 import datetime
@@ -33,30 +34,37 @@ class GenreTags(object):
     '''Class for managing the genre tags.'''
     # TODO: rewrite this
 
-    def __init__(self, conf, basetags):
-        self.basetags = basetags
-        self.scores = {x: conf.getfloat('scores', x)
-                       for x, _ in conf.items('scores')}
-        self.filters = ['album', 'blacklist', 'generic'] \
-                       + get_conf_list(conf, 'genres', 'filters')
+    def __init__(self, conf):
+        self.conf = conf
         self.tags = None
-        # fill matchlist
-        self.matchlist = []
-        for taglist in ['basictags', 'filter_blacklist', 'hate', 'love']:
-            self.matchlist += self.basetags.get(taglist, [])
+        # tags file parsing
+        self.parser = ConfigParser.SafeConfigParser(allow_no_value=True)
+        tagfp = StringIO.StringIO(pkgutil.get_data('wlg', 'tags.txt'))
+        self.parser.readfp(tagfp)
+        for sec in ['basictags', 'uppercase', 'splitpart', 'dontsplit',
+                    'replaceme']:
+            if not self.parser.has_section(sec):
+                print("Got no [%s] from tag.txt file." % sec)
+                exit()
+        for sec in get_conf_list(conf, 'genres', 'filters') + ['badtags',
+                                                               'generic']:
+            if not (self.parser.has_section('filter_%s' % sec) or
+                    self.parser.has_section('filter_%s_fuzzy' % sec)):
+                print("The configured filter '%s' doesn't have a "
+                      "[filter_%s[_fuzzy]] section in the tags.txt file."
+                      % (sec, sec))
+                exit()
         # compile filters and other regex
         self.regex = {}
-        for reg in [x for x in self.basetags if x.startswith('filter_')] \
-                + ['splitpart', 'dontsplit']:
-            pat = '(' + '|'.join(self.basetags[reg]) + ')'
-            if reg.endswith('_fuzzy'):
-                pat = '.*' + pat + '.*'
-                reg = reg[:-6]
-            if len(pat) < 10:
-                if reg.startswith('filter_') and reg[7:] in self.filters:
-                    self.filters.remove(reg[7:])
+        for sec in self.parser.sections():
+            if not (sec.startswith('filter_') or
+                    sec in ['splitpart', 'dontsplit']):
                 continue
-            self.regex[reg] = re.compile(pat, re.I)
+            pat = '(%s)' % '|'.join(self.parser.options(sec))
+            if sec.endswith('_fuzzy'):
+                pat = '.*%s.*' % pat
+                sec = sec[:-6]
+            self.regex[sec] = re.compile(pat, re.I)
 
     def reset(self, bot):
         '''Resets the genre tags and album filter.'''
@@ -68,7 +76,7 @@ class GenreTags(object):
         while taking the source score multiplier into account.'''
         if not tags:
             return
-        multi = self.scores.get('src_' + source, 1)
+        multi = self.conf.getfloat('scores', 'src_%s' % source)
         if isinstance(tags, dict):
             top = max(1, max(tags.itervalues()))
             for name, count in tags.iteritems():
@@ -82,15 +90,12 @@ class GenreTags(object):
         '''Adds a genre tag with a given score to a given part after doing
         all the replace, split, filter, etc. magic.'''
         name = name.encode('ascii', 'ignore').lower()
-        # prefilter
-        if self.regex['filter_badtags'].match(name):
-            return
         # replace
         name = re.sub(r'([_/,;\.\+\*]| and )', '&', name, 0, re.I)
-        name = re.sub('-', ' ', name)
-        name = re.sub(r'[^a-z0-9\- ]', '', name)
-        for pat, rep in self.basetags['replaceme'].iteritems():
-            name = re.sub(pat, rep, name, 0, re.I)
+        name = re.sub(r'-', ' ', name)
+        name = re.sub(r'[^a-z0-9 ]', '', name, 0, re.I)
+        for pattern, repl in self.parser.items("replaceme", True):
+            name = re.sub(pattern, repl, name, 0, re.I)
         name = re.sub(' +', ' ', name).strip()
         # split
         tags, pscore, keep = self.split(name, score)
@@ -99,24 +104,31 @@ class GenreTags(object):
                 self.add(part, tag, pscore)
             if not keep:
                 return
-            score *= self.scores['splitup']
-
+            score *= self.conf.getfloat('scores', 'splitup')
         if len(name) not in range(3, 19) or score < 0.1:
             return
         # matching existing tag (don't change cutoff, add replaces instead)
-        mli = []
-        for tags in self.tags.itervalues():
-            mli += tags.keys()
-        match = difflib.get_close_matches(name, self.matchlist + mli, 1, .8572)
+        mli = [self.parser.options('basictags')
+                + get_conf_list(self.conf, 'genres', 'blacklist')
+                + get_conf_list(self.conf, 'genres', 'love')
+                + get_conf_list(self.conf, 'genres', 'hate')
+                + [t.keys() for t in self.tags.itervalues()]]
+        match = difflib.get_close_matches(name, mli, 1, .8572)
         if match:
             name = match[0]
         # filter
-        for fil in self.filters:
+        if name in get_conf_list(self.conf, 'genres', 'blacklist'):
+            return
+        for fil in get_conf_list(self.conf, 'genres', 'filters') + ['badtags',
+                                                                    'generic',
+                                                                    'album']:
             if self.regex['filter_' + fil].match(name):
                 return
         # score bonus
-        if name in self.basetags['love'] + self.basetags['hate']:
-            score *= 2 if name in self.basetags['love'] else 0.5
+        if name in get_conf_list(self.conf, 'genres', 'love'):
+            score *= 2
+        elif name in get_conf_list(self.conf, 'genres', 'hate'):
+            score *= 0.5
         # finally add it
         self.tags[part][name] += score
 
@@ -154,7 +166,10 @@ class GenreTags(object):
                                         (v, k), reverse=1)][:10])
             LOG.info("Best %s tags (%d): %s", part, len(ptags), toptags)
             if ptags:
-                mult = self.scores['artist'] if part == 'artist' else 1
+                if part == 'artist':
+                    mult = self.conf.getfloat('scores', 'artist')
+                else:
+                    mult = 1
                 for tag, score in ptags.iteritems():
                     tags[tag] += score * mult / max(ptags.itervalues())
         # format and sort
@@ -166,7 +181,7 @@ class GenreTags(object):
         split = name.split(' ')
         for i in range(len(split)):
             if len(split[i]) < 3 and split[i] != 'nu' or \
-                    split[i] in self.basetags['uppercase']:
+                    split[i] in self.parser.options('uppercase'):
                 split[i] = split[i].upper()
             elif re.match('[0-9]{4}s', name, re.I):
                 split[i] = split[i].lower()
@@ -265,7 +280,7 @@ def get_conf(configfile):
             if not [x for x in conf if x[:2] == [sec, opt]]:
                 config.remove_option(sec, opt)
                 dirty = True
-    # add and validate options
+    # add and correct options
     for sec, opt, default, req, rng in [x for x in conf]:
         if not config.has_option(sec, opt) or \
                 req and config.get(sec, opt) == '':
@@ -284,6 +299,11 @@ def get_conf(configfile):
         config.set(sec, opt, cor[0])
         dirty = True
     if not dirty:
+        # validate options
+        if not get_conf_list(config, 'wlg', 'sources'):
+            print("Where do you want to get your data from?\nAt least one "
+                  "source must be activated (multiple sources recommended)!")
+            exit()
         return config
     with open(configfile, 'wb') as conffile:
         config.write(conffile)
@@ -295,32 +315,6 @@ def get_conf_list(conf, sec, opt):
     '''Gets a configuration string as list.'''
     return [x.strip() for x in conf.get(sec, opt).lower().split(',')
             if x.strip() != '']
-
-
-def get_tags():
-    '''Parses the tagsfile.'''
-    tags = {}
-    section = None
-    taglist = []
-    for line in pkgutil.get_data('wlg', 'tags.txt').splitlines():
-        line = line.strip()
-        if not line or line.startswith('#'):
-            continue
-        sectionmatch = re.match(r'^\[(.*)\]( +#.*)?$', line)
-        if sectionmatch:
-            if section and taglist:
-                if section == 'replaceme':
-                    replace = {}
-                    for tag in taglist:
-                        pat, repl, _ = tag.split('~~')
-                        replace.update({pat: repl})
-                    taglist = replace
-                tags.update({section: taglist})
-            section = sectionmatch.group(1)
-            taglist = []
-        else:
-            taglist.append(line)
-    return tags
 
 
 def get_daprs(conf):
@@ -345,19 +339,8 @@ def get_daprs(conf):
     return dps
 
 
-def validate(args, conf, tags):
-    '''Validates args, conf and tags.'''
-    # tags file
-    for tag in ['basictags', 'splitpart', 'dontsplit', 'replaceme']:
-        if tag not in tags:
-            print("Got no [%s] from tag.txt file." % tag)
-            exit()
-    for fil in ['filter_' + f for f in
-                get_conf_list(conf, 'genres', 'filters')]:
-        if fil not in tags and fil + '_fuzzy' not in tags:
-            print("The filter '%s' you set in your config doesn't have a [filt"
-                  "er_%s[_fuzzy]] section in the tags.txt file." % (fil, fil))
-            exit()
+def validate(args, conf):
+    '''Validates args and conf.'''
     # sources
     sources = get_conf_list(conf, 'wlg', 'sources')
     for src in sources:
@@ -372,10 +355,6 @@ def validate(args, conf, tags):
         print("%s. %s support disabled.\n" % (msg, src))
         sources.remove(src)
         conf.set('wlg', 'sources', ', '.join(sources))
-    if not len(sources):
-        print("Where do you want to get your data from?\nAt least one source "
-              "must be activated (multiple sources recommended)!")
-        exit()
     # options
     if args.tag_release and 'whatcd' not in sources:
         print("Can't tag release with WhatCD support disabled. "
@@ -573,11 +552,7 @@ def main():
     print("whatlastgenre v%s\n" % __version__)
     args = get_args()
     conf = get_conf(args.config)
-    tags = get_tags()
-    tags.update({"love": get_conf_list(conf, 'genres', 'love')})
-    tags.update({"hate": get_conf_list(conf, 'genres', 'hate')})
-    tags.update({"filter_blacklist":
-                 get_conf_list(conf, 'genres', 'blacklist')})
+    validate(args, conf)
 
     loglvl = logging.INFO if args.verbose else logging.WARN
     LOG.setLevel(loglvl)
@@ -585,19 +560,14 @@ def main():
     hdlr.setLevel(loglvl)
     LOG.addHandler(hdlr)
 
-    validate(args, conf, tags)
-
     stats = {'starttime': time.time(),
              'genres': defaultdict(int),
              'foldererrors': {},
              'foldernogenres': []}
-
+    genretags = GenreTags(conf)
     folders = mf.find_music_folders(args.path)
-    if not folders:
-        return
-    dps = get_daprs(conf)
     cache = Cache(args, conf)
-    genretags = GenreTags(conf, tags)
+    dps = get_daprs(conf)
 
     try:  # main loop
         for i, folder in enumerate(folders, start=1):
