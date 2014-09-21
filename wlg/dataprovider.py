@@ -64,24 +64,30 @@ class WhatCD(DataProvider):
 
     def __init__(self, username, password):
         super(WhatCD, self).__init__()
-        self.__login(username, password)
+        self.cred = (username, password)
+        self.loggedin = False
         self.rate_limit = 2.0
 
     def __del__(self):
-        self.__logout()
+        if self.loggedin:
+            self.__logout()
 
-    def __login(self, username, password):
+    def __login(self):
         '''Login to What.CD.'''
         self.session.post('https://what.cd/login.php',
-                          {'username': username, 'password': password})
+                          {'username': self.cred[0], 'password': self.cred[1]})
+        self.loggedin = True
 
     def __logout(self):
         '''Logout from What.CD.'''
         self.session.get("https://what.cd/logout.php?auth=%s"
                          % self._query({'action': 'index'}).get('authkey'))
+        self.loggedin = False
 
     def _query(self, params):
         '''Queries the What.CD API.'''
+        if not self.loggedin:
+            self.__login()
         data = self._query_jsonapi('https://what.cd/ajax.php', params)
         if not data or data.get('status') != 'success':
             return
