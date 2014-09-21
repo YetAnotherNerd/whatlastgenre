@@ -5,23 +5,22 @@ Improves genre metadata of audio files based on tags from various music sites.
 * Supported audio files: flac, ogg, mp3, m4a
 * Supported music sites: WhatCD, LastFM, MusicBrainz, Discogs, EchoNest, Idiomag
 * Feature Overview
-	* Gets genre tags for artists and albums from music sites and finds the
-	most eligible ones by merging, splitting, filtering and scoring them.
-		* Heavy filtering of crappy tags to not need a whitelist.
-		* Merges similar tags in different writings to ensure consistent names,
-		eg. DnB, D&B, Drum and Bass -> Drum & Bass;
-		Alt., Altern, Alterneitif -> Alternative
-		* Splits tags in various applicable ways, eg.
-		Jazz/Funk&Rock -> Jazz, Funk, Rock;
-		Alternative Rock -> Alternative, Rock
-		* Filters by personal preferences with preset and custom filters
-		* Scores tags while taking personal preferences into account
-	* Caches all data received from music sites to make reruns super fast
-	* Makes use of MusicBrainz IDs when possible
-	* Optional: gets release type (Album, EP, Anthology, ...) (from What)
-	* Optional: gets MusicBrainz IDs
-	* Interactive mode (it's not guessing wrong data)
-	* Dry-mode for safe testing
+  * Gets genre tags for artists and albums from music sites and finds the most
+  eligible ones by merging, splitting, filtering and scoring them.
+    * Heavy filtering of crappy tags to not need a whitelist
+    * Merges similar tags in different writings to ensure consistent names, eg.
+    DnB, D&B, Drum and Bass -> Drum & Bass;
+    Alt., Altern, Alterneitif -> Alternative
+    * Splits tags in various applicable ways, eg.
+    Jazz/Funk&Rock -> Jazz, Funk, Rock; Alternative Rock -> Alternative, Rock
+    * Filters by personal preferences with preset and custom filters
+    * Scores tags while taking personal preferences into account
+  * Caches all data received from music sites to make reruns super fast
+  * Makes use of MusicBrainz IDs when possible
+  * Optional: gets release type (Album, EP, Anthology, ...) (from What)
+  * Optional: gets MusicBrainz IDs
+  * Interactive mode (it's not guessing wrong data)
+  * Dry-mode for safe testing
 
 
 ## How it works
@@ -37,15 +36,13 @@ score multipliers to adjust the scoring to your needs and take your personal
 preferences into account. Please take a look at "Configuration options
 explained" below for more details.
 
-### Basic Scoring
-
-#### Tags scoring with count (Last.FM, MusicBrainz, Idiomag, What partially)
+##### Tags scoring with count (Last.FM, MusicBrainz, Idiomag, What partially)
 If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of 1.0, a tag having only half of the top tag's count gets
 a score of 0.5 and so on.
 
-#### Tags scoring without count (Discogs, EchoNest, What partially)
+##### Tags scoring without count (Discogs, EchoNest, What partially)
 Tags supplied without a count will be scored `0.85^(n-1)`, where `n` is the
 total number of tags supplied by this source. The more tags the lower the score
 for each tag will be. So if only one tag is supplied, it will get a score of
@@ -55,48 +52,46 @@ for each tag will be. So if only one tag is supplied, it will get a score of
 ## Installation
 You'll need Python 2.7.
 
-Install dependencies with your distribution specific packages manager
+Install dependencies with your distribution specific package manager, on Debian
+based distros this means run the following as root:
 
-	# apt-get install python-mutagen python-requests
+    apt-get install python-mutagen python-requests
 
-OR by using python-pip
+OR install the dependencies by using python-pip: `pip install mutagen requests`
 
-	# pip install mutagen requests
-
-then clone the git or download and extract the source package and
-
-run whatlastgenre directly without installation
-
-	$ python whatlastgenre --help
-
-or install it by running
-
-	# python setup.py install
+* Clone the git or download and unzip the [[source package](http://github.com/YetAnotherNerd/whatlastgenre/archive/master.zip)]].
+* Run whatlastgenre without installation by using `./whatlastgenre` from the
+directory you cloned/extracted to.
+* Install it by running `python setup.py install` as root in that directory.
 
 
 ## Configuration
 A configuration file with default values will be created on first run.
 
+The default location for the configuration file is `~/.whatlastgenre/config`.
+
 ### Example configuration file
-	[wlg]
-	sources = whatcd, mbrainz, lastfm, discogs
-	cache_timeout = 30
-	whatcduser = whatusername
-	whatcdpass = whatpassword
-	[genres]
-	love = soundtrack
-	hate = alternative, electronic, indie, pop, rock
-	blacklist = charts, male vocalist, other
-	filters = instrument, label, location, name, year
-	[scores]
-	src_whatcd = 1.66
-	src_lastfm = 0.66
-	src_mbrainz = 1.00
-	src_discogs = 1.00
-	src_idiomag = 1.00
-	src_echonest = 1.00
-	artist = 1.33
-	splitup = 0.33
+```
+[wlg]
+sources = whatcd, mbrainz, lastfm, discogs
+cache_timeout = 30
+whatcduser = whatusername
+whatcdpass = whatpassword
+[genres]
+love = soundtrack
+hate = alternative, electronic, indie, pop, rock
+blacklist = charts, male vocalist, other
+filters = instrument, label, location, name, year
+[scores]
+src_whatcd = 1.66
+src_lastfm = 0.66
+src_mbrainz = 1.00
+src_discogs = 1.00
+src_idiomag = 1.00
+src_echonest = 1.00
+artist = 1.33
+splitup = 0.33
+```
 
 ### Configuration options explained
 
@@ -121,7 +116,6 @@ album search only, fixed list of [genres](http://www.discogs.com/help/submission
 artist search only
 * `echonest` [[URL](http://echonest.com/)]
 artist search only, fixed list of [genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
-
 
 ##### cache_timout option
 Time in days after which cache hits get invalid.
@@ -178,30 +172,28 @@ Default `0.33`, Range `0.0 - 1.0`
 
 
 ## Usage
+```
+usage: whatlastgenre [-h] [-v] [-n] [-c] [-i] [-r] [-m] [-l N]
+                     [--config CONFIG] [--cache CACHE]
+                     path [path ...]
 
-	usage: whatlastgenre [-h] [-v] [-n] [-c] [-i] [-r] [-m] [-l N]
-						 [--config CONFIG] [--cache CACHE]
-						 path [path ...]
+positional arguments:
+  path                 folder(s) to scan for albums
 
-	Improves genre metadata of audio files based on tags from various music sites.
-
-	positional arguments:
-	  path                 folder(s) to scan for albums
-
-	optional arguments:
-	  -h, --help           show this help message and exit
-	  -v, --verbose        more detailed output (default: False)
-	  -n, --dry            don't save metadata (default: False)
-	  -c, --cacheignore    ignore cache hits (default: False)
-	  -i, --interactive    interactive mode (default: False)
-	  -r, --tag-release    tag release type (from What) (default: False)
-	  -m, --tag-mbids      tag musicbrainz ids (default: False)
-	  -l N, --tag-limit N  max. number of genre tags (default: 4)
-	  --config CONFIG      location of the configuration file
-						   (default: ~/.whatlastgenre/config)
-	  --cache CACHE        location of the cache file
-						   (default: ~/.whatlastgenre/cache)
-
+optional arguments:
+  -h, --help           show this help message and exit
+  -v, --verbose        more detailed output (default: False)
+  -n, --dry            don't save metadata (default: False)
+  -i, --interactive    interactive mode (default: False)
+  -c, --cacheignore    ignore cache hits (default: False)
+  -r, --tag-release    tag release type (from What) (default: False)
+  -m, --tag-mbids      tag musicbrainz ids (default: False)
+  -l N, --tag-limit N  max. number of genre tags (default: 4)
+  --config CONFIG      location of the configuration file
+                       (default: ~/.whatlastgenre/config)
+  --cache CACHE        location of the cache file
+                       (default: ~/.whatlastgenre/cache)
+```
 
 If you seriously want to tag release-types `-r` or musicbrainz-ids `-m` you
 should also enable interactive mode `-i`. Consider to save the MBIDs `-m` when

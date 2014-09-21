@@ -94,8 +94,8 @@ class GenreTags(object):
             return
         multi = self.conf.getfloat('scores', 'src_%s' % source)
         if isinstance(tags, dict):
-            top = max(1, max(tags.itervalues()))
-            for name, count in tags.iteritems():
+            top = max(1, max(tags.values()))
+            for name, count in tags.items():
                 if count > top * .1:
                     self.add(part, name, count / top * multi)
         elif isinstance(tags, list):
@@ -171,9 +171,9 @@ class GenreTags(object):
         '''Gets the tags after merging artist and album tags and formatting.'''
         tags = defaultdict(float)
         # merge artist and album tags
-        for part, ptags in self.tags.iteritems():
+        for part, ptags in self.tags.items():
             toptags = ', '.join(["%s (%.2f)" % (self.format(k), v) for k, v in
-                                 sorted(ptags.iteritems(), key=lambda (k, v):
+                                 sorted(ptags.items(), key=lambda (k, v):
                                         (v, k), reverse=1)][:10])
             LOG.info("Best %s tags (%d): %s", part, len(ptags), toptags)
             if ptags:
@@ -181,10 +181,10 @@ class GenreTags(object):
                     mult = self.conf.getfloat('scores', 'artist')
                 else:
                     mult = 1
-                for tag, score in ptags.iteritems():
-                    tags[tag] += score * mult / max(ptags.itervalues())
+                for tag, score in ptags.items():
+                    tags[tag] += score * mult / max(ptags.values())
         # format and sort
-        tags = {self.format(k): v for k, v in tags.iteritems()}
+        tags = {self.format(k): v for k, v in tags.items()}
         return sorted(tags, key=tags.get, reverse=True)
 
     def format(self, name):
@@ -235,10 +235,10 @@ def get_args():
                       help='more detailed output')
     args.add_argument('-n', '--dry', action='store_true',
                       help='don\'t save metadata')
-    args.add_argument('-c', '--cacheignore', action='store_true',
-                      help='ignore cache hits')
     args.add_argument('-i', '--interactive', action='store_true',
                       help='interactive mode')
+    args.add_argument('-c', '--cacheignore', action='store_true',
+                      help='ignore cache hits')
     args.add_argument('-r', '--tag-release', action='store_true',
                       help='tag release type (from What)')
     args.add_argument('-m', '--tag-mbids', action='store_true',
@@ -460,7 +460,7 @@ def handle_folder(args, dps, cache, genretags, bot):
     # set mbrainz ids
     if args.tag_mbids and mbids:
         LOG.info("MBIDs: %s", ', '.join(["%s=%s" % (k, v)
-                                         for k, v in mbids.iteritems()]))
+                                         for k, v in mbids.items()]))
         for mbid in mbids:
             bot.set_common_meta('musicbrainz_' + mbid, mbids[mbid])
     # save metadata
@@ -542,7 +542,7 @@ def print_stats(stats):
     print("\nTime elapsed: %s"
           % datetime.timedelta(seconds=time.time() - stats['starttime']))
     if len(stats['genres']):
-        genres = sorted(stats['genres'].iteritems(), key=lambda (k, v): (v, k),
+        genres = sorted(stats['genres'].items(), key=lambda (k, v): (v, k),
                         reverse=True)
         print("\nTag statistics (%d): %s"
               % (len(genres), ', '.join
@@ -555,7 +555,7 @@ def print_stats(stats):
         print("\n%d albums with errors:\n%s"
               % (len(stats['foldererrors']), '\n'.join
                  (["%s \t(%s)" % (k, v) for k, v in
-                   sorted(stats['foldererrors'].iteritems())])))
+                   sorted(stats['foldererrors'].items())])))
 
 
 def main():
@@ -577,6 +577,8 @@ def main():
              'foldernogenres': []}
     genretags = GenreTags(conf)
     folders = mf.find_music_folders(args.path)
+    if not folders:
+        return
     cache = Cache(args, conf)
     dps = get_daprs(conf)
 
