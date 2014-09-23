@@ -24,7 +24,6 @@ jazz
 male vocalist
 minimal
 minimalist
-pop rock
 progressive
 ragga
 reggae
@@ -118,7 +117,6 @@ world
 [dontsplit]
 (fe)?male vocalist
 dr(ill|um) & bass
-mushroom jazz
 rhythm & blues
 rock & roll
 stage & screen
@@ -129,7 +127,7 @@ stage & screen
 ([^ -]+)( |-|&)?hop = \g<1>-hop
 ([^ -]+)( |-|&)?musi[ck] = \g<1>
 (neo|post)( |-|&)?(.+) = \g<1>-\g<3>
-^(c|k|j)( |-|&)?(folk|goth|hip-hop|pop|rock|ska)$ = \g<1>-\g<3>
+^(c|k|j)( |-|&)?(folk|goth|hip-hop|pop|rock|ska) = \g<1>-\g<3>
 elec[tr]{2}(o(nica?)?|ic)( |-|&)?(?!swing)(.*) = electronic \g<4>
 euro( |-|&)?(?!p[ea]|pean)(.*) = euro-\g<2>
 goth(ic)?( |-|&)?(?!enburg)(.*) = gothic \g<3>
@@ -144,41 +142,41 @@ stage ?(and|'?n'?|&)? ?screen = stage & screen
 # year related
 .*best.*of( ([0-9]{2}){1,2}'?s?)?.* = charts
 .*top ?[0-9]{2,3}.* = charts
-^(19)?([3-9])[0-9]'?(s|er)?$ = 19\g<2>0s
-^(20)?([0-2])[0-9]'?(s|er)?$ = 20\g<2>0s
-^([1-2][0-9])th century$ = \g<1>00s
+^(19)?([3-9])[0-9]'?(s|er)? = 19\g<2>0s
+^(20)?([0-2])[0-9]'?(s|er)? = 20\g<2>0s
+^([1-2][0-9])th century = \g<1>00s
 # abbreviation related
 (?<!be)bop = bebop
-^(ost|vgm|scores?)$ = soundtrack
-alt(ern)?\.?( |-|$) = alternative
+^(ost|vgm|scores?) = soundtrack
+alt(ern)?\.?( |-) = alternative_
 independent = indie
 minimal ?electro(nic)? = minimal
-progg?(ess)?\.?( |-|$) = progressive
-psy(?!chedelic)\.? = psychedelic
+progg?(ress)?\.?( |-) = progressive_
+psy(\.|ch(\.|edelica?)?)?( |-) = psychedelic_
 rapper = rap
 sci(ence)?( |-)?fi(ction)? = science fiction
-trad(?!itional)\.?( |-|$) = traditional
+trad(\.|itional)?( |-) = traditional_
 # other
 (8( | -)?bit|bitpop|chip(.?tune)?) = chiptune
 (cabaret|comedi(an|e)|humou?r|kabarett|parod(ie|y)) = comedy
 (weihnacht(en)?|x.?mas) = christmas
-^(fem|m)ale ?(artist|front|mc|singer|vocalist|voice)?[eds]{0,2}$ = \g<1>ale vocalist
-^(film|games?|movies?|t(ele)?v(ision)?|video(s| )?games?) ?(scores?|music)?$ = soundtrack
-^(singer|songwrit(er|ing)|lyricist|chanteur|parolier|liedermacher(in)?|troubadour)$ = singer-songwriter
-^deutsch(sprachig)?(er?)?  = german
+^(fem|m)ale ?(artist|front|mc|singer|vocalist|voice)?[eds]{0,2} = \g<1>ale vocalist
+^(film|games?|movies?|t(ele)?v(ision)?|video(s| )?games?) ?(scores?|music)? = soundtrack
+^(singer|songwrit(er|ing)|lyricist|chanteur|parolier|liedermacher(in)?|troubadour) = singer-songwriter
+deutsch(sprachig)?(er?)? = german
 beatboxing = beatbox
 bluesan = blues
 br(eaks|oken ?beat) = breakbeat
 chill(?!out)(e(d|n)|ing?|( |-|&)out( bar)?)? = chillout
 down( |-)?tempo = downtempo
 g?old(i(es)?|en)? = oldies
-jazz( |-)?hip( |-)?hop$ = jazz-hop
+jazz( |-)?hip( |-)?hop = jazz-hop
 kraut( |-)rock = krautrock
 latinos? = latin
 lo( |&)?fi = lo-fi
 mittelalter(lich)? = medieval
 regueton = reggaeton
-relax(ed|i(ng|on))?$ = chillout
+relax(ed|i(ng|on))? = chillout
 schlager(hit)? = charts
 scratch = turntablism
 unplug(ged)? = acoustic
@@ -191,9 +189,10 @@ unplug(ged)? = acoustic
 ((jan|febr)uary?|march|april|ma[iy]|jun[ei]|jul[iy]|august|(septem|o[ck]to|novem|de[cz]em)ber)
 ((mon|tues|wednes|thurs|fri|satur|sun)day|(mon|diens|donners|frei|sams|sonn)tag|mittwoch)
 ([ck]ompa[ck]t)
-(^| )(a(re)?|by|for|i[ns]?|not|o[fn]|so|the|to|up|we)( |$)
+( ?(a(re)?|by|for|i[ns]?|not|my|o[fn]|so|the|to|up|we) )
 (ba|u)rh?ythm
 abend
+above
 after
 aggr
 alb(um|en)
@@ -219,6 +218,7 @@ background
 balance
 bea(ch|utiful)
 beg
+below
 bizar
 bla(st|ze)
 blue.?ray
@@ -564,7 +564,6 @@ yoyo
 zombie
 
 [filter_generic]
-(^| )my .*
 (one|two|three|four|five|six|seven|eight|nine|ten)
 acid
 actor
@@ -625,7 +624,7 @@ hypnotic
 jam
 jese
 light
-listen(ers?)?
+listen(ers?|ing?)?
 los
 math
 mel(anchol(i[ce]|y)|odic)
@@ -651,6 +650,7 @@ pie
 power
 pub
 raw
+red
 regional
 repetto
 retro
@@ -689,9 +689,10 @@ video( ?game)?s?
 vip
 wave
 white
+word
 wtf
 
-[filter_name_fuzzy]
+[filter_name]
 adam
 amanda
 ascoli
@@ -722,10 +723,7 @@ victor
 wagner
 
 [filter_location]
-(mid(dle)? ?)?(north|east|south|west)(ern| ?coast)?.*
-.*cit(ies|y)
-.*land(ais|e|ic)?
-.*ville
+(mid(dle)? ?)?(north|east|south|west)(ern| ?coast)?
 aboriginal
 african?
 ame?rica(in|na?)?
@@ -754,6 +752,7 @@ california
 canad(a|i[ae]n)
 caribbean
 chi(cago|le(an)|na|nese)
+cit(ies|y)
 col(ogne|orado|umbia)
 cuba(no?)?
 czech
@@ -796,6 +795,7 @@ japan(ese)?
 k.?ln
 ken[iy]an?
 korean?
+land(ais|e|ic)?
 limerick
 london
 los ?angeles
@@ -843,7 +843,7 @@ stuttgart
 suomi
 sve(nsk(t|akrusbar)|rige)
 swee?d(en|ish)
-swiss
+swi(ss|zerland)
 sydney
 tchad
 texas
@@ -855,6 +855,7 @@ utah
 vancouver
 vermont
 vienna
+ville
 wales
 welsh
 wisconsin
