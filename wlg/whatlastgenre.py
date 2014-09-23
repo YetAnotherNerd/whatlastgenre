@@ -155,26 +155,64 @@ def validate(args, conf):
               "MBIDs tagging disabled.\n")
         args.tag_mbids = False
 
-
-def handle_folder(args, dps, cache, genretags, bot):
+def handle_folder(args, dps, cache, genretags, folder):
     '''Loads metadata, receives tags and saves an album.'''
-    # TODO: shrink this method
-    genretags.reset(bot)
-    artistname = searchstr(bot.get_common_meta('albumartist'))
-    albumname = searchstr(bot.get_common_meta('album'))
-    mbids = {'artistid':
-             bot.get_common_meta('musicbrainz_artistid'),
-             'albumartistid':
-             bot.get_common_meta('musicbrainz_albumartistid'),
-             'releasegroupid':
-             bot.get_common_meta('musicbrainz_releasegroupid'),
-             'albumid':
-             bot.get_common_meta('musicbrainz_albumid')}
-    releasetype = None
-    for variant, dapr in itertools.product(['artist', 'album'], dps):
-        data = None
+    album = mf.BunchOfTracks(folder[0], folder[1], folder[2])
+    genretags.reset(album)
+    sdata = {
+        'releasetype': None,
+        'album': searchstr(album.get_common_meta('album')),
+        'artist': [(searchstr(album.get_common_meta('albumartist')),
+                    album.get_common_meta('musicbrainz_albumartistid'))],
+        'mbids': {'albumartistid':
+                  album.get_common_meta('musicbrainz_albumartistid'),
+                  'releasegroupid':
+                  album.get_common_meta('musicbrainz_releasegroupid'),
+                  'albumid': album.get_common_meta('musicbrainz_albumid')}
+    }
+    # search for all track artists if no albumartist
+    if not album.get_common_meta('albumartist'):
+        for track in [t for t in album.tracks if t.get_meta('artist')]:
+            sdata['artist'].append((searchstr(track.get_meta('artist')),
+                                    track.get_meta('musicbrainz_artistid')))
+    # get data from dataproviders
+    sdata = get_data(args, dps, cache, genretags, album, sdata)
+    # set genres
+    genres = genretags.get(len(sdata['artist']) > 1)[:args.tag_limit]
+    if genres:
+        print("Genres: %s" % ', '.join(genres))
+        album.set_common_meta('genre', genres)
+    else:
+        print("No genres found :-(")
+    # set releasetype
+    if args.tag_release and 'releasetype' in sdata:
+        print("RelTyp: %s" % sdata['releasetype'])
+        album.set_common_meta('releasetype', sdata['releasetype'])
+    # set mbrainz ids
+    if args.tag_mbids and 'mbids' in sdata:
+        LOG.info("MB-IDs: %s", ', '.join(["%s=%s" % (k, v)
+                                         for (k, v) in sdata['mbids'].items()]))
+        for key, val in sdata['mbids'].items():
+            album.set_common_meta('musicbrainz_' + key, val)
+    # save metadata
+    if args.dry:
+        print("DRY-RUN! Not saving metadata.")
+    else:
+        album.save_metadata()
+    return genres
+
+def get_data(args, dps, cache, genretags, album, sdata):
+    '''Gets all the data from all dps or from cache.'''
+    tupels = [(0, 'album')]
+    tupels += [(i, 'artist') for i in range(len(sdata['artist']))]
+    tuples = [(i, v, d) for (i, v) in tupels for d in dps]
+    for i, variant, dapr in tuples:
         cmsg = ''
-        sstr = artistname + (albumname if variant == 'album' else '')
+        sstr = sdata['artist'][i][0]
+        if variant == 'album':
+            sstr += sdata['album']
+        if not sstr:
+            continue
         cached = cache.get(dapr.name, variant, sstr)
         if cached:
             cmsg = ' (cached)'
@@ -182,12 +220,11 @@ def handle_folder(args, dps, cache, genretags, bot):
         else:
             try:
                 if variant == 'artist':
-                    # TODO: query for track artists if no common artist
-                    if not artistname:
-                        continue
-                    data = dapr.get_artist_data(artistname, mbids)
+                    data = dapr.get_artist_data(sdata['artist'][i][0],
+                                                sdata['artist'][i][1])
                 elif variant == 'album':
-                    data = dapr.get_album_data(artistname, albumname, mbids)
+                    data = dapr.get_album_data(sdata['artist'][i][0],
+                                               sdata['album'], sdata['mbids'])
             except RuntimeError:
                 continue
             except dp.DataProviderError as err:
@@ -200,7 +237,7 @@ def handle_folder(args, dps, cache, genretags, bot):
             continue
         # filter if multiple results
         if len(data) > 1:
-            data = filter_data(dapr.name, variant, data, bot)
+            data = filter_data(dapr.name, variant, data, album)
         # ask user if still multiple results
         if len(data) > 1 and args.interactive:
             data = interactive(dapr.name, variant, data)
@@ -214,42 +251,17 @@ def handle_folder(args, dps, cache, genretags, bot):
             continue
         # unique data
         data = data[0]
-        LOG.info("%s %s search found %d tags.%s",
-                 dapr.name, variant, len(data['tags']), cmsg)
-        if 'tags' in data:
-            genretags.add_tags(data['tags'], dapr.name.lower(), variant)
-        if 'mbid' in data:
-            if variant == 'artist':
-                mbids['albumartistid'] = data['mbid']
-            elif variant == 'album':
-                mbids['releasegroupid'] = data['mbid']
-        if variant == 'album' and 'releasetype' in data:
-            releasetype = genretags.format(data['releasetype'])
-
-    # set genres
-    genres = genretags.get()[:args.tag_limit]
-    if genres:
-        print("Genres: %s" % ', '.join(genres))
-        bot.set_common_meta('genre', genres)
-    else:
-        print("No genres found :-(")
-    # set releasetype
-    if args.tag_release and releasetype:
-        print("RelType: %s" % releasetype)
-        bot.set_common_meta('releasetype', releasetype)
-    # set mbrainz ids
-    if args.tag_mbids and mbids:
-        LOG.info("MBIDs: %s", ', '.join(["%s=%s" % (k, v)
-                                         for k, v in mbids.items()]))
-        for mbid in mbids:
-            bot.set_common_meta('musicbrainz_' + mbid, mbids[mbid])
-    # save metadata
-    if args.dry:
-        print("DRY-RUN! Not saving metadata.")
-    else:
-        bot.save_metadata()
-    return genres
-
+        LOG.info("%7s %6s search found %2d tags for '%s'.%s",
+                 dapr.name, variant, len(data['tags']), sstr, cmsg)
+        genretags.add_tags(data['tags'], dapr.name.lower(), variant)
+        if variant == 'artist' and 'mbid' in data and len(sdata['artist']) == 1:
+            sdata['mbids']['albumartistid'] = data['mbid']
+        elif variant == 'album':
+            if 'mbid' in data:
+                sdata['mbids']['releasegroupid'] = data['mbid']
+            if 'releasetype' in data:
+                sdata['releasetype'] = genretags.format(data['releasetype'])
+    return sdata
 
 def filter_data(source, variant, data, bot):
     '''Prefilters data to reduce needed interactivity.'''
@@ -372,8 +384,7 @@ def main():
             print("] %2.0f%%" % int(i / len(folders) * 100))
             # handle folders
             try:
-                bot = mf.BunchOfTracks(folder[0], folder[1], folder[2])
-                genres = handle_folder(args, dps, cache, genretags, bot)
+                genres = handle_folder(args, dps, cache, genretags, folder)
                 if not genres:
                     stats['foldernogenres'].append(folder[0])
                     continue

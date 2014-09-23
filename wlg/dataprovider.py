@@ -70,7 +70,7 @@ class DataProvider(object):
             LOG.info(req.content)
             raise DataProviderError("Request error: %s" % err.message)
 
-    def get_artist_data(self, artistname, mbids):
+    def get_artist_data(self, artistname, mbid):
         '''Gets artist data from a DataProvider.'''
         raise NotImplementedError()
 
@@ -150,15 +150,13 @@ class LastFM(DataProvider):
             return
         return data
 
-    def get_artist_data(self, artistname, mbids):
+    def get_artist_data(self, artistname, mbid):
         '''Gets artist data from Last.FM.'''
         data = None
         # search with mbid
-        for mbid in ['albumartistid', 'artistid']:
-            if not data and mbid in mbids and mbids[mbid]:
-                LOG.info("%s using mbid %s: %s", self.name, mbid, mbids[mbid])
-                data = self._query({'method': 'artist.gettoptags',
-                                    'mbid': mbids[mbid]})
+        if mbid:
+            LOG.info("%7s using artist mbid: %s", self.name, mbid)
+            data = self._query({'method': 'artist.gettoptags', 'mbid': mbid})
         # search without mbid
         if not data:
             data = self._query({'method': 'artist.gettoptags',
@@ -214,14 +212,13 @@ class MBrainz(DataProvider):
             'http://musicbrainz.org/ws/2/' + typ + '/', params)
         return data
 
-    def get_artist_data(self, artistname, mbids):
+    def get_artist_data(self, artistname, mbid):
         '''Gets artist data from MusicBrainz.'''
         data = None
         # search by mbid
-        mbid = 'albumartistid'
-        if mbid in mbids and mbids[mbid]:
-            LOG.info("%s using mbid %s: %s", self.name, mbid, mbids[mbid])
-            data = self._query('artist', 'arid:"' + mbids[mbid] + '"')
+        if mbid:
+            LOG.info("%7s using artist mbid: %s", self.name, mbid)
+            data = self._query('artist', 'arid:"' + mbid + '"')
             if data and 'artist' in data:
                 data = data['artist']
             else:
