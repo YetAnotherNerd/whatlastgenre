@@ -90,6 +90,7 @@ src_discogs = 1.00
 src_idiomag = 1.00
 src_echonest = 1.00
 artist = 1.33
+various = 0.66
 splitup = 0.33
 ```
 
@@ -148,14 +149,22 @@ don't want tags from a specific source remove it from the sources list option.
 Default `1.0`, Range `0.5 - 2.0`. See sources option above.
 
 ##### artist option
-Score multiplier to give tags found by artist/albumartist searches advantage
-over tags from album searches. The tags get stored separately at first but
-then put together while taking this multiplier into account. This enables
-that multiple albums from one artist get more equal tags.
+Score multiplier to give tags found by albumartist searches advantage over tags
+from album searches. The tags get stored separately at first but then put
+together while taking this multiplier into account. This enables that multiple
+albums from one artist get more equal tags.
 Default `1.33`, Range `0.5 - 2.0`
 * `< 1.0` prefer album tags
 * `= 1.0` handle them equally
 * `> 1.0` prefer artist tags
+
+##### various option
+Score multiplier similar to artist option, but this one applies to various
+artists releases if there is no albumartist and all the track artists get used
+for searching.
+Default `0.66`, Range `0.1 - 1.0`
+* `< 1.0` prefer album tags
+* `= 1.0` handle them equally
 
 ##### splitup option
 Score multiplier for modifying the score of the base tag from a tag that got

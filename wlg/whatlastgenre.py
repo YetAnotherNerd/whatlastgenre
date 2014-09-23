@@ -275,6 +275,7 @@ def get_conf(configfile):
             ['scores', 'src_idiomag', '1.00', 1, [0.3, 2.0]],
             ['scores', 'src_echonest', '1.00', 1, [0.3, 2.0]],
             ['scores', 'artist', '1.33', 1, [0.5, 2.0]],
+            ['scores', 'various', '0.66', 1, [0.1, 1.0]],
             ['scores', 'splitup', '0.33', 1, [0, 1.0]]]
     if not os.path.exists(os.path.dirname(configfile)):
         os.makedirs(os.path.dirname(configfile))
