@@ -13,15 +13,15 @@ import time
 class Cache(object):
     '''Caching speeds up :-)'''
 
-    def __init__(self, args, conf):
-        self.file = args.cache
-        self.ignore = args.cacheignore
-        self.timeout = conf.getint('wlg', 'cache_timeout') * 60 * 60 * 24
+    def __init__(self, filename, ignore, timeout):
+        self.filename = filename
+        self.ignore = ignore
+        self.timeout = timeout * 60 * 60 * 24
         self.time = time.time()
         self.dirty = False
         self.cache = {}
         try:
-            with open(self.file) as infile:
+            with open(self.filename) as infile:
                 self.cache = json.load(infile)
             self.clean()
         except (IOError, ValueError):
@@ -35,21 +35,19 @@ class Cache(object):
     def _get_key(cls, dapr, variant, sstr):
         '''Helper method to get the cache key.'''
         key = '##'.join([dapr, variant, sstr])
-        for pat in [r'[^\w#]', ' +']:
-            key = re.sub(pat, '', key, 0, re.I)
-        return key.lower().strip()
+        return re.sub(r'([^\w#]| +)', '', key, 0, re.I).lower().strip()
 
     def get(self, dapr, variant, sstr):
         '''Gets cache data for a given DataProvider and variant.
         Since this method does't check the timestamps of the cache entries,
-        self.clean() should be run before using the cache.'''
-        if self.ignore or not sstr:
+        self.clean() is be run before using the cache.'''
+        if not sstr or self.ignore:
             return
         key = self._get_key(dapr, variant, sstr)
         return self.cache.get(key)
 
     def set(self, dapr, variant, sstr, data):
-        '''Sets cache data for a given DataProvider and variant.'''
+        '''Sets cache data for a given DataProvider, variant and sstr.'''
         if not sstr:
             return
         key = self._get_key(dapr, variant, sstr)
@@ -68,7 +66,7 @@ class Cache(object):
         self.dirty = True
 
     def clean(self):
-        '''Cleans up expired data from the cache.'''
+        '''Cleans up expired entries from the cache.'''
         print("\nCleaning cache...")
         for key, val in self.cache.items():
             if not val.get('time') or time.time() - val['time'] > self.timeout:
@@ -81,14 +79,14 @@ class Cache(object):
         if not self.dirty:
             return
         print("\nSaving cache...")
-        dirname, basename = os.path.split(self.file)
+        dirname, basename = os.path.split(self.filename)
         try:
             with tempfile.NamedTemporaryFile(prefix=basename + '.tmp_',
                                              dir=dirname,
                                              delete=False) as tmpfile:
                 tmpfile.write(json.dumps(self.cache))
                 os.fsync(tmpfile)
-            os.rename(tmpfile.name, self.file)
+            os.rename(tmpfile.name, self.filename)
             self.time = time.time()
             self.dirty = False
         except KeyboardInterrupt:

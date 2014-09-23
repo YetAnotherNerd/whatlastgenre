@@ -13,6 +13,26 @@ from wlg import __version__
 LOG = logging.getLogger('whatlastgenre')
 
 
+def get_daprs(sources, wcdcred):
+    '''Returns a list of initialized DataProviders that are mentioned as source
+    in the config file. The loop is used to maintain the given order.'''
+    dps = []
+    for dapr in sources:
+        if dapr == 'whatcd':
+            dps.append(WhatCD(wcdcred))
+        elif dapr == 'mbrainz':
+            dps.append(MBrainz())
+        elif dapr == 'lastfm':
+            dps.append(LastFM())
+        elif dapr == 'discogs':
+            dps.append(Discogs())
+        elif dapr == 'idiomag':
+            dps.append(Idiomag())
+        elif dapr == 'echonest':
+            dps.append(EchoNest())
+    return dps
+
+
 class DataProviderError(Exception):
     '''If something went wrong with DataProviders.'''
     pass
@@ -62,9 +82,9 @@ class DataProvider(object):
 class WhatCD(DataProvider):
     '''What.CD DataProvider'''
 
-    def __init__(self, username, password):
+    def __init__(self, cred):
         super(WhatCD, self).__init__()
-        self.cred = (username, password)
+        self.cred = cred
         self.loggedin = False
         self.rate_limit = 2.0
 
@@ -153,7 +173,7 @@ class LastFM(DataProvider):
         # search with mbid
         mbid = 'albumid'
         if mbid in mbids and mbids[mbid]:
-            LOG.info("%s using mbid %s: %s", self.name, mbid, mbids[mbid])
+            LOG.info("%7s using mbid %s: %s", self.name, mbid, mbids[mbid])
             data = self._query({'method': 'album.gettoptags',
                                 'mbid': mbids[mbid]})
         # search without mbid
@@ -205,10 +225,7 @@ class MBrainz(DataProvider):
             if data and 'artist' in data:
                 data = data['artist']
             else:
-                LOG.info("%s: artist not found, deleting invalid MBID",
-                         self.name)
-                mbids[mbid] = None
-
+                LOG.info("%7s: artist not found, invalid MBID?", self.name)
         # search without mbid
         if not data:
             data = self._query('artist', 'artist:"' + artistname + '"')
@@ -231,7 +248,7 @@ class MBrainz(DataProvider):
         # search by release mbid (just if there is no release-group mbid)
         mbid = 'albumid'
         if not mbids.get('releasegroupid') and mbids.get(mbid):
-            LOG.info("%s using mbid %s: %s", self.name, mbid, mbids[mbid])
+            LOG.info("%7s using mbid %s: %s", self.name, mbid, mbids[mbid])
             data = self._query('release', 'reid:"' + mbids[mbid] + '"')
             if data and 'releases' in data:
                 data = data['releases']
@@ -242,19 +259,19 @@ class MBrainz(DataProvider):
                     for i in range(len(data)):
                         data[i]['id'] = None
             else:
-                LOG.info("%s: release not found, deleting invalid MBID",
+                LOG.info("%7s: release not found, deleting invalid MBID",
                          self.name)
                 mbids[mbid] = None
 
         # search by release-group mbid
         mbid = 'releasegroupid'
         if not data and mbids.get(mbid):
-            LOG.info("%s using mbid %s: %s", self.name, mbid, mbids[mbid])
+            LOG.info("%7s using mbid %s: %s", self.name, mbid, mbids[mbid])
             data = self._query('release-group', 'rgid:"' + mbids[mbid] + '"')
             if data and 'release-groups' in data:
                 data = data['release-groups']
             else:
-                LOG.info("%s: release-group not found, deleting invalid MBID",
+                LOG.info("%7s: release-group not found, deleting invalid MBID",
                          self.name)
                 mbids[mbid] = None
 

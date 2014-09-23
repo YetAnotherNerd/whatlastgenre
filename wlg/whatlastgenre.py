@@ -22,7 +22,7 @@ import time
 
 from wlg import __version__
 
-from wlg.cache import Cache
+import wlg.cache as ch
 import wlg.dataprovider as dp
 import wlg.mediafile as mf
 
@@ -254,7 +254,6 @@ def get_args():
     args = args.parse_args()
     return args
 
-
 def get_conf(configfile):
     '''Reads, maintains and writes the configuration file.'''
     # [section, option, default, required, [min, max]]
@@ -311,45 +310,16 @@ def get_conf(configfile):
         config.set(sec, opt, cor[0])
         dirty = True
     if not dirty:
-        # validate options
-        if not get_conf_list(config, 'wlg', 'sources'):
-            print("Where do you want to get your data from?\nAt least one "
-                  "source must be activated (multiple sources recommended)!")
-            exit()
         return config
-    with open(configfile, 'wb') as conffile:
+    with open(configfile, 'w') as conffile:
         config.write(conffile)
     print("Please edit your configuration file: %s" % configfile)
     exit()
-
 
 def get_conf_list(conf, sec, opt):
     '''Gets a configuration string as list.'''
     return [x.strip() for x in conf.get(sec, opt).lower().split(',')
             if x.strip() != '']
-
-
-def get_daprs(conf):
-    '''Returns a list of initialized DataProviders that are mentioned as source
-    in the config file. The loop is used to maintain the given order.'''
-    dps = []
-    for dapr in [x.strip() for x in
-                 conf.get('wlg', 'sources').lower().split(',')]:
-        if dapr == 'whatcd':
-            dps.append(dp.WhatCD(conf.get('wlg', 'whatcduser'),
-                                 conf.get('wlg', 'whatcdpass')))
-        elif dapr == 'mbrainz':
-            dps.append(dp.MBrainz())
-        elif dapr == 'lastfm':
-            dps.append(dp.LastFM())
-        elif dapr == 'discogs':
-            dps.append(dp.Discogs())
-        elif dapr == 'idiomag':
-            dps.append(dp.Idiomag())
-        elif dapr == 'echonest':
-            dps.append(dp.EchoNest())
-    return dps
-
 
 def validate(args, conf):
     '''Validates args and conf.'''
@@ -367,6 +337,10 @@ def validate(args, conf):
         print("%s. %s support disabled.\n" % (msg, src))
         sources.remove(src)
         conf.set('wlg', 'sources', ', '.join(sources))
+    if not sources:
+        print("Where do you want to get your data from?\nAt least one "
+              "source must be activated (multiple sources recommended)!")
+        exit()
     # options
     if args.tag_release and 'whatcd' not in sources:
         print("Can't tag release with WhatCD support disabled. "
@@ -416,7 +390,8 @@ def handle_folder(args, dps, cache, genretags, bot):
                 print("%s %s" % (dapr.name, err.message))
                 continue
         if not data:
-            LOG.info("%s %s search found nothing.%s", dapr.name, variant, cmsg)
+            LOG.info("%7s %6s search found nothing for '%s'.%s",
+                     dapr.name, variant, sstr, cmsg)
             cache.set(dapr.name, variant, sstr, None)
             continue
         # filter if multiple results
@@ -430,8 +405,8 @@ def handle_folder(args, dps, cache, genretags, bot):
             cache.set(dapr.name, variant, sstr, data)
         # still multiple results?
         if len(data) > 1:
-            print("%s %s search got too many results (%d). (use -i)%s"
-                  % (dapr.name, variant, len(data), cmsg))
+            print("%7s %6s search found %2d (too many) results for '%s'. "
+                  "(use -i)%s" % (dapr.name, variant, len(data), sstr, cmsg))
             continue
         # unique data
         data = data[0]
@@ -506,7 +481,6 @@ def filter_data(source, variant, data, bot):
                 break
     return data
 
-
 def interactive(source, variant, data):
     '''Asks the user to choose from a list of possibilities.'''
     print("Multiple %s results from %s, which is it?" % (variant, source))
@@ -525,7 +499,6 @@ def interactive(source, variant, data):
             break
     return [data[num - 1]] if num else data
 
-
 def searchstr(str_):
     '''Cleans up a string for use in searching.'''
     if not str_:
@@ -536,7 +509,6 @@ def searchstr(str_):
                 ' ost', '[!?/&:,.]', ' +']:
         str_ = re.sub(pat, ' ', str_, 0, re.I)
     return str_.strip().lower()
-
 
 def print_stats(stats):
     '''Prints out some statistics.'''
@@ -558,7 +530,6 @@ def print_stats(stats):
                  (["%s \t(%s)" % (k, v) for k, v in
                    sorted(stats['foldererrors'].items())])))
 
-
 def main():
     '''main function of whatlastgenre.'''
     print("whatlastgenre v%s\n" % __version__)
@@ -566,10 +537,9 @@ def main():
     conf = get_conf(args.config)
     validate(args, conf)
 
-    loglvl = logging.INFO if args.verbose else logging.WARN
-    LOG.setLevel(loglvl)
     hdlr = logging.StreamHandler(sys.stdout)
-    hdlr.setLevel(loglvl)
+    hdlr.setLevel(logging.INFO if args.verbose else logging.WARN)
+    LOG.setLevel(logging.INFO if args.verbose else logging.WARN)
     LOG.addHandler(hdlr)
 
     stats = {'starttime': time.time(),
@@ -580,8 +550,11 @@ def main():
     folders = mf.find_music_folders(args.path)
     if not folders:
         return
-    cache = Cache(args, conf)
-    dps = get_daprs(conf)
+    cache = ch.Cache(args.cache, args.cacheignore,
+                     conf.getint('wlg', 'cache_timeout'))
+    dps = dp.get_daprs(get_conf_list(conf, 'wlg', 'sources'),
+                       [conf.get('wlg', 'whatcduser'),
+                        conf.get('wlg', 'whatcdpass')])
 
     try:  # main loop
         for i, folder in enumerate(folders, start=1):
@@ -591,8 +564,8 @@ def main():
             # print progress bar
             print("\n(%2d/%d) [" % (i, len(folders)), end='')
             for j in range(60):
-                print('#' if j < floor(i / len(folders) * 60) else '-', end='')
-            print("] %2.0f%%" % floor(i / len(folders) * 100))
+                print('#' if j < int(i / len(folders) * 60) else '-', end='')
+            print("] %2.0f%%" % int(i / len(folders) * 100))
             # handle folders
             try:
                 bot = mf.BunchOfTracks(folder[0], folder[1], folder[2])
