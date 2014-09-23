@@ -6,16 +6,12 @@ http://github.com/YetAnotherNerd/whatlastgenre'''
 from __future__ import division, print_function
 
 import ConfigParser
-import StringIO
+from _collections import defaultdict
 import argparse
-from collections import defaultdict
 import datetime
 import difflib
-import itertools
 import logging
-from math import floor, factorial
 import os
-import pkgutil
 import re
 import sys
 import time
@@ -24,203 +20,11 @@ from wlg import __version__
 
 import wlg.cache as ch
 import wlg.dataprovider as dp
+import wlg.genretag as gt
 import wlg.mediafile as mf
 
 
 LOG = logging.getLogger('whatlastgenre')
-
-
-class GenreTags(object):
-    '''Class for managing the genre tags.'''
-    # TODO: rewrite this
-
-    def __init__(self, conf):
-        self.conf = conf
-        self.tags = None
-        self.filters = ['badtags', 'generic', 'album'] + \
-                       get_conf_list(conf, 'genres', 'filters')
-        self.conftags = {
-            'blacklist': get_conf_list(conf, 'genres', 'blacklist'),
-            'love': get_conf_list(conf, 'genres', 'love'),
-            'hate': get_conf_list(conf, 'genres', 'hate')}
-        # tags file parsing
-        self.parser = ConfigParser.SafeConfigParser(allow_no_value=True)
-        tagfp = StringIO.StringIO(pkgutil.get_data('wlg', 'tags.txt'))
-        self.parser.readfp(tagfp)
-        # tags file validation
-        for sec in ['basictags', 'uppercase', 'splitpart', 'dontsplit',
-                    'replaceme']:
-            if not self.parser.has_section(sec):
-                print("Got no [%s] from tag.txt file." % sec)
-                exit()
-        for sec in get_conf_list(conf, 'genres', 'filters') + ['badtags',
-                                                               'generic']:
-            if not (self.parser.has_section('filter_%s' % sec) or
-                    self.parser.has_section('filter_%s_fuzzy' % sec)):
-                print("The configured filter '%s' doesn't have a "
-                      "[filter_%s[_fuzzy]] section in the tags.txt file."
-                      % (sec, sec))
-                exit()
-        # set up matchlist
-        self.matchlist = [self.parser.options('basictags') +
-                          self.conftags['blacklist'] +
-                          self.conftags['love'] +
-                          self.conftags['hate']]
-        # set up replaces
-        self.replaces = {}
-        for pattern, repl in self.parser.items("replaceme", True):
-            self.replaces.update({pattern: repl})
-        # compile filters and other regex
-        self.regex = {}
-        for sec in self.parser.sections():
-            if not (sec.startswith('filter_') or
-                    sec in ['splitpart', 'dontsplit', 'replaceme']):
-                continue
-            pat = '(%s)' % '|'.join(self.parser.options(sec))
-            if sec.endswith('_fuzzy'):
-                pat = '.*%s.*' % pat
-                sec = sec[:-6]
-            self.regex[sec] = re.compile(pat, re.I)
-
-    def reset(self, bot):
-        '''Resets the genre tags and album filter.'''
-        self.tags = {'artist': defaultdict(float), 'album': defaultdict(float)}
-        self.regex['filter_album'] = self.get_album_filter(bot)
-
-    def add_tags(self, tags, source, part):
-        '''Adds tags with or without counts to a given part, scores them
-        while taking the source score multiplier into account.'''
-        if not tags:
-            return
-        multi = self.conf.getfloat('scores', 'src_%s' % source)
-        if isinstance(tags, dict):
-            top = max(1, max(tags.values()))
-            for name, count in tags.items():
-                if count > top * .1:
-                    self.add(part, name, count / top * multi)
-        elif isinstance(tags, list):
-            for name in tags:
-                self.add(part, name, .85 ** (len(tags) - 1) * multi)
-
-    def add(self, part, name, score):
-        '''Adds a genre tag with a given score to a given part after doing
-        all the replace, split, filter, etc. magic.'''
-        name = name.encode('ascii', 'ignore').lower()
-        # replace
-        name = re.sub(r'([_/,;\.\+\*]| and )', '&', name, 0, re.I)
-        name = re.sub(r'-', ' ', name)
-        name = re.sub(r'[^a-z0-9 ]', '', name, 0, re.I)
-        if self.regex['replaceme'].match(name):
-            for pattern, repl in self.replaces.items():
-                name = re.sub(pattern, repl, name, 0, re.I)
-        name = re.sub(' +', ' ', name).strip()
-        # split
-        tags, pscore, keep = self.split(name, score)
-        if tags:
-            for tag in tags:
-                self.add(part, tag, pscore)
-            if not keep:
-                return
-            score *= self.conf.getfloat('scores', 'splitup')
-        if len(name) not in range(3, 19) or score < 0.1:
-            return
-        # matching existing tag (don't change cutoff, add replaces instead)
-        mli = [t.keys() for t in self.tags.values()] + self.matchlist
-        match = difflib.get_close_matches(name, mli, 1, .8572)
-        if match:
-            name = match[0]
-        # filter
-        if name in self.conftags['blacklist']:
-            return
-        for fil in self.filters:
-            if self.regex['filter_%s' % fil].match(name):
-                return
-        # score bonus
-        if name in self.conftags['love']:
-            score *= 2
-        elif name in self.conftags['hate']:
-            score *= 0.5
-        # finally add it
-        self.tags[part][name] += score
-
-    def split(self, name, score):
-        '''Splits a tag, modifies the score of the parts if appropriate
-        and decided whether to keep the base tag or not.'''
-        if self.regex['dontsplit'].match(name):
-            return None, None, True
-        if '&' in name:
-            return name.split('&'), score, False
-        if ' ' in name:
-            split = name.split(' ')
-            if len(split) > 2:  # length>2: split into all parts of length 2
-                tags = []
-                count = len(split)
-                for i in range(count):
-                    for j in range(i + 1, count):
-                        tags.append(split[i].strip() + ' ' + split[j].strip())
-                count = 0.5 * factorial(count) / factorial(count - 2)
-                return tags, score / count, False
-            elif any([self.regex['filter_instrument'].match(x) or
-                      self.regex['filter_location'].match(x) or
-                      self.regex['splitpart'].match(x) for x in split]):
-                return split, score, any([self.regex['filter_generic'].match(x)
-                                          for x in split])
-        return None, None, True
-
-    def get(self):
-        '''Gets the tags after merging artist and album tags and formatting.'''
-        tags = defaultdict(float)
-        # merge artist and album tags
-        for part, ptags in self.tags.items():
-            toptags = ', '.join(["%s (%.2f)" % (self.format(k), v) for k, v in
-                                 sorted(ptags.items(), key=lambda (k, v):
-                                        (v, k), reverse=1)][:10])
-            LOG.info("Best %s tags (%d): %s", part, len(ptags), toptags)
-            if ptags:
-                if part == 'artist':
-                    mult = self.conf.getfloat('scores', 'artist')
-                else:
-                    mult = 1
-                for tag, score in ptags.items():
-                    tags[tag] += score * mult / max(ptags.values())
-        # format and sort
-        tags = {self.format(k): v for k, v in tags.items()}
-        return sorted(tags, key=tags.get, reverse=True)
-
-    def format(self, name):
-        '''Formats a tag to correct case.'''
-        split = name.split(' ')
-        for i in range(len(split)):
-            if len(split[i]) < 3 and split[i] != 'nu' or \
-                    split[i] in self.parser.options('uppercase'):
-                split[i] = split[i].upper()
-            elif re.match('[0-9]{4}s', name, re.I):
-                split[i] = split[i].lower()
-            else:
-                split[i] = split[i].title()
-        return ' '.join(split)
-
-    @classmethod
-    def get_album_filter(cls, bot):
-        ''' Returns a genre tag filter based on
-        the metadata of a given bunch of tracks.'''
-        badtags = []
-        for tag in ['albumartist', 'album']:
-            val = bot.get_common_meta(tag)
-            if not val:
-                continue
-            bts = [val]
-            if tag == 'albumartist' and ' ' in bts[0]:
-                bts += bts[0].split(' ')
-            for badtag in bts:
-                for pat in [r'\(.*\)', r'\[.*\]', '{.*}', '-.*-', "'.*'",
-                            '".*"', r'vol(\.|ume)? ', ' and ', 'the ',
-                            r'[\W\d]', r'(\.\*)+']:
-                    badtag = re.sub(pat, '.*', badtag, 0, re.I).strip()
-                badtag = re.sub(r'(^\.\*|\.\*$)', '', badtag, 0, re.I)
-                if len(badtag) > 2:
-                    badtags.append(badtag.strip().lower())
-        return re.compile('.*(' + '|'.join(badtags) + ').*', re.I)
 
 
 def get_args():
@@ -546,7 +350,7 @@ def main():
              'genres': defaultdict(int),
              'foldererrors': {},
              'foldernogenres': []}
-    genretags = GenreTags(conf)
+    genretags = gt.GenreTags(conf)
     folders = mf.find_music_folders(args.path)
     if not folders:
         return
