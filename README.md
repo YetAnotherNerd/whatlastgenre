@@ -52,17 +52,18 @@ for each tag will be. So if only one tag is supplied, it will get a score of
 ## Installation
 You'll need Python 2.7.
 
-Install dependencies with your distribution specific package manager, on Debian
-based distros this means run the following as root:
+Install dependencies with your package manager, on Debian based distros run the
+following as root:
 
     apt-get install python-mutagen python-requests
 
-OR install the dependencies by using python-pip: `pip install mutagen requests`
-
-* Clone the git or download and unzip the [[source package](http://github.com/YetAnotherNerd/whatlastgenre/archive/master.zip)]].
-* Run whatlastgenre without installation by using `./whatlastgenre` from the
-directory you cloned/extracted to.
-* Install it by running `python setup.py install` as root in that directory.
+* Alternatively install the dependencies by using python-pip:
+`pip install mutagen requests`
+* Clone the git or download and unzip the [source package]
+(http://github.com/YetAnotherNerd/whatlastgenre/archive/master.zip)
+* Run it without install by using `./whatlastgenre` from the directory you
+cloned/extracted to
+* Install it by running `python setup.py install` as root in that directory
 
 
 ## Configuration

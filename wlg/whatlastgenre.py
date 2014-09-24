@@ -185,13 +185,13 @@ def handle_folder(args, dps, cache, genretags, folder):
     else:
         print("No genres found :-(")
     # set releasetype
-    if args.tag_release and 'releasetype' in sdata:
+    if args.tag_release and sdata.get('releasetype'):
         print("RelTyp: %s" % sdata['releasetype'])
         album.set_common_meta('releasetype', sdata['releasetype'])
     # set mbrainz ids
     if args.tag_mbids and 'mbids' in sdata:
-        LOG.info("MB-IDs: %s", ', '.join(["%s=%s" % (k, v)
-                                         for (k, v) in sdata['mbids'].items()]))
+        LOG.info("MB-IDs: %s", ', '.join(["%s=%s" % (k, v) for k, v
+                                          in sdata['mbids'].items()]))
         for key, val in sdata['mbids'].items():
             album.set_common_meta('musicbrainz_' + key, val)
     # save metadata
@@ -208,9 +208,10 @@ def get_data(args, dps, cache, genretags, album, sdata):
     tuples = [(i, v, d) for (i, v) in tupels for d in dps]
     for i, variant, dapr in tuples:
         cmsg = ''
-        sstr = sdata['artist'][i][0]
+        sstr = [sdata['artist'][i][0]]
         if variant == 'album':
-            sstr += sdata['album']
+            sstr.append(sdata['album'])
+        sstr = ' '.join(sstr).strip()
         if not sstr:
             continue
         cached = cache.get(dapr.name, variant, sstr)
@@ -277,10 +278,7 @@ def filter_data(source, variant, data, bot):
     title = bot.get_common_meta('albumartist')
     if variant == 'album':
         if not title:
-            if source.lower() == 'discogs':
-                title = 'various'
-            else:
-                title = 'various artists'
+            title = 'various' if source == 'discogs' else 'various artists'
         title += ' - ' + bot.get_common_meta('album')
     title = searchstr(title)
     for i in range(5):
@@ -336,21 +334,19 @@ def print_stats(stats):
     '''Prints out some statistics.'''
     print("\nTime elapsed: %s"
           % datetime.timedelta(seconds=time.time() - stats['starttime']))
-    if len(stats['genres']):
-        genres = sorted(stats['genres'].items(), key=lambda (k, v): (v, k),
-                        reverse=True)
-        print("\nTag statistics (%d): %s"
-              % (len(genres), ', '.join
-                 (["%d %s" % (v, k) for k, v in genres])))
-    if stats['foldernogenres']:
+    genres = stats['genres']
+    if genres:
+        genres = ["%2d %s" % (v, k) for k, v in
+                  sorted(genres.items(), key=lambda (k, v): (v, k), reverse=1)]
+        print("\nTag statistics (%d): %s" % (len(genres), ', '.join(genres)))
+    fldrs = stats['foldernogenres']
+    if fldrs:
         print("\n%d albums with no genre tags found:\n%s"
-              % (len(stats['foldernogenres']), '\n'.join
-                 (sorted(stats['foldernogenres']))))
-    if stats['foldererrors']:
-        print("\n%d albums with errors:\n%s"
-              % (len(stats['foldererrors']), '\n'.join
-                 (["%s \t(%s)" % (k, v) for k, v in
-                   sorted(stats['foldererrors'].items())])))
+              % (len(fldrs), '\n'.join(sorted(fldrs))))
+    fldrs = stats['foldererrors']
+    if fldrs:
+        fldrs = ["%s \t(%s)" % (k, v) for k, v in sorted(fldrs.items())]
+        print("\n%d albums with errors:\n%s" % (len(fldrs), '\n'.join(fldrs)))
 
 def main():
     '''main function of whatlastgenre.'''

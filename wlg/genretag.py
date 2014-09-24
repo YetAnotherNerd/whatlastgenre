@@ -184,9 +184,9 @@ class GenreTags(object):
                 grptags[tag] = score / max(grptags.values())
             # verbose output
             toptags = ', '.join(["%s (%.2f)" % (self.format(k), v) for k, v in
-                             sorted(grptags.items(), key=lambda (k, v):
-                                    (v, k), reverse=1)][:10])
-            LOG.info("Best %6s tags (%d): %s", group, len(grptags), toptags)
+                                 sorted(grptags.items(), key=lambda (k, v):
+                                        (v, k), reverse=1)][:10])
+            LOG.info("Best %6s tags (%2d): %s", group, len(grptags), toptags)
         # merge artist and album tags
         tags = defaultdict(float)
         for group, grptags in self.tags.items():
