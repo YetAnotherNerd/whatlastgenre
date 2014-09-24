@@ -228,10 +228,10 @@ def get_data(args, dps, cache, genretags, album, sdata):
             except RuntimeError:
                 continue
             except dp.DataProviderError as err:
-                print("%s %s" % (dapr.name, err.message))
+                print("%8s %6s" % (dapr.name, err.message))
                 continue
-        if not data:
-            LOG.info("%7s %6s search found nothing for '%s'.%s",
+        if not data or (len(data) == 1 and not data[0].get('tags')):
+            LOG.info("%8s %6s search found    no    tags for '%s'%s",
                      dapr.name, variant, sstr, cmsg)
             cache.set(dapr.name, variant, sstr, None)
             continue
@@ -246,14 +246,14 @@ def get_data(args, dps, cache, genretags, album, sdata):
             cache.set(dapr.name, variant, sstr, data)
         # still multiple results?
         if len(data) > 1:
-            print("%7s %6s search found %2d (too many) results for '%s'. "
-                  "(use -i)%s" % (dapr.name, variant, len(data), sstr, cmsg))
+            print("%8s %6s search found %2d ambiguous results for '%s' (use -i)"
+                  "%s" % (dapr.name, variant, len(data), sstr, cmsg))
             continue
         # unique data
         data = data[0]
-        LOG.info("%7s %6s search found %2d tags for '%s'.%s",
-                 dapr.name, variant, len(data['tags']), sstr, cmsg)
-        genretags.add_tags(data['tags'], dapr.name.lower(), variant)
+        tagsused = genretags.add_tags(dapr.name.lower(), variant, data['tags'])
+        LOG.info("%8s %6s search found %2d of %2d tags for '%s'%s", dapr.name,
+                 variant, tagsused, min(99, len(data['tags'])), sstr, cmsg)
         if variant == 'artist' and 'mbid' in data and len(sdata['artist']) == 1:
             sdata['mbids']['albumartistid'] = data['mbid']
         elif variant == 'album':

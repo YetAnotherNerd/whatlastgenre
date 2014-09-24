@@ -77,18 +77,20 @@ class GenreTags(object):
             self.regex['filter'].append(re.compile(pat, re.I))
 
     def _add(self, group, name, score):
-        '''Adds a genre tag after some filter, replace, match, split.'''
+        '''Adds a genre tag after some filter, replace, match, split.
+        Returns True if the tag was added, False otherwise.'''
         name = name.encode('ascii', 'ignore').lower()
         if self._filter(name) or not score:
-            return
+            return False
         name = self._replace(name)
         if self._filter(name):
-            return
+            return False
         name = self._match(name)
         score = self._split(group, name, score)
         if not score:
-            return
+            return False
         self.tags[group][name] += score
+        return True
 
     def _filter(self, tagname):
         '''Filters a tag by name, returns True if tag got filtered.'''
@@ -154,18 +156,23 @@ class GenreTags(object):
         self.tags = {'artist': defaultdict(float), 'album': defaultdict(float)}
         self.regex['filter_album'] = self.get_album_filter(bot)
 
-    def add_tags(self, tags, source, part):
-        '''Adds tags with or without counts to a given part, scores them
-        while taking the source score multiplier into account.'''
-        if not tags:
-            return
+    def add_tags(self, source, group, tags):
+        '''Adds tags with or without counts to a given group, scores them
+        while taking the source score multiplier into account.
+        Returns the number of tags added.'''
+        added = 0
         multi = self.conf.getfloat('scores', 'src_%s' % source)
         if isinstance(tags, dict):
-            for name, score in tags.items():
-                self._add(part, name, multi * score / max(tags.values()))
+            max_ = max(tags.values())
+            for key, val in sorted(tags.items(), key=tags.get, reverse=1)[:99]:
+                if self._add(group, key, val / max_ * multi):
+                    added += 1
         elif isinstance(tags, list):
+            score = .85 ** (len(tags) - 1)
             for name in tags:
-                self._add(part, name, .85 ** (len(tags) - 1) * multi)
+                if self._add(group, name, score * multi):
+                    added += 1
+        return added
 
     def get(self, various=False):
         '''Returns the sorted and formated genre tags after merging.'''
