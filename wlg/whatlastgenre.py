@@ -267,6 +267,12 @@ def filter_data(source, variant, data, bot):
     '''Prefilters data to reduce needed interactivity.'''
     if not data or len(data) == 1:
         return data
+    source = source.lower()
+    # filter by releasetype for whatcd
+    releasetype = bot.get_common_meta('releasetype')
+    if source == 'whatcd' and variant == 'album' and releasetype:
+        data = [d for d in data if 'releasetype' not in d or
+                d['releasetype'].lower() == releasetype.lower()]
     # filter by title
     title = bot.get_common_meta('albumartist')
     if variant == 'album':
