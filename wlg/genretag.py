@@ -23,65 +23,49 @@ class GenreTags(object):
         from wlg.whatlastgenre import get_conf_list
         self.conf = conf
         self.tags = None
+        # list activated filters
         filters = ['badtags', 'generic']
         filters += get_conf_list(conf, 'genres', 'filters')
-        # tags file parsing
-        self.parser = ConfigParser.SafeConfigParser(allow_no_value=True)
-        tagfp = StringIO.StringIO(pkgutil.get_data('wlg', 'tags.txt'))
-        self.parser.readfp(tagfp)
-        # tags file validation
-        for sec in ['basictags', 'uppercase', 'splitpart', 'dontsplit',
-                    'replaceme']:
-            if not self.parser.has_section(sec):
-                print("Got no [%s] from tag.txt file." % sec)
-                exit()
-        for sec in filters:
-            if not (self.parser.has_section('filter_%s' % sec) or
-                    self.parser.has_section('filter_%s_fuzzy' % sec)):
-                print("The configured filter '%s' doesn't have a "
-                      "[filter_%s[_fuzzy]] section in the tags.txt file."
-                      % (sec, sec))
-                exit()
-        # set up matchlist
-        self.matchlist = self.parser.options('basictags')
+        # get and validate tagsfile
+        self.tagsfile = self.get_tagsfile(filters)
+        # fill matchlist
+        self.matchlist = self.tagsfile.options('basictags')
         self.matchlist += get_conf_list(conf, 'genres', 'love')
         self.matchlist += get_conf_list(conf, 'genres', 'hate')
         self.matchlist += get_conf_list(conf, 'genres', 'blacklist')
-        # set up replaces
+        # fill replaces dict
         self.replaces = {}
-        for pattern, repl in self.parser.items("replaceme", True):
+        for pattern, repl in self.tagsfile.items('replaceme', True):
             self.replaces.update({pattern: repl})
-        # set up regex
-        self.regex = {}
-        # compile config options
-        for sec in ['love', 'hate']:
-            pat = '(%s)$' % '|'.join(get_conf_list(conf, 'genres', sec))
-            self.regex[sec] = re.compile(pat, re.I)
-        # compile tagsfile sections
-        for sec in ['splitpart', 'dontsplit', 'replaceme']:
-            pat = '(%s)$' % '|'.join(self.parser.options(sec))
-            self.regex[sec] = re.compile(pat, re.I)
         # build filter
         filter_ = get_conf_list(conf, 'genres', 'blacklist')
-        for sec in [s for s in self.parser.sections()
+        for sec in [s for s in self.tagsfile.sections()
                     if s.startswith('filter_')]:
             if sec[7:] in filters:
-                filter_ += self.parser.options(sec)
+                filter_ += self.tagsfile.options(sec)
             elif sec.endswith('_fuzzy') and sec[7:-6] in filters:
-                for tag in self.parser.options(sec):
+                for tag in self.tagsfile.options(sec):
                     filter_.append('.*%s.*' % tag)
+        # set up regex
+        self.regex = {}
+        # compile some config options and tagsfile sections
+        for sec, pats in ([(s, get_conf_list(conf, 'genres', s))
+                           for s in ['love', 'hate']] +
+                          [(s, self.tagsfile.options(s)) for s in
+                           ['uppercase', 'dontsplit', 'replaceme']]):
+            self.regex[sec] = re.compile('(%s)$' % '|'.join(pats), re.I)
         # compile filter in chunks
         self.regex['filter'] = []
-        for i in range(0, len(filter_), 256):
-            pat = '(%s)$' % '|'.join(filter_[i:i + 256])
+        for i in range(0, len(filter_), 384):
+            pat = '(%s)$' % '|'.join(filter_[i:i + 384])
             self.regex['filter'].append(re.compile(pat, re.I))
 
     def _add(self, group, name, score):
-        '''Adds a genre tag after some filter, replace, match, split.
+        '''Adds a genre tag after some filter, replace, match, split, score.
         Returns True if the tag was added, False otherwise.'''
-        name = name.encode('ascii', 'ignore').lower()
-        if self._filter(name) or not score:
+        if not score:
             return False
+        name = name.encode('ascii', 'ignore').lower()
         name = self._replace(name)
         if self._filter(name):
             return False
@@ -92,63 +76,60 @@ class GenreTags(object):
         self.tags[group][name] += score
         return True
 
-    def _filter(self, tagname):
+    def _filter(self, name):
         '''Filters a tag by name, returns True if tag got filtered.'''
-        if len(tagname) < 3 or len(tagname) > 19:
+        if len(name) < 3 or len(name) > 19:
             return True
-        if self.regex['filter_album'].match(tagname):
+        if re.search(r'[^a-z0-9&\-_/\\,;\.\+\* ]', name, re.I):
             return True
-        for filter_ in self.regex['filter']:
-            if filter_.match(tagname):
-                return True
+        if self.regex['filter_album'].match(name):
+            return True
+        if any(f.match(name) for f in self.regex['filter']):
+            return True
         return False
 
-    def _replace(self, tagname):
-        '''Applies all the replaces to a tagname.'''
-        tagname = re.sub(r'([_/\\,;\.\+\*]| and )', '&', tagname, 0, re.I)
-        # tagname = re.sub(r'-', ' ', tagname)  # ?
-        tagname = re.sub(r'[^a-z0-9&\- ]', '', tagname, 0, re.I)
-        if self.regex['replaceme'].match(tagname):
+    def _replace(self, name):
+        '''Applies all the replaces to a tag name.'''
+        if self.regex['replaceme'].match(name):
             for pattern, repl in self.replaces.items():
-                tagname = re.sub(pattern, repl, tagname, 0, re.I)
-        tagname = re.sub('( +|_)', ' ', tagname).strip()
-        return tagname
+                name = re.sub(pattern, repl, name, 0, re.I)
+        return re.sub('(_| +)', ' ', name).strip()
 
-    def _match(self, tagname):
-        '''Matches tagname with existing tags.'''
+    def _match(self, name):
+        '''Matches a tag name with existing tag names.'''
         mli = []
         for taglist in self.tags.values():
             mli += taglist.keys()
         mli += self.matchlist
+        if name in mli:
+            return name
         # don't change cutoff, _add replaces instead
-        match = difflib.get_close_matches(tagname, mli, 1, .8572)
+        match = difflib.get_close_matches(name, mli, 1, .8572)
         if match:
-            return match[0]
-        return tagname
+            return match[0].lower()
+        return name
 
     def _split(self, group, name, score):
         '''Splits a tag and adds its parts with modified score,
         returns the remaining score for the base tag.'''
         if self.regex['dontsplit'].match(name):
             return score
+        name = re.sub(r'([_/\\,;\.\+\*]| and )', '&', name, 0, re.I)
         if '&' in name:
-            for part in name.split('&'):
-                if not self._filter(part):
-                    self._add(group, part, score)
+            for part in [p for p in name.split('&') if not self._filter(p)]:
+                self._add(group, part, score)
                 return None
-        if ' ' in name.strip():
-            split = name.split(' ')
-            parts = [p for p in split if not self._filter(p)]
-            splitup = False
-            for part in itertools.combinations(parts, max(1, len(parts) - 1)):
-                splitup = True
+        elif ' ' in name.strip():
+            rawparts = name.split(' ')
+            parts = [p for p in rawparts if not self._filter(p)]
+            if not parts:
+                return None
+            parts = itertools.combinations(parts, max(1, len(parts) - 1))
+            for part in set(parts):
                 self._add(group, ' '.join(part), score)
-            if len(split) > 2:
+            if len(rawparts) > 2:
                 return None
-            if len(parts) != len(split):
-                return None
-            if splitup:
-                return score * self.conf.getfloat('scores', 'splitup')
+            return score * self.conf.getfloat('scores', 'splitup')
         return score
 
     def reset(self, bot):
@@ -181,8 +162,9 @@ class GenreTags(object):
         from wlg.whatlastgenre import tagprintstr
         for group, tags in ((k, v) for k, v in self.tags.items() if v):
             # norm tag scores
-            for tag, score in grptags.items():
-                grptags[tag] = score / max(grptags.values())
+            max_ = max(tags.values())
+            for tag, score in tags.items():
+                tags[tag] = score / max_
             # verbose output
             tags = [(self.format(k), v) for k, v in sorted
                     (tags.items(), key=lambda (k, v): (v, k), reverse=1)
@@ -194,33 +176,52 @@ class GenreTags(object):
         for group, tags in self.tags.items():
             mult = 1
             if group == 'artist':
-                if various:
-                    mult = self.conf.getfloat('scores', 'various')
-                else:
-                    mult = self.conf.getfloat('scores', 'artist')
-            for tag, score in grptags.items():
-                # score bonus
-                if self.regex['love'].match(tag):
-                    score *= 2
-                elif self.regex['hate'].match(tag):
-                    score *= 0.5
-                tags[tag] += score * mult
-        # format and sort
-        tags = {self.format(k): v for k, v in tags.items()}
-        return sorted(tags, key=tags.get, reverse=True)
+                mult = 'various' if various else 'artist'
+                mult = self.conf.getfloat('scores', mult)
+            for tag, score in tags.items():
+                score = score * mult
+                score *= 2 if self.regex['love'].match(tag) else 1
+                score *= 0.5 if self.regex['hate'].match(tag) else 1
+                if score > 0.1:
+                    genres[tag] += score
+        # format genres
+        genres = {self.format(k): v for k, v in genres.items()}
+        # sort and return keys
+        return sorted(genres, key=genres.get, reverse=1)
 
     def format(self, name):
         '''Formats a tag to correct case.'''
         split = name.split(' ')
         for i in range(len(split)):
             if len(split[i]) < 3 and split[i] != 'nu' or \
-                    split[i] in self.parser.options('uppercase'):
+                    self.regex['uppercase'].match(split[i]):
                 split[i] = split[i].upper()
             elif re.match('[0-9]{4}s', name, re.I):
                 split[i] = split[i].lower()
             else:
                 split[i] = split[i].title()
         return ' '.join(split)
+
+    @classmethod
+    def get_tagsfile(cls, filters):
+        '''Reads and parses the tagsfile, validates the results and returns a
+        SafeConfigParser object for the tagsfile'''
+        tagsfilestr = pkgutil.get_data('wlg', 'tags.txt')
+        parser = ConfigParser.SafeConfigParser(allow_no_value=True)
+        parser.readfp(StringIO.StringIO(tagsfilestr))
+        # tags file validation
+        for sec in [s for s in ['basictags', 'uppercase', 'dontsplit',
+                                'replaceme']
+                    if not parser.has_section(s)]:
+            print("Got no [%s] from tag.txt file." % sec)
+            exit()
+        for sec in [s for s in filters if
+                    not parser.has_section('filter_%s' % s) and
+                    not parser.has_section('filter_%s_fuzzy' % s)]:
+            print("The configured filter '%s' doesn't has a [filter_%s[_fuzzy]]"
+                  " section in the tags.txt file." % (sec, sec))
+            exit()
+        return parser
 
     @classmethod
     def get_album_filter(cls, bot):
