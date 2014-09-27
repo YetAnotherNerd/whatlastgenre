@@ -67,19 +67,24 @@ class Cache(object):
         self.dirty = True
 
     def clean(self):
-        '''Cleans up expired entries from the cache.'''
-        print("\nCleaning cache...")
+        '''Cleans up expired or invalid entries from the cache.'''
+        print("\nCleaning cache... ", end='')
+        size = len(self.cache)
         for key, val in self.cache.items():
-            if not val.get('time') or time.time() - val['time'] > self.timeout:
+            if (time.time() - val.get('time', 0) > self.timeout
+                or re.match('discogs##artist##', key)
+                or re.match('(echonest|idiomag)##album##', key)
+                or re.match('.*##.*##.{0,2}$', key)):
                 del self.cache[key]
-                self.dirty = True
-        self.save()
+        print("done! (%d removed)" % (size - len(self.cache)))
+        if size > len(self.cache):
+            self.dirty = True
 
     def save(self):
         '''Saves the cache to disk.'''
         if not self.dirty:
             return
-        print("\nSaving cache...")
+        print("\nSaving cache... ", end='')
         dirname, basename = os.path.split(self.filename)
         try:
             with tempfile.NamedTemporaryFile(prefix=basename + '.tmp_',
@@ -90,5 +95,6 @@ class Cache(object):
             os.rename(tmpfile.name, self.filename)
             self.time = time.time()
             self.dirty = False
+            print("done! (%d entries)" % len(self.cache))
         except KeyboardInterrupt:
             pass
