@@ -2,7 +2,6 @@
 #
 # [basictags]   mainly to differentiate between very similar but different tags
 # [uppercase]   tags with length>2 which should be uppercase
-# [splitpart]   regex parts in tags that additionally should get split by space
 # [dontsplit]   regex tags that shouldn't get split
 # [replaceme]   regex replacements: pattern = replacement
 # [filter_<name>[_fuzzy]] sections: regular expressions filters
@@ -63,57 +62,6 @@ nyc
 nyhc
 usa
 
-[splitpart]
-acoustic
-alternative
-ambient
-atmospheric
-avantgarde
-bl(ack|ues)
-brutal
-celtic
-ch(aotic|illout|ristian)
-classic(al)?
-co(medy|nscious|ntemporary|ol|untry)
-da(nce|rk)
-de(ath|ep|pressive?)
-doom
-electronic
-experimental
-folk
-fre(ak|e)
-fu(neral|sion|ture)
-ga(nst(a|er)|rage)
-glam
-gothic
-har(d|sh)
-hip-hop
-in(die|dustrial|strumental)
-jazz
-latin
-light
-math
-me(dieval|lancholic|llow|lodic|tal)
-minimal
-noise
-po(p|wer)
-progressive
-psychedelic
-punk
-rap
-rhythmic
-rock
-so(ft|ul(ful)?)
-space
-stoner
-suicidal
-symphonic
-techno
-thrash
-traditional
-uplifting
-world
-
 [dontsplit]
 (fe)?male vocalist
 dr(ill|um) & bass
@@ -123,15 +71,16 @@ stage & screen
 
 [replaceme]
 # tags by affix
-([^ -]+)( |-|&)?(jazz|metal) = \g<1> \g<3>
-([^ -]+)( |-|&)?hop = \g<1>-hop
-([^ -]+)( |-|&)?musi[ck] = \g<1>
-(neo|post)( |-|&)?(.+) = \g<1>-\g<3>
-^(c|k|j)( |-|&)?(folk|goth|hip-hop|pop|rock|ska) = \g<1>-\g<3>
-elec[tr]{2}(o(nica?)?|ic)( |-|&)?(?!swing)(.*) = electronic \g<4>
-euro( |-|&)?(?!p[ea]|pean)(.*) = euro-\g<2>
-goth(ic)?( |-|&)?(?!enburg)(.*) = gothic \g<3>
-nu( |-|&)(.+) = nu \g<2>
+([^ -]+)[ -]?musi[ck] = \g<1>
+([^ -]+)[ -]?(hop) = \g<1>-\g<2>
+([^ -]+)[ -]?(jazz|metal|rock) = \g<1> \g<2>
+(nu)[ -]?(.+) = \g<1> \g<2>
+(neo|post)[ -]?(.+) = \g<1>-\g<2>
+^(c|k|j)[ -]?(folk|goth|hip-hop|pop|rock|ska) = \g<1>-\g<2>
+ele[ck][tr]{2}(o(nica?)?|ic)[ -]?(?!swing)(.*) = electronic \g<3>
+euro[ -]?(?!p[ea]|pean)(.+) = euro-\g<1>
+goth[ic]{2}?[ -]?(.*) = gothic \g<1>
+(pop|jazz).?(rock) = \g<1>&\g<2>
 # tags with ampersands
 d(rum)? ?(and|'?n'?|&) ?b(ass)? = drum & bass
 drill ?(and|'?n'?|&)? ?bass = drill & bass
@@ -146,43 +95,45 @@ stage ?(and|'?n'?|&)? ?screen = stage & screen
 ^(20)?([0-2])[0-9]'?(s|er)? = 20\g<2>0s
 ^([1-2][0-9])th century = \g<1>00s
 # abbreviation related
-(?<!be)bop = bebop
-^(ost|vgm|scores?) = soundtrack
-alt(ern)?\.?( |-) = alternative_
-independent = indie
-minimal ?electro(nic)? = minimal
-progg?(ress)?\.?( |-) = progressive_
-psy(\.|ch(\.|edelica?)?)?( |-) = psychedelic_
-rapper = rap
-sci(ence)?( |-)?fi(ction)? = science fiction
-trad(\.|itional)?( |-) = traditional_
+alt(ern)?(\.|ative)?[ -]? = alternative_
+progg?(ress)?(\.|ive)?[ -]? = progressive_
+psych(\.|edelic?a?)?[ -]? = psychedelic_
+trad(ition)?(\.|nal)?[ -]? = traditional_
+sci(ence)?[ -]?fi(ction)? = science fiction
 # other
 (8( | -)?bit|bitpop|chip(.?tune)?) = chiptune
 (cabaret|comedi(an|e)|humou?r|kabarett|parod(ie|y)) = comedy
 (weihnacht(en)?|x.?mas) = christmas
+^(ost|vgm|scores?) = soundtrack
 ^(fem|m)ale ?(artist|front|mc|singer|vocalist|voice)?[eds]{0,2} = \g<1>ale vocalist
 ^(film|games?|movies?|t(ele)?v(ision)?|video(s| )?games?) ?(scores?|music)? = soundtrack
 ^(singer|songwrit(er|ing)|lyricist|chanteur|parolier|liedermacher(in)?|troubadour) = singer-songwriter
-deutsch(sprachig)?(er?)? = german
+deutsch(sprachig)?(er?)? = german_
 beatboxing = beatbox
 bluesan = blues
 br(eaks|oken ?beat) = breakbeat
-chill(?!out)(e(d|n)|ing?|( |-|&)out( bar)?)? = chillout
-down( |-)?tempo = downtempo
+chill?(ed|en|ing?|[ -]?out)? = chillout
+down[ -]?tempo = downtempo
 g?old(i(es)?|en)? = oldies
 jazz( |-)?hip( |-)?hop = jazz-hop
 kraut( |-)rock = krautrock
 latinos? = latin
-lo( |&)?fi = lo-fi
+lo.?fi = lo-fi
 mittelalter(lich)? = medieval
 regueton = reggaeton
 relax(ed|i(ng|on))? = chillout
 schlager(hit)? = charts
 scratch = turntablism
 unplug(ged)? = acoustic
+(?<!be)bop = bebop
+independent = indie
+minimal ?ele[ck]tro(nica?)? = minimal
+rapper = rap
 
 
 ## filter sections
+
+[filter_splitpart]
 
 [filter_badtags_fuzzy]
 ((^|[\D])([\d]|[\d]{3})([\D]|$)|[\d]{5})
@@ -194,9 +145,7 @@ unplug(ged)? = acoustic
 abend
 above
 after
-aggr
 alb(um|en)
-all
 amazing
 ang([el]{2}|ry)
 anime
@@ -254,7 +203,7 @@ cut
 damn
 data
 dead
-default
+defa(c(e|ing)|ult)
 delux
 design
 dialog
@@ -413,6 +362,7 @@ nic(e|kelodeon)
 night
 nintendo
 noo(dle|n)
+nouvelle
 novely
 number
 obsessive
@@ -513,6 +463,7 @@ that
 the(atre|me|re)
 thought
 throw
+thug
 tight
 time
 tod(ay|o)
@@ -569,22 +520,24 @@ acid
 actor
 adult
 age
+all
 and
 arena
 art
 aus
 band
-bass
-beat
+bas(ic(ally|s)?|s)
+beats?
 best
 big
 black
-bow
-box
-boy
+bo[wxy]s?
+bossa
+brother
 brutal
 bubblegum
 chaotic
+chemic(al)?
 classic
 club
 coast
@@ -597,6 +550,7 @@ deep
 depressive
 desi
 die
+divine
 doom
 dream
 easy
@@ -613,14 +567,18 @@ games?
 gangst(a|er)
 ghetto
 gun
+guy
 gypsy
+hall
 har(d|sh)
 hate
 heavy
 hip
+hits?
 hop
 hrte
 hypnotic
+ingnieur
 jam
 jese
 light
@@ -629,6 +587,7 @@ los
 math
 mel(anchol(i[ce]|y)|odic)
 merkliste
+mile
 mod(al|ern)?
 more
 movies?
@@ -637,29 +596,38 @@ mundart
 music
 neue?
 nerd
+nes
 new
 ninja
+noise
 non
+nova
 odd
 oma
 or
 out
-own
+own(ed)?
 pagan
 pie
+post
 power
 pub
+pure
 raw
 red
 regional
 repetto
 retro
+reverb
 rhythm(ic)?
+riot
 (re-?)?rip
+rocket
 romantic
 roots?
 row
 san
+sister
 slow
 smooth
 snes
@@ -668,27 +636,35 @@ son
 soulful
 space
 speed
+spoken
+spy
+step
 stoner
+street
 sub
 suicid(al)
 t(ele)?v(ision)?
 tag
 tapes?
-tempo
+techo
+tempo?
 th?rash
 the .*
 third
 thug
+title
 top
-traditional
+tra(ditional|y)
 trip
 underground
 uplifting
 urdu
 video( ?game)?s?
 vip
+wah
 wave
 white
+witch
 word
 wtf
 
@@ -708,7 +684,9 @@ jason
 john
 jones
 katie
+kim
 kirsten
+martens?
 micha
 paul
 qlencja
@@ -723,7 +701,7 @@ victor
 wagner
 
 [filter_location]
-(mid(dle)? ?)?(north|east|south|west)(ern| ?coast)?
+(mid(dle)? ?)?(north|east|south|west)(ern|[ -]?coast)?
 aboriginal
 african?
 ame?rica(in|na?)?
@@ -753,6 +731,7 @@ canad(a|i[ae]n)
 caribbean
 chi(cago|le(an)|na|nese)
 cit(ies|y)
+cleveland
 col(ogne|orado|umbia)
 cuba(no?)?
 czech
@@ -767,7 +746,7 @@ erfurt
 estonian?
 ethiopian?
 europ(a|e(an)?)
-finnish
+fin(land|nish)
 florida
 fr(ench)?
 fran(ce|cophone|c?ais)
@@ -785,9 +764,12 @@ hertford
 houston
 hungari(an)?
 ibiza
+iceland(ic)?
 indian?
 ira(ck?|n(ian?)?)
+ireland
 irish
+irland(e|ais)
 israeli?
 ital(ian|y)
 jamaican?
@@ -816,6 +798,7 @@ michigan
 min(den|nesotan?)
 munich
 nashville
+netherlands?
 new ?(hampshire|jersey|orleans|york( ?city)?)
 nor(eg|dic|ge|sk|vg(e|ien)?|way|wegian)
 nyc?
@@ -843,7 +826,7 @@ stuttgart
 suomi
 sve(nsk(t|akrusbar)|rige)
 swee?d(en|ish)
-swi(ss|zerland)
+swi(ss|tzerland)
 sydney
 tchad
 texas
@@ -936,7 +919,7 @@ synth(esizers?)?
 trumpet
 vibraphone
 violin(ist)?
-vocal
+vocal(ist)?
 
 [filter_year]
 .*(19|20)[0-9]{2}.*
