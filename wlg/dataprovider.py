@@ -155,7 +155,7 @@ class LastFM(DataProvider):
         data = None
         # search with mbid
         if mbid:
-            LOG.info("%7s using artist mbid: %s", self.name, mbid)
+            LOG.info("%8s using artist mbid: %s", self.name, mbid)
             data = self._query({'method': 'artist.gettoptags', 'mbid': mbid})
         # search without mbid
         if not data:
@@ -171,7 +171,7 @@ class LastFM(DataProvider):
         # search with mbid
         mbid = 'albumid'
         if mbid in mbids and mbids[mbid]:
-            LOG.info("%7s using mbid %s: %s", self.name, mbid, mbids[mbid])
+            LOG.info("%8s using mbid %s: %s", self.name, mbid, mbids[mbid])
             data = self._query({'method': 'album.gettoptags',
                                 'mbid': mbids[mbid]})
         # search without mbid
@@ -215,12 +215,13 @@ class MBrainz(DataProvider):
         data = None
         # search by mbid
         if mbid:
-            LOG.info("%7s using artist mbid: %s", self.name, mbid)
+            LOG.info("%8s using artist mbid: %s", self.name, mbid)
             data = self._query('artist', 'arid:"' + mbid + '"')
             if data and 'artist' in data:
                 data = data['artist']
             else:
-                LOG.info("%7s: artist not found, invalid MBID?", self.name)
+                print("%8s: artist not found, invalid MBID %s?"
+                      % (self.name, mbid))
         # search without mbid
         if not data:
             data = self._query('artist', 'artist:"' + artistname + '"')
@@ -243,7 +244,7 @@ class MBrainz(DataProvider):
         # search by release mbid (just if there is no release-group mbid)
         mbid = 'albumid'
         if not mbids.get('releasegroupid') and mbids.get(mbid):
-            LOG.info("%7s using mbid %s: %s", self.name, mbid, mbids[mbid])
+            LOG.info("%8s using mbid %s: %s", self.name, mbid, mbids[mbid])
             data = self._query('release', 'reid:"' + mbids[mbid] + '"')
             if data and 'releases' in data:
                 data = data['releases']
@@ -254,22 +255,18 @@ class MBrainz(DataProvider):
                     for i in range(len(data)):
                         data[i]['id'] = None
             else:
-                LOG.info("%7s: release not found, deleting invalid MBID",
-                         self.name)
-                mbids[mbid] = None
-
+                print("%8s: release not found, invalid MBID %s?"
+                      % (self.name, mbids[mbid]))
         # search by release-group mbid
         mbid = 'releasegroupid'
         if not data and mbids.get(mbid):
-            LOG.info("%7s using mbid %s: %s", self.name, mbid, mbids[mbid])
+            LOG.info("%8s using mbid %s: %s", self.name, mbid, mbids[mbid])
             data = self._query('release-group', 'rgid:"' + mbids[mbid] + '"')
             if data and 'release-groups' in data:
                 data = data['release-groups']
             else:
-                LOG.info("%7s: release-group not found, deleting invalid MBID",
-                         self.name)
-                mbids[mbid] = None
-
+                print("%8s: release-group not found, invalid MBID %s?"
+                      % (self.name, mbids[mbid]))
         # search without mbids
         if not data:
             data = self._query('release-group',

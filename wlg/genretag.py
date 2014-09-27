@@ -177,21 +177,21 @@ class GenreTags(object):
         return added
 
     def get(self, various=False):
-        '''Returns the sorted and formated genre tags after merging.'''
-        for group, grptags in self.tags.items():
-            if not grptags:
-                continue
+        '''Returns the sorted and formated genre genres after merging.'''
+        from wlg.whatlastgenre import tagprintstr
+        for group, tags in ((k, v) for k, v in self.tags.items() if v):
             # norm tag scores
             for tag, score in grptags.items():
                 grptags[tag] = score / max(grptags.values())
             # verbose output
-            toptags = ', '.join(["%s (%.2f)" % (self.format(k), v) for k, v in
-                                 sorted(grptags.items(), key=lambda (k, v):
-                                        (v, k), reverse=1)][:10])
-            LOG.info("Best %6s tags (%2d): %s", group, len(grptags), toptags)
-        # merge artist and album tags
-        tags = defaultdict(float)
-        for group, grptags in self.tags.items():
+            tags = [(self.format(k), v) for k, v in sorted
+                    (tags.items(), key=lambda (k, v): (v, k), reverse=1)
+                    if v > 0.1]
+            tagout = tagprintstr(tags[:12], "%5.2f %-19s")
+            LOG.info("Best %6s genres (%d):\n%s", group, len(tags), tagout)
+        # merge artist and album genres
+        genres = defaultdict(float)
+        for group, tags in self.tags.items():
             mult = 1
             if group == 'artist':
                 if various:

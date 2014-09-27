@@ -183,7 +183,7 @@ def handle_folder(args, dps, cache, genretags, folder):
         print("Genres: %s" % ', '.join(genres))
         album.set_common_meta('genre', genres)
     else:
-        print("No genres found :-(")
+        print("Genres: None found :-(")
     # set releasetype
     if args.tag_release and sdata.get('releasetype'):
         print("RelTyp: %s" % sdata['releasetype'])
@@ -229,7 +229,7 @@ def get_data(args, dps, cache, genretags, album, sdata):
             except RuntimeError:
                 continue
             except dp.DataProviderError as err:
-                print("%8s %6s" % (dapr.name, err.message))
+                print("%8s %s" % (dapr.name, err.message))
                 continue
         if not data or (len(data) == 1 and not data[0].get('tags')):
             LOG.info("%8s %6s search found    no    tags for '%s'%s",
@@ -247,7 +247,7 @@ def get_data(args, dps, cache, genretags, album, sdata):
             cache.set(dapr.name, variant, sstr, data)
         # still multiple results?
         if len(data) > 1:
-            print("%8s %6s search found %2d ambiguous results for '%s' (use -i)"
+            print("%8s %6s search found %d ambiguous results for '%s' (use -i)"
                   "%s" % (dapr.name, variant, len(data), sstr, cmsg))
             continue
         # unique data
@@ -330,23 +330,37 @@ def searchstr(str_):
         str_ = re.sub(pat, ' ', str_, 0, re.I)
     return str_.strip().lower()
 
+def tagprintstr(tags, pat):
+    '''Returns a string that shows a dict of tags in columns of 3.'''
+    # (80-2)/3 = 26
+    lines = []
+    num = int(math.ceil(len(tags) / 3))
+    for i in range(num):
+        line = []
+        for j in [j for j in range(3) if i + num * j < len(tags)]:
+            line.append(pat % (tags[i + num * j][1], tags[i + num * j][0]))
+        lines.append(' '.join(line))
+    return '\n'.join(lines)
+
 def print_stats(stats):
     '''Prints out some statistics.'''
     print("\nTime elapsed: %s"
           % datetime.timedelta(seconds=time.time() - stats['starttime']))
-    genres = stats['genres']
-    if genres:
-        genres = ["%2d %s" % (v, k) for k, v in
-                  sorted(genres.items(), key=lambda (k, v): (v, k), reverse=1)]
-        print("\nTag statistics (%d): %s" % (len(genres), ', '.join(genres)))
+    tags = stats['genres']
+    if tags:
+        tagout = sorted(tags.items(), key=lambda (k, v): (v, k), reverse=1)
+        tagout = tagprintstr(tagout, "%5d %-19s")
+        print("\n%d different tags used this often:\n%s" % (len(tags), tagout))
     fldrs = stats['foldernogenres']
     if fldrs:
         print("\n%d albums with no genre tags found:\n%s"
               % (len(fldrs), '\n'.join(sorted(fldrs))))
     fldrs = stats['foldererrors']
     if fldrs:
-        fldrs = ["%s \t(%s)" % (k, v) for k, v in sorted(fldrs.items())]
-        print("\n%d albums with errors:\n%s" % (len(fldrs), '\n'.join(fldrs)))
+        print("\n%d albums with errors:" % len(fldrs))
+        for error in set(fldrs.values()):
+            fldrs = ["%s" % k for k, v in sorted(fldrs.items()) if v == error]
+            print("'%s':\n%s" % (error, '\n'.join(fldrs)))
 
 def main():
     '''main function of whatlastgenre.'''
