@@ -171,7 +171,8 @@ class Track(object):
         val = val if isinstance(val, list) else [val]
         val = [v.decode('utf-8') for v in val]
         # check for change
-        old = [o.decode('utf-8') for o in self.muta.get(key, [])]
+        old = [o if isinstance(o, unicode) else o.decode('utf-8')
+               for o in self.muta.get(key, [])]
         if not old or old != val:
             self.muta[key] = val
             self.dirty = True
