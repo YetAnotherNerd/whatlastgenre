@@ -11,6 +11,7 @@ import argparse
 import datetime
 import difflib
 import logging
+import math
 import os
 import re
 import sys
@@ -161,6 +162,7 @@ def handle_folder(args, dps, cache, genretags, folder):
     genretags.reset(album)
     sdata = {
         'releasetype': None,
+        'date' : album.get_common_meta('date'),
         'album': searchstr(album.get_common_meta('album')),
         'artist': [(searchstr(album.get_common_meta('albumartist')),
                     album.get_common_meta('musicbrainz_albumartistid'))],
@@ -176,7 +178,7 @@ def handle_folder(args, dps, cache, genretags, folder):
             sdata['artist'].append((searchstr(track.get_meta('artist')),
                                     track.get_meta('musicbrainz_artistid')))
     # get data from dataproviders
-    sdata = get_data(args, dps, cache, genretags, album, sdata)
+    sdata = get_data(args, dps, cache, genretags, sdata)
     # set genres
     genres = genretags.get(len(sdata['artist']) > 1)[:args.tag_limit]
     if genres:
@@ -201,7 +203,7 @@ def handle_folder(args, dps, cache, genretags, folder):
         album.save_metadata()
     return genres
 
-def get_data(args, dps, cache, genretags, album, sdata):
+def get_data(args, dps, cache, genretags, sdata):
     '''Gets all the data from all dps or from cache.'''
     tupels = [(0, 'album')]
     tupels += [(i, 'artist') for i in range(len(sdata['artist']))]
@@ -236,12 +238,26 @@ def get_data(args, dps, cache, genretags, album, sdata):
                      dapr.name, variant, sstr, cmsg)
             cache.set(dapr.name, variant, sstr, None)
             continue
-        # filter if multiple results
+        # filter
+        data = filter_data(dapr.name.lower(), variant, sdata, data)
+        # still multiple results?
         if len(data) > 1:
-            data = filter_data(dapr.name, variant, data, album)
-        # ask user if still multiple results
-        if len(data) > 1 and args.interactive:
-            data = interactive(dapr.name, variant, data)
+            # ask user interactivly for important sources
+            if dapr.name.lower() in ['whatcd', 'mbrainz']:
+                if args.interactive:
+                    data = interactive(dapr.name, variant, data)
+            # merge all the hits for unimportant sources
+            elif isinstance(data[0]['tags'], dict):
+                tags = defaultdict(float)
+                for tag, score in [d['tags'] for d in data]:
+                    tags[tag] += score
+                data = [{'tags': {k: v for k, v in tags.items()}}]
+            elif isinstance(data[0]['tags'], list):
+                tags = []
+                for dat in data:
+                    for tag in [t for t in dat['tags'] if t not in tags]:
+                        tags.append(tag)
+                data = [{'tags': tags}]
         # save cache
         if not cached or len(cached['data']) > len(data):
             cache.set(dapr.name, variant, sstr, data)
@@ -264,22 +280,16 @@ def get_data(args, dps, cache, genretags, album, sdata):
                 sdata['releasetype'] = genretags.format(data['releasetype'])
     return sdata
 
-def filter_data(source, variant, data, bot):
+def filter_data(source, variant, sdata, data):
     '''Prefilters data to reduce needed interactivity.'''
     if not data or len(data) == 1:
         return data
-    source = source.lower()
-    # filter by releasetype for whatcd
-    releasetype = bot.get_common_meta('releasetype')
-    if source == 'whatcd' and variant == 'album' and releasetype:
-        data = [d for d in data if 'releasetype' not in d or
-                d['releasetype'].lower() == releasetype.lower()]
     # filter by title
-    title = bot.get_common_meta('albumartist')
+    title = sdata['artist'][0][0]
     if variant == 'album':
         if not title:
             title = 'various' if source == 'discogs' else 'various artists'
-        title += ' - ' + bot.get_common_meta('album')
+        title += ' - ' + sdata['album']
     title = searchstr(title)
     for i in range(5):
         tmp = [d for d in data if 'title' not in d or difflib.
@@ -291,14 +301,18 @@ def filter_data(source, variant, data, bot):
     if len(data) == 1:
         return data
     # filter by date
-    date = bot.get_common_meta('date')
-    if variant == 'album' and date:
+    if variant == 'album' and sdata['date']:
         for i in range(4):
             tmp = [d for d in data if not d.get('year') or
-                   abs(int(d['year']) - int(date)) <= i]
+                   abs(int(d['year']) - int(sdata['date'])) <= i]
             if tmp:
                 data = tmp
                 break
+    # filter by releasetype for whatcd
+    if len(data) > 1:
+        if source == 'whatcd' and variant == 'album' and sdata['releasetype']:
+            data = [d for d in data if 'releasetype' not in d or
+                    d['releasetype'].lower() == sdata['releasetype'].lower()]
     return data
 
 def interactive(source, variant, data):
