@@ -23,9 +23,10 @@ class Cache(object):
         try:
             with open(self.filename) as infile:
                 self.cache = json.load(infile)
-            self.clean()
         except (IOError, ValueError):
             pass
+        self.clean()
+        self.save()
 
     def __del__(self):
         self.save()
@@ -38,9 +39,9 @@ class Cache(object):
         return re.sub(r'([^\w#]| +)', '', key, 0, re.I).lower().strip()
 
     def get(self, dapr, variant, sstr):
-        '''Gets cache data for a given DataProvider and variant.
-        Since this method does't check the timestamps of the cache entries,
-        self.clean() is be run before using the cache.'''
+        '''Gets cache data for a given dapr, variant and sstr. Since this method
+        does't check the timestamps of the cache entries, self.clean() is called
+        on instantiation.'''
         if not sstr or self.ignore:
             return
         key = self._get_key(dapr, variant, sstr)

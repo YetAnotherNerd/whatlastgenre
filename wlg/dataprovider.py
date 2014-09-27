@@ -195,10 +195,8 @@ class LastFM(DataProvider):
 
 class MBrainz(DataProvider):
     '''MusicBrainz DataProvider'''
-    # TODO
-    # its possible not to use ?query=*id:... when searching by mbid,
-    # but directly put the mbid into the url,
-    # then don't forget to add ?inc=tags
+    # TODO: its possible not to use ?query=*id: when searching by mbid, but
+    # directly put the mbid into the url, then don't forget to add ?inc=tags
 
     def __init__(self):
         super(MBrainz, self).__init__()
@@ -280,7 +278,6 @@ class MBrainz(DataProvider):
             if not data or 'release-groups' not in data:
                 return
             data = [x for x in data['release-groups'] if int(x['score']) > 90]
-
         return [{
             'info': "%s - %s [%s]: http://musicbrainz.org/release-group/%s"
                     % (x['artist-credit'][0]['artist']['name'], x.get('title'),

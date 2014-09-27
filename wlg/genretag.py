@@ -160,6 +160,8 @@ class GenreTags(object):
         '''Adds tags with or without counts to a given group, scores them
         while taking the source score multiplier into account.
         Returns the number of tags added.'''
+        if not tags:
+            return 0
         added = 0
         multi = self.conf.getfloat('scores', 'src_%s' % source)
         if isinstance(tags, dict):

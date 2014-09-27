@@ -40,32 +40,23 @@ class BunchOfTracks(object):
     '''Class for managing bunches of tracks ("albums").'''
 
     def __init__(self, path, ext, tracks):
+        print("[%s] %s" % (ext.upper(), path))
         self.path = path
         self.ext = ext
-        print("[%s] %s" % (ext.upper(), path))
-
-        # load tracks
-        self.tracks = []
-        for track in tracks:
-            self.tracks.append(Track(path, track))
-
+        self.tracks = [Track(path, t) for t in tracks]
         # validate and handle metadata
-
         # common album tag is necessary for now
         album = self.get_common_meta('album')
         if not album:
             raise BunchOfTracksError("Not all tracks have the same album-tag.")
-
         # put artist in empty aartist
         artist = self.get_common_meta('artist')
         if artist and not self.get_common_meta('albumartist'):
             self.set_common_meta('albumartist', artist)
-
         # put artist mbid in empty aartist mbid
         mbidart = self.get_common_meta('musicbrainz_artistid')
         if mbidart and not self.get_common_meta('musicbrainz_albumartistid'):
             self.set_common_meta('musicbrainz_albumartistid', mbidart)
-
         # handle various artists
         vapat = re.compile('^va(rious( ?artists?)?)?$', re.I)
         if artist and vapat.match(artist):
@@ -76,7 +67,6 @@ class BunchOfTracks(object):
             aartist = None
             self.set_common_meta('albumartist', None)
             self.set_common_meta("musicbrainz_albumartistid", VAMBID)
-
         LOG.info("albumartist=%s, album=%s, date=%s",
                  aartist, album, self.get_common_meta('date'))
 
@@ -95,6 +85,7 @@ class BunchOfTracks(object):
             if lcs and len(lcs) > 2 and lcs == val[0][:len(lcs)]:
                 return lcs
         # no common value for this key
+        return None
 
     def set_common_meta(self, key, val):
         '''Sets metadata for all tracks.'''
@@ -177,8 +168,7 @@ class Track(object):
                 self.dirty = True
             return
         # get a decoded list from plain values
-        if not isinstance(val, list):
-            val = [val]
+        val = val if isinstance(val, list) else [val]
         val = [v.decode('utf-8') for v in val]
         # check for change
         old = [o.decode('utf-8') for o in self.muta.get(key, [])]
@@ -197,3 +187,4 @@ class Track(object):
             return True
         except IOError as err:
             print("Error saving track %s: %s" % (self.filename, err.message))
+        return False

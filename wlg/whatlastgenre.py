@@ -61,7 +61,7 @@ def get_args():
 def get_conf(configfile):
     '''Reads, maintains and writes the configuration file.'''
     # [section, option, default, required, [min, max]]
-    conf = [['wlg', 'sources', 'whatcd, mbrainz, discogs, lastfm', 1, []],
+    conf = [['wlg', 'sources', 'whatcd, discogs, mbrainz, lastfm', 1, []],
             ['wlg', 'cache_timeout', '30', 1, [3, 90]],
             ['wlg', 'whatcduser', '', 0, []],
             ['wlg', 'whatcdpass', '', 0, []],

@@ -52,8 +52,7 @@ for each tag will be. So if only one tag is supplied, it will get a score of
 ## Installation
 You'll need Python 2.7.
 
-Install dependencies with your package manager, on Debian based distros run the
-following as root:
+Install dependencies with your package manager, on Debian based distros run this as root:
 
     apt-get install python-mutagen python-requests
 
@@ -74,7 +73,7 @@ The default location for the configuration file is `~/.whatlastgenre/config`.
 ### Example configuration file
 ```
 [wlg]
-sources = whatcd, mbrainz, lastfm, discogs
+sources = whatcd, discogs, mbrainz, lastfm
 cache_timeout = 30
 whatcduser = whatusername
 whatcdpass = whatpassword
