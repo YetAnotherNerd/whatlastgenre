@@ -102,7 +102,7 @@ class BunchOfTracks(object):
 
     @classmethod
     def _longest_common_substr(cls, data):
-        '''Returns the longest common substr for a list of strings.'''
+        '''Returns the longest common substring from a list of strings.'''
         substr = ''
         if len(data) > 1 and data[0]:
             for i in range(len(data[0])):
@@ -117,16 +117,16 @@ class Track(object):
     '''Class for managing tracks.'''
 
     def __init__(self, path, filename):
-        self.path = path
-        self.filename = filename
+        self.fullpath = filename
         self.ext = os.path.splitext(filename)[1].lower()[1:]
+        self.fullpath = os.path.join(path, filename)
+        self.stat = os.stat(self.fullpath)
         self.dirty = False
         self.muta = None
         try:
-            fullpath = os.path.join(self.path, self.filename)
-            self.muta = mutagen.File(fullpath, easy=True)
+            self.muta = mutagen.File(self.fullpath, easy=True)
         except IOError as err:
-            print("Error loading track %s: %s" % (self.filename, err.message))
+            print("Error loading track %s: %s" % (self.fullpath, err.message))
 
     def _translate_key(self, key):
         '''Translate the metadata key based on ext, etc.'''
@@ -173,19 +173,21 @@ class Track(object):
         # check for change
         old = [o if isinstance(o, unicode) else o.decode('utf-8')
                for o in self.muta.get(key, [])]
-        if not old or old != val:
+        if not old or set(old) != set(val):
             self.muta[key] = val
             self.dirty = True
 
     def save_metadata(self):
-        '''Saves the metadata,
+        '''Saves the metadata while preserving the modtime of the file,
         returns True if changes have been saved,
         returns False if no changes were made.'''
         if not self.dirty:
             return False
         try:
             self.muta.save()
+            # preserve modtime
+            os.utime(self.fullpath, (self.stat.st_atime, self.stat.st_mtime))
             return True
         except IOError as err:
-            print("Error saving track %s: %s" % (self.filename, err.message))
+            print("Error saving track %s: %s" % (self.fullpath, err.message))
         return False
