@@ -12,6 +12,9 @@ import mutagen
 
 LOG = logging.getLogger('whatlastgenre')
 
+# Regex pattern to recognize Various Artist strings
+VAPAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
+
 # Musicbrainz ID of 'Various Artists'
 VAMBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
@@ -58,12 +61,11 @@ class BunchOfTracks(object):
         if mbidart and not self.get_common_meta('musicbrainz_albumartistid'):
             self.set_common_meta('musicbrainz_albumartistid', mbidart)
         # handle various artists
-        vapat = re.compile('^va(rious( ?artists?)?)?$', re.I)
-        if artist and vapat.match(artist):
+        if artist and VAPAT.match(artist):
             artist = None
             self.set_common_meta('artist', None)
         aartist = self.get_common_meta('albumartist')
-        if aartist and vapat.match(aartist):
+        if aartist and VAPAT.match(aartist):
             aartist = None
             self.set_common_meta('albumartist', None)
             self.set_common_meta("musicbrainz_albumartistid", VAMBID)

@@ -6,8 +6,8 @@ http://github.com/YetAnotherNerd/whatlastgenre'''
 from __future__ import division, print_function
 
 import ConfigParser
-from _collections import defaultdict
 import argparse
+from collections import defaultdict
 import datetime
 import difflib
 import logging
@@ -174,7 +174,8 @@ def handle_folder(args, dps, cache, genretags, folder):
     }
     # search for all track artists if no albumartist
     if not album.get_common_meta('albumartist'):
-        for track in [t for t in album.tracks if t.get_meta('artist')]:
+        for track in [t for t in album.tracks if t.get_meta('artist')
+                      and not mf.VAPAT.match(t.get_meta('artist'))]:
             sdata['artist'].append((searchstr(track.get_meta('artist')),
                                     track.get_meta('musicbrainz_artistid')))
     # get data from dataproviders
@@ -426,5 +427,5 @@ def main():
                 stats['foldererrors'].update({folder[0]: err.message})
         print("\n...all done!")
     except KeyboardInterrupt:
-        pass
+        print()
     print_stats(stats)
