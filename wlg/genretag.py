@@ -5,7 +5,7 @@ from __future__ import division, print_function
 
 import ConfigParser
 import StringIO
-from _collections import defaultdict
+from collections import defaultdict
 import difflib
 import itertools
 import logging
@@ -51,9 +51,11 @@ class GenreTags(object):
         # compile some config options and tagsfile sections
         for sec, pats in ([(s, get_conf_list(conf, 'genres', s))
                            for s in ['love', 'hate']] +
-                          [(s, self.tagsfile.options(s)) for s in
-                           ['uppercase', 'dontsplit', 'replaceme']]):
+                          [(s, self.tagsfile.options(s))
+                           for s in ['uppercase', 'dontsplit']]):
             self.regex[sec] = re.compile('(%s)$' % '|'.join(pats), re.I)
+        replaceme = '|'.join(self.tagsfile.options('replaceme'))
+        self.regex['replaceme'] = re.compile('.*(%s).*' % replaceme, re.I)
         # compile filter in chunks
         self.regex['filter'] = []
         for i in range(0, len(filter_), 384):
