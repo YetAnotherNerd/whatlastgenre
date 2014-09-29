@@ -7,19 +7,18 @@ Improves genre metadata of audio files based on tags from various music sites.
 * Feature Overview
   * Gets genre tags for artists and albums from music sites and finds the most
   eligible ones by merging, splitting, filtering and scoring them.
-    * Heavy filtering of crappy tags to not need a whitelist
     * Merges similar tags in different writings to ensure consistent names, eg.
     DnB, D&B, Drum and Bass -> Drum & Bass;
     Alt., Altern, Alterneitif -> Alternative
     * Splits tags in various applicable ways, eg.
     Jazz/Funk&Rock -> Jazz, Funk, Rock; Alternative Rock -> Alternative, Rock
-    * Filters by personal preferences with preset and custom filters
+    * Filters crappy tags to not need a whitelist
     * Scores tags while taking personal preferences into account
   * Caches all data received from music sites to make reruns super fast
   * Makes use of MusicBrainz IDs when possible
   * Optional: gets release type (Album, EP, Anthology, ...) (from What)
   * Optional: gets MusicBrainz IDs
-  * Interactive mode (it's not guessing wrong data)
+  * Interactive mode for selecting right MBID / Release on ambiguous results
   * Dry-mode for safe testing
 
 
@@ -48,15 +47,20 @@ total number of tags supplied by this source. The more tags the lower the score
 for each tag will be. So if only one tag is supplied, it will get a score of
 1.0, two tags will get a score of 0.85 each, three get 0.72 each and so on...
 
+##### Tag merging
+After all tags have been gathered the scores of the album and artist tags will
+be scaled and then merged together taking the artist score option into account.
+
 
 ## Installation
 You'll need Python 2.7.
 
-Install dependencies with your package manager, on Debian based distros run this as root:
+Install dependencies with your package manager, on Debian based distros run
+this as root:
 
     apt-get install python-mutagen python-requests
 
-* Alternatively install the dependencies by using python-pip:
+* Alternatively, install dependencies by using python-pip:
 `pip install mutagen requests`
 * Clone the git or download and unzip the [source package]
 (http://github.com/YetAnotherNerd/whatlastgenre/archive/master.zip)
@@ -104,7 +108,6 @@ the order you named them, since lastfm supports search by MBIDs make sure to
 mention mbrainz before lastfm. You should generally mention sources with good
 spelled tags (eg. sources with a fixed set of possible genres) before sources
 with misspelled tags (eg. lastfm user tags) to avoid getting malformed tags.
-Disabling music sites is not recommended, the more sources the better tags.
 * `whatcd` [[URL](https://what.cd/)]
 well-kept tags from users
 * `lastfm` [[URL](http://www.last.fm/)]
@@ -232,6 +235,6 @@ To get the most of it for all albums in /home/user/music and /media/music:
 
 
 whatlastgenre doesn't correct any other tags. If your music files are badly or
-not tagged, whatlastgenre won't work well at all.
+not tagged it won't work well at all.
 
 Please report any bugs and errors you encounter, i would like to fix them :)

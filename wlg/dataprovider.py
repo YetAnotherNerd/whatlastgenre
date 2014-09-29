@@ -47,7 +47,7 @@ class DataProvider(object):
     def __init__(self):
         self.name = self.__class__.__name__
         self.last_request = time.time()
-        self.rate_limit = 1  # min. seconds between requests
+        self.rate_limit = 0.5  # min. seconds between requests
 
     def _query_jsonapi(self, url, params):
         '''Queries an api by url and params and returns the json results.'''
@@ -110,31 +110,27 @@ class WhatCD(DataProvider):
             self.__login()
         data = self._query_jsonapi('https://what.cd/ajax.php', params)
         if not data or data.get('status') != 'success':
-            return
-        return data.get('response')
+            return {}
+        return data.get('response', {})
 
     def get_artist_data(self, artistname, _):
         '''Gets artist data from What.CD.'''
         data = self._query({'action': 'artist', 'artistname': artistname})
-        if not data or 'tags' not in data:
-            return
         return [{'tags': {t['name'].replace('.', ' '): int(t['count'])
-                          for t in data['tags']}}]
+                          for t in data.get('tags', {})}}]
 
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from What.CD.'''
         data = self._query({'action': 'browse', 'filter_cat[1]': 1,
                             'searchstr': artistname + ' ' + albumname})
-        if not data or 'results' not in data:
-            return
         return [{
             'info': "%s - %s (%s) [%s]: https://what.cd/torrents.php?id=%s"
                     % (d['artist'], d['groupName'], d['groupYear'],
                        d['releaseType'], d['groupId']),
             'title': d['artist'] + ' - ' + d['groupName'],
             'releasetype': d['releaseType'],
-            'tags': [tag.replace('.', ' ') for tag in d['tags']],
-            'year': d['groupYear']} for d in data['results']]
+            'tags': [tag.replace('.', ' ') for tag in d.get('tags', [])],
+            'year': d['groupYear']} for d in data.get('results', {})]
 
 
 class LastFM(DataProvider):
@@ -146,7 +142,7 @@ class LastFM(DataProvider):
                        'format': 'json'})
         data = self._query_jsonapi('http://ws.audioscrobbler.com/2.0/',
                                    params)
-        if 'error' in data:
+        if not data or 'error' in data:
             return
         return data
 
@@ -155,7 +151,7 @@ class LastFM(DataProvider):
         data = None
         # search with mbid
         if mbid:
-            LOG.info("%8s using artist mbid: %s", self.name, mbid)
+            LOG.info("%8s artist search using %s mbid.", self.name, mbid)
             data = self._query({'method': 'artist.gettoptags', 'mbid': mbid})
         # search without mbid
         if not data:
@@ -171,7 +167,8 @@ class LastFM(DataProvider):
         # search with mbid
         mbid = 'albumid'
         if mbid in mbids and mbids[mbid]:
-            LOG.info("%8s using mbid %s: %s", self.name, mbid, mbids[mbid])
+            LOG.info("%8s  album search using %s %s mbid.",
+                     self.name, mbids[mbid], mbid)
             data = self._query({'method': 'album.gettoptags',
                                 'mbid': mbids[mbid]})
         # search without mbid
@@ -187,15 +184,14 @@ class LastFM(DataProvider):
         if not data or 'toptags' not in data or 'tag' not in data['toptags']:
             return
         tags = data['toptags']['tag']
-        if not isinstance(tags, list):
-            tags = [tags]
+        tags = tags if isinstance(tags, list) else [tags]
         return [{'tags': {t['name']: int(t['count']) for t in tags
                           if t['count'] and int(t['count']) > 40}}]
 
 
 class MBrainz(DataProvider):
     '''MusicBrainz DataProvider'''
-    # TODO: its possible not to use ?query=*id: when searching by mbid, but
+    # NOTE: its possible not to use ?query=*id: when searching by mbid, but
     # directly put the mbid into the url, then don't forget to add ?inc=tags
 
     def __init__(self):
@@ -206,29 +202,27 @@ class MBrainz(DataProvider):
         '''Queries the MusicBrainz API.'''
         params = {'fmt': 'json'}
         params.update({'query': query})
-        data = self._query_jsonapi(
-            'http://musicbrainz.org/ws/2/' + typ + '/', params)
-        return data
+        return self._query_jsonapi('http://musicbrainz.org/ws/2/' + typ + '/',
+                                   params)
 
     def get_artist_data(self, artistname, mbid):
         '''Gets artist data from MusicBrainz.'''
         data = None
         # search by mbid
         if mbid:
-            LOG.info("%8s using artist mbid: %s", self.name, mbid)
+            LOG.info("%8s artist search using %s mbid.", self.name, mbid)
             data = self._query('artist', 'arid:"' + mbid + '"')
             if data and 'artist' in data:
                 data = data['artist']
             else:
-                print("%8s: artist not found, invalid MBID %s?"
-                      % (self.name, mbid))
+                print("%8s artist search found nothing, invalid MBID?"
+                      % self.name)
         # search without mbid
         if not data:
             data = self._query('artist', 'artist:"' + artistname + '"')
             if not data or 'artist' not in data:
                 return
             data = [x for x in data['artist'] if int(x['score']) > 90]
-
         return [{
             'info': "%s (%s) [%s] [%s-%s]: http://musicbrainz.org/artist/%s"
                     % (x['name'], x.get('type', ''), x.get('country', ''),
@@ -244,7 +238,8 @@ class MBrainz(DataProvider):
         # search by release mbid (just if there is no release-group mbid)
         mbid = 'albumid'
         if not mbids.get('releasegroupid') and mbids.get(mbid):
-            LOG.info("%8s using mbid %s: %s", self.name, mbid, mbids[mbid])
+            LOG.info("%8s  album search using %s %s mbid.",
+                     self.name, mbids[mbid], mbid)
             data = self._query('release', 'reid:"' + mbids[mbid] + '"')
             if data and 'releases' in data:
                 data = data['releases']
@@ -255,18 +250,19 @@ class MBrainz(DataProvider):
                     for i in range(len(data)):
                         data[i]['id'] = None
             else:
-                print("%8s: release not found, invalid MBID %s?"
-                      % (self.name, mbids[mbid]))
+                print("%8s rel.   search found nothing, invalid MBID?"
+                      % self.name)
         # search by release-group mbid
         mbid = 'releasegroupid'
         if not data and mbids.get(mbid):
-            LOG.info("%8s using mbid %s: %s", self.name, mbid, mbids[mbid])
+            LOG.info("%8s  album search using %s %s mbid.",
+                     self.name, mbids[mbid], mbid)
             data = self._query('release-group', 'rgid:"' + mbids[mbid] + '"')
             if data and 'release-groups' in data:
                 data = data['release-groups']
             else:
-                print("%8s: release-group not found, invalid MBID %s?"
-                      % (self.name, mbids[mbid]))
+                print("%8s relgrp search found nothing, invalid MBID?"
+                      % self.name)
         # search without mbids
         if not data:
             data = self._query('release-group',
@@ -298,7 +294,7 @@ class Discogs(DataProvider):
         data = self._query_jsonapi(
             'http://api.discogs.com/database/search',
             {'type': 'master', 'q': artistname + ' ' + albumname})
-        if not data or 'results' not in data:
+        if not data:
             return
         return [{
             'info': "%s (%s) [%s]: http://www.discogs.com/master/%s"
@@ -306,7 +302,7 @@ class Discogs(DataProvider):
                        ', '.join(x.get('format')), x['id']),
             'title': x.get('title', ''),
             'tags': x.get('style', []) + x.get('genre', []),
-            'year': x.get('year')} for x in data['results']]
+            'year': x.get('year')} for x in data.get('results', {})]
 
 
 class Idiomag(DataProvider):
@@ -317,10 +313,10 @@ class Idiomag(DataProvider):
         data = self._query_jsonapi(
             'http://www.idiomag.com/api/artist/tags/json',
             {'key': "77744b037d7b32a615d556aa279c26b5", 'artist': artistname})
-        if not data or 'profile' not in data:
+        if not data:
             return
-        return [{'tags': {t['name']: int(t['value'] * 100)
-                          for t in data['profile']['tag']}}]
+        return [{'tags': {t['name']: int(t['value'])
+                          for t in data.get('profile', {}).get('tag', {})}}]
 
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from Idiomag.'''
@@ -341,11 +337,10 @@ class EchoNest(DataProvider):
             'http://developer.echonest.com/api/v4/artist/search',
             {'api_key': "ZS0LNJH7V6ML8AHW3", 'format': 'json',
              'bucket': 'genre', 'results': 1, 'name': artistname})
-        if not data or 'response' not in data or \
-        'artists' not in data['response']:
+        if not data:
             return
         return [{'tags': [t['name'] for t in x['genres']]}
-                for x in data['response']['artists']]
+                for x in data.get('response', {}).get('artists', {})]
 
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from EchoNest.'''

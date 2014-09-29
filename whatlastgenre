@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-'''whatlastgenre executable'''
+'''whatlastgenre executable
+http://github.com/YetAnotherNerd/whatlastgenre'''
 
 from wlg.whatlastgenre import main
+
+
 main()
