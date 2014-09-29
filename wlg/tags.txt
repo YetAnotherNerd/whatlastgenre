@@ -24,6 +24,7 @@ male vocalist
 minimal
 minimalist
 progressive
+psy-trance
 ragga
 reggae
 singer-songwriter
@@ -80,7 +81,7 @@ stage & screen
 ele[ck][tr]{2}(o(nica?)?|ic)[ -]?(?!swing)(.*) = electronic \g<3>
 euro[ -]?(?!p[ea]|pean)(.+) = euro-\g<1>
 goth[ic]{2}?[ -]?(.*) = gothic \g<1>
-(pop|jazz).?(rock) = \g<1>&\g<2>
+(pop|jazz|hip.?hop).?(rock|rap) = \g<1>&\g<2>
 # tags with ampersands
 d(rum)? ?(and|'?n'?|&) ?b(ass)? = drum & bass
 drill ?(and|'?n'?|&)? ?bass = drill & bass
@@ -113,8 +114,8 @@ beatboxing = beatbox
 bluesan = blues
 br(eaks|oken ?beat) = breakbeat
 chill?(ed|en|ing?|[ -]?out)? = chillout
-down[ -]?tempo = downtempo
-g?old(i(es)?|en)? = oldies
+dow[nm][ -]?tempo = downtempo
+g?old(i(es?)?|en)? = oldies
 jazz( |-)?hip( |-)?hop = jazz-hop
 kraut( |-)rock = krautrock
 latinos? = latin
@@ -133,14 +134,12 @@ rapper = rap
 
 ## filter sections
 
-[filter_splitpart]
-
 [filter_badtags_fuzzy]
+( ?(a(re)?|by|for|i[ns]?|not|my|o[fn]|so|the|to|up|we) )
 ((^|[\D])([\d]|[\d]{3})([\D]|$)|[\d]{5})
 ((jan|febr)uary?|march|april|ma[iy]|jun[ei]|jul[iy]|august|(septem|o[ck]to|novem|de[cz]em)ber)
 ((mon|tues|wednes|thurs|fri|satur|sun)day|(mon|diens|donners|frei|sams|sonn)tag|mittwoch)
 ([ck]ompa[ck]t)
-( ?(a(re)?|by|for|i[ns]?|not|my|o[fn]|so|the|to|up|we) )
 (ba|u)rh?ythm
 abend
 above
@@ -165,6 +164,7 @@ b.tch
 baby
 background
 balance
+ballar?d
 bea(ch|utiful)
 beg
 below
@@ -219,8 +219,10 @@ duet
 dumb
 dvd
 early
+echo
 eclectic
 edit
+education
 eff(ect|ig)
 emotion
 energ
@@ -254,6 +256,7 @@ fla(sh|wless)
 flutter
 format
 fre[ei]
+freund
 fuck
 fun
 fuzz
@@ -281,6 +284,7 @@ have
 herbst
 heul
 hidden
+histor(ic|y)
 high
 holiday
 hom
@@ -326,10 +330,10 @@ liquid
 listener
 little
 live
+lo*ve
 lore
 lost
 loudness ?war
-lo*ve
 luvstep
 m(usic)?brainz
 mag(azin|ic)
@@ -376,8 +380,8 @@ peanut
 per(fect|manent|sistence)
 phantom
 picks
-piss
 pirate
+piss
 pizza
 pla(ce|in|tin|y)
 pleasure
@@ -389,6 +393,7 @@ positiv
 praise
 pri(mary|vat|ze)
 pro(duc|je[ck]|of)
+p(ar)?t.?[0-9]
 public
 purchase
 pussy
@@ -488,9 +493,10 @@ virtuos
 vis(a|ual)
 voodoo
 vox
-wayne
-watch
 want
+wasser
+watch
+wayne
 web
 wedding
 ween
@@ -516,6 +522,7 @@ zombie
 
 [filter_generic]
 (one|two|three|four|five|six|seven|eight|nine|ten)
+(re-?)?rip
 acid
 actor
 adult
@@ -531,19 +538,23 @@ beats?
 best
 big
 black
+blue
 bo[wxy]s?
 bossa
 brother
 brutal
+bthgh
 bubblegum
 chaotic
 chemic(al)?
 classic
 club
 coast
+cold
 conscious
 cool
 core
+critic(al)?
 dark
 death
 deep
@@ -581,6 +592,7 @@ hypnotic
 ingnieur
 jam
 jese
+kuschel
 light
 listen(ers?|ing?)?
 los
@@ -594,9 +606,9 @@ movies?
 mtv
 mundart
 music
-neue?
 nerd
 nes
+neue?
 new
 ninja
 noise
@@ -609,10 +621,12 @@ out
 own(ed)?
 pagan
 pie
+politic(al)?
 post
 power
 pub
 pure
+rave
 raw
 red
 regional
@@ -621,7 +635,6 @@ retro
 reverb
 rhythm(ic)?
 riot
-(re-?)?rip
 rocket
 romantic
 roots?
@@ -654,6 +667,7 @@ third
 thug
 title
 top
+touhou
 tra(ditional|y)
 trip
 underground
@@ -677,6 +691,7 @@ bond
 bren
 christoph
 daniel
+edgar
 fabio
 fergie
 george
@@ -694,6 +709,7 @@ robert
 roger
 rusbeh
 ryan
+sarah
 th?om
 tony
 tristan
@@ -739,9 +755,9 @@ dan(ish|sk)
 ddr
 den(mark|ver)
 detroit
-deutsch
+deutsch(er?|land)?
 dutch
-english
+engl(and|isc?h)
 erfurt
 estonian?
 ethiopian?
@@ -787,9 +803,9 @@ lyric
 m.?nchen
 m[ao]rocc(an|o)
 ma[dn]chester
-massachusetts
 madrid
 mali([ae]n)?
+massachusetts
 melbourne
 memphis
 mexic(an|o)
@@ -808,7 +824,7 @@ paris
 pittsburgh
 pol(and|ish)?
 puerto ?rico
-que?bec
+que?bec(ois)?
 queens
 rio ?de ?janeiro
 rom[ae](nian?)?
@@ -922,5 +938,5 @@ violin(ist)?
 vocal(ist)?
 
 [filter_year]
-.*(19|20)[0-9]{2}.*
 ([0-9]{2}){1,2}s?
+.*(19|20)[0-9]{2}.*
