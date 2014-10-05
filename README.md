@@ -103,11 +103,7 @@ splitup = 0.33
 #### whatlastgenre (wlg) section
 
 ##### sources option
-The music sites/data providers where to get the tags from. Will be called in
-the order you named them, since lastfm supports search by MBIDs make sure to
-mention mbrainz before lastfm. You should generally mention sources with good
-spelled tags (eg. sources with a fixed set of possible genres) before sources
-with misspelled tags (eg. lastfm user tags) to avoid getting malformed tags.
+The music sites where to get the genre tags from.
 * `whatcd` [[URL](https://what.cd/)]
 well-kept tags from users
 * `lastfm` [[URL](http://www.last.fm/)]

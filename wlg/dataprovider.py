@@ -14,22 +14,31 @@ LOG = logging.getLogger('whatlastgenre')
 
 
 def get_daprs(sources, wcdcred):
-    '''Returns a list of initialized DataProviders that are mentioned as source
-    in the config file. The loop is used to maintain the given order.'''
+    '''Returns a list of DataProvider objects from a given list of sources.
+
+    The DataProviders will later be called in that order they get added here.
+    Since lastfm supports search by MBIDs, mbrainz should get added before
+    lastfm. DataProviders that provide good spelled tags (eg. sources with a
+    fixed set of possible genres) should generally be added before DataProviders
+    that provide misspelled tags (eg. lastfm user tags) to avoid getting
+    malformed tags due to the tag matching process while adding genre tags.
+
+    :param sources: list of sources to use
+    :param wcdcred: tuple with whatcd username and password
+    '''
     dps = []
-    for dapr in sources:
-        if dapr == 'whatcd':
-            dps.append(WhatCD(wcdcred))
-        elif dapr == 'mbrainz':
-            dps.append(MBrainz())
-        elif dapr == 'lastfm':
-            dps.append(LastFM())
-        elif dapr == 'discogs':
-            dps.append(Discogs())
-        elif dapr == 'idiomag':
-            dps.append(Idiomag())
-        elif dapr == 'echonest':
-            dps.append(EchoNest())
+    if 'discogs' in sources:
+        dps.append(Discogs())
+    if 'echonest' in sources:
+        dps.append(EchoNest())
+    if 'idiomag' in sources:
+        dps.append(Idiomag())
+    if 'whatcd' in sources:
+        dps.append(WhatCD(wcdcred))
+    if 'mbrainz' in sources:
+        dps.append(MBrainz())
+    if 'lastfm' in sources:
+        dps.append(LastFM())
     return dps
 
 
