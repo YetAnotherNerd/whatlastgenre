@@ -248,7 +248,7 @@ def validate(args, conf):
 
 def handle_folder(args, dps, cache, genretags, folder):
     '''Loads metadata, receives tags and saves an album.'''
-    album = mf.BunchOfTracks(folder[0], folder[1], folder[2])
+    album = mf.Album(folder[0], folder[1], folder[2])
     genretags.reset(album)
     sdata = {
         'releasetype': None,
@@ -291,7 +291,7 @@ def handle_folder(args, dps, cache, genretags, folder):
     if args.dry:
         print("DRY-RUN! Not saving metadata.")
     else:
-        album.save_metadata()
+        album.save()
     return genres
 
 def get_data(args, dps, cache, genretags, sdata):
@@ -519,7 +519,7 @@ def main():
                 # add genres to stats
                 for tag in genres:
                     stats['genres'][tag] += 1
-            except mf.BunchOfTracksError as err:
+            except mf.AlbumError as err:
                 print(err.message)
                 stats['foldererrors'].update({folder[0]: err.message})
         print("\n...all done!")

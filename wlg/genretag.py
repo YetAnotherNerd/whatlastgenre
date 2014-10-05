@@ -139,10 +139,10 @@ class GenreTags(object):
             return score * self.conf.getfloat('scores', 'splitup')
         return score
 
-    def reset(self, bot):
+    def reset(self, album):
         '''Resets the genre tags and album filter.'''
         self.tags = {'artist': defaultdict(float), 'album': defaultdict(float)}
-        self.regex['filter_album'] = self.get_album_filter(bot)
+        self.regex['filter_album'] = self.get_album_filter(album)
 
     def add_tags(self, source, group, tags):
         '''Adds tags with or without counts to a given group, scores them
@@ -236,12 +236,11 @@ class GenreTags(object):
         return parser
 
     @classmethod
-    def get_album_filter(cls, bot):
-        ''' Returns a genre tag filter based on
-        the metadata of a given bunch of tracks.'''
+    def get_album_filter(cls, album):
+        '''Returns a genre tag filter based on the metadata of a given album.'''
         badtags = []
         for tag in ['albumartist', 'album']:
-            val = bot.get_common_meta(tag)
+            val = album.get_common_meta(tag)
             if not val:
                 continue
             bts = [val]

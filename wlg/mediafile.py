@@ -37,13 +37,13 @@ def find_music_folders(paths):
     return folders
 
 
-class BunchOfTracksError(Exception):
-    '''If something went wrong while handling a BunchOfTracks.'''
+class AlbumError(Exception):
+    '''If something went wrong while handling an Album.'''
     pass
 
 
-class BunchOfTracks(object):
-    '''Class for managing bunches of tracks ("albums").'''
+class Album(object):
+    '''Class for managing albums.'''
 
     def __init__(self, path, ext, tracks):
         print("[%s] %s" % (ext.upper(), path))
@@ -54,7 +54,7 @@ class BunchOfTracks(object):
         # common album tag is necessary for now
         album = self.get_common_meta('album')
         if not album:
-            raise BunchOfTracksError("Not all tracks have the same album-tag.")
+            raise AlbumError("Not all tracks have the same album-tag.")
         # put artist in empty aartist
         artist = self.get_common_meta('artist')
         if artist and not self.get_common_meta('albumartist'):
@@ -97,12 +97,12 @@ class BunchOfTracks(object):
         for track in self.tracks:
             track.set_meta(key, val)
 
-    def save_metadata(self):
-        '''Saves the meta for all tracks.'''
-        print("Saving meta... ", end='')
+    def save(self):
+        '''Saves the metadata for all tracks.'''
+        print("Saving metadata... ", end='')
         dirty = False
         for track in self.tracks:
-            dirty = track.save_metadata() or dirty
+            dirty = track.save() or dirty
         print("done!" if dirty else "(no changes)")
 
     @classmethod
@@ -182,8 +182,10 @@ class Track(object):
             self.muta[key] = val
             self.dirty = True
 
-    def save_metadata(self):
-        '''Saves the metadata while preserving the modtime of the file,
+    def save(self):
+        '''Saves the metadata of the track.
+
+        Preserves the file modification time,
         returns True if changes have been saved,
         returns False if no changes were made.'''
         if not self.dirty:
