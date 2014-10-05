@@ -17,7 +17,7 @@ LOG = logging.getLogger('whatlastgenre')
 
 
 class GenreTags(object):
-    '''Class for managing the genre tags.'''
+    '''Class for managing genre tags.'''
 
     def __init__(self, conf):
         from wlg.whatlastgenre import get_conf_list
@@ -63,8 +63,15 @@ class GenreTags(object):
             self.regex['filter'].append(re.compile(pat, re.I))
 
     def _add(self, group, name, score):
-        '''Adds a genre tag after some filter, replace, match, split, score.
-        Returns True if the tag was added, False otherwise.'''
+        '''Adds a tag with a given name and score to a group.
+
+        After some filter, replace, match, split and score,
+        True is returned if the tag was added, False otherwise.
+
+        :param group: tag group (for different scores on merging later)
+        :param name: the name of the tag to add
+        :param score: the score of the tag to add
+        '''
         if not score:
             return False
         name = name.encode('ascii', 'ignore').lower()
@@ -105,7 +112,7 @@ class GenreTags(object):
         mli += self.matchlist
         if name in mli:
             return name
-        # don't change cutoff, _add replaces instead
+        # don't change cutoff, add replaces instead
         match = difflib.get_close_matches(name, mli, 1, .8572)
         if match:
             return match[0].lower()
@@ -160,7 +167,7 @@ class GenreTags(object):
         return added
 
     def get(self, various=False):
-        '''Returns the sorted and formated genre genres after merging.'''
+        '''Merges all tag groups and returns the sorted and formated genres.'''
         from wlg.whatlastgenre import tagprintstr
         for group, tags in ((k, v) for k, v in self.tags.items() if v):
             # norm tag scores
@@ -206,8 +213,13 @@ class GenreTags(object):
 
     @classmethod
     def get_tagsfile(cls, filters):
-        '''Reads and parses the tagsfile, validates the results and returns a
-        SafeConfigParser object for the tagsfile'''
+        '''Gets the tagsfile.
+
+        Reads and parses the tagsfile, validates the results and returns a
+        SafeConfigParser object for the tagsfile
+
+        :param filters: list of filters to check for existence
+        '''
         tagsfilestr = pkgutil.get_data('wlg', 'tags.txt')
         parser = ConfigParser.SafeConfigParser(allow_no_value=True)
         parser.readfp(StringIO.StringIO(tagsfilestr))

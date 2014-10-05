@@ -170,8 +170,10 @@ class LastFM(DataProvider):
 
     def get_album_data(self, artistname, albumname, mbids):
         '''Gets album data from Last.FM.
-        Last.FM seems to understand album mbids als albumid,
-        not as releasegroupid.'''
+
+        Last.FM seems to understand album mbids as albumid,
+        not as releasegroupid.
+        '''
         data = None
         # search with mbid
         mbid = 'albumid'

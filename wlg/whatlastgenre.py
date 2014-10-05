@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 '''whatlastgenre
+
 Improves genre metadata of audio files based on tags from various music sites.
-http://github.com/YetAnotherNerd/whatlastgenre'''
+http://github.com/YetAnotherNerd/whatlastgenre
+'''
 
 from __future__ import division, print_function
 
@@ -468,7 +470,12 @@ def print_stats(stats):
             print("'%s':\n%s" % (error, '\n'.join(fldrs)))
 
 def main():
-    '''main function of whatlastgenre.'''
+    '''main function of whatlastgenre.
+
+    Reads and validates arguments and configuration,
+    set up the needed objects and run the main loop.
+    Prints out some stats at the end.
+    '''
     print("whatlastgenre v%s\n" % __version__)
     args = get_args()
     conf = get_conf(args.config)

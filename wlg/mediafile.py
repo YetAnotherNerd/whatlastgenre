@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-'''whatlastgenre mediafile'''
+'''whatlastgenre mediafile
+
+some kind of mutagen wrapper
+'''
 
 from __future__ import print_function
 
