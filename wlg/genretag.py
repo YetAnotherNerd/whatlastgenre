@@ -52,10 +52,8 @@ class GenreTags(object):
         for sec, pats in ([(s, get_conf_list(conf, 'genres', s))
                            for s in ['love', 'hate']] +
                           [(s, self.tagsfile.options(s))
-                           for s in ['uppercase', 'dontsplit']]):
+                           for s in ['uppercase', 'dontsplit', 'replaceme']]):
             self.regex[sec] = re.compile('(%s)$' % '|'.join(pats), re.I)
-        replaceme = '|'.join(self.tagsfile.options('replaceme'))
-        self.regex['replaceme'] = re.compile('.*(%s).*' % replaceme, re.I)
         # compile filter in chunks
         self.regex['filter'] = []
         for i in range(0, len(filter_), 384):
@@ -99,7 +97,7 @@ class GenreTags(object):
 
     def _replace(self, name):
         '''Applies all the replaces to a tag name.'''
-        if self.regex['replaceme'].match(name):
+        if self.regex['replaceme'].search(name):
             for pattern, repl in self.replaces.items():
                 name = re.sub(pattern, repl, name, 0, re.I)
         return re.sub('(_| +)', ' ', name).strip()
