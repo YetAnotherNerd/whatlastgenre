@@ -10,22 +10,110 @@ import argparse
 from collections import defaultdict
 import datetime
 import difflib
+import json
 import logging
 import math
 import os
 import re
 import sys
+import tempfile
 import time
 
 from wlg import __version__
 
-import wlg.cache as ch
 import wlg.dataprovider as dp
 import wlg.genretag as gt
 import wlg.mediafile as mf
 
 
 LOG = logging.getLogger('whatlastgenre')
+
+
+class Cache(object):
+    '''Class that loads and saves a cache data dict as json from/into a file to
+    speed things up.'''
+
+    def __init__(self, fullpath, bypass, timeout):
+        self.fullpath = fullpath
+        self.bypass = bypass
+        self.timeout = timeout * 60 * 60 * 24
+        self.time = time.time()
+        self.dirty = False
+        self.cache = {}
+        try:
+            with open(self.fullpath) as infile:
+                self.cache = json.load(infile)
+        except (IOError, ValueError):
+            pass
+        self.clean()
+
+    def __del__(self):
+        self.save()
+        print()
+
+    def get(self, key):
+        '''Returns data for a given key.
+
+        Since this method does't check the timestamps of the cache entries
+        self.clean() is to be called on instantiation.
+        '''
+        if self.bypass:
+            return
+        return self.cache.get(key)
+
+    def set(self, key, data):
+        '''Sets data for a given key.'''
+        if data:
+            keep = ['tags', 'mbid', 'releasetype']
+            if len(data) > 1:
+                keep += ['info', 'title', 'year']
+            for dat in data:
+                for k in [k for k in dat.keys() if k not in keep]:
+                    del dat[k]
+        # just update the data if key exists
+        if not self.bypass and self.cache.get(key):
+            self.cache[key]['data'] = data
+        else:
+            self.cache[key] = {'time': time.time(), 'data': data}
+        self.dirty = True
+
+    def clean(self):
+        '''Cleans up expired or invalid entries.'''
+        print("\nCleaning cache... ", end='')
+        size = len(self.cache)
+        for key, val in self.cache.items():
+            if time.time() - val.get('time', 0) > self.timeout \
+                or re.match('discogs##artist##', key) \
+                or re.match('(echonest|idiomag)##album##', key) \
+                or re.match('.*##.*##.?$', key):
+                del self.cache[key]
+        print("done! (%d removed)" % (size - len(self.cache)))
+        if size > len(self.cache):
+            self.dirty = True
+            self.save()
+
+    def save(self):
+        '''Saves the cache dict as json string to a file.
+
+        A tempfile is used to avoid data loss on interruption.
+        '''
+        if not self.dirty:
+            return
+        print("\nSaving cache... ", end='')
+        dirname, basename = os.path.split(self.fullpath)
+        try:
+            with tempfile.NamedTemporaryFile(prefix=basename + '.tmp_',
+                                             dir=dirname,
+                                             delete=False) as tmpfile:
+                tmpfile.write(json.dumps(self.cache))
+                os.fsync(tmpfile)
+            os.rename(tmpfile.name, self.fullpath)
+            self.time = time.time()
+            self.dirty = False
+            print("done! (%d entries, %.2f MB)"
+                  % (len(self.cache), os.path.getsize(self.fullpath) / 2 ** 20))
+        except KeyboardInterrupt:
+            pass
 
 
 def get_args():
@@ -210,18 +298,20 @@ def get_data(args, dps, cache, genretags, sdata):
     tupels += [(i, 'artist') for i in range(len(sdata['artist']))]
     tuples = [(i, v, d) for (i, v) in tupels for d in dps]
     for i, variant, dapr in tuples:
-        cmsg = ''
         sstr = [sdata['artist'][i][0]]
         if variant == 'album':
             sstr.append(sdata['album'])
         sstr = ' '.join(sstr).strip()
-        if not sstr:
+        if not sstr or len(sstr) < 2:
             continue
-        cached = cache.get(dapr.name, variant, sstr)
+        cachekey = '##'.join([dapr.name, variant, sstr]).lower()
+        cachekey = re.sub(r'([^\w#]| +)', '', cachekey).strip()
+        cached = cache.get(cachekey)
         if cached:
-            cmsg = ' (cached)'
+            cachemsg = ' (cached)'
             data = cached['data']
         else:
+            cachemsg = ''
             try:
                 if variant == 'artist':
                     data = dapr.get_artist_data(sdata['artist'][i][0],
@@ -236,8 +326,8 @@ def get_data(args, dps, cache, genretags, sdata):
                 continue
         if not data or (len(data) == 1 and not data[0].get('tags')):
             LOG.info("%8s %6s search found    no    tags for '%s'%s",
-                     dapr.name, variant, sstr, cmsg)
-            cache.set(dapr.name, variant, sstr, None)
+                     dapr.name, variant, sstr, cachemsg)
+            cache.set(cachekey, None)
             continue
         # filter
         data = filter_data(dapr.name.lower(), variant, sdata, data)
@@ -261,17 +351,17 @@ def get_data(args, dps, cache, genretags, sdata):
                 data = [{'tags': tags}]
         # save cache
         if not cached or len(cached['data']) > len(data):
-            cache.set(dapr.name, variant, sstr, data)
+            cache.set(cachekey, data)
         # still multiple results?
         if len(data) > 1:
             print("%8s %6s search found %d ambiguous results for '%s' (use -i)"
-                  "%s" % (dapr.name, variant, len(data), sstr, cmsg))
+                  "%s" % (dapr.name, variant, len(data), sstr, cachemsg))
             continue
         # unique data
         data = data[0]
         tagsused = genretags.add_tags(dapr.name.lower(), variant, data['tags'])
         LOG.info("%8s %6s search found %2d of %2d tags for '%s'%s", dapr.name,
-                 variant, tagsused, min(99, len(data['tags'])), sstr, cmsg)
+                 variant, tagsused, min(99, len(data['tags'])), sstr, cachemsg)
         if variant == 'artist' and 'mbid' in data and len(sdata['artist']) == 1:
             sdata['mbids']['albumartistid'] = data['mbid']
         elif variant == 'album':
@@ -397,8 +487,8 @@ def main():
     folders = mf.find_music_folders(args.path)
     if not folders:
         return
-    cache = ch.Cache(args.cache, args.cacheignore,
-                     conf.getint('wlg', 'cache_timeout'))
+    cache = Cache(args.cache, args.cacheignore,
+                  conf.getint('wlg', 'cache_timeout'))
     dps = dp.get_daprs(get_conf_list(conf, 'wlg', 'sources'),
                        [conf.get('wlg', 'whatcduser'),
                         conf.get('wlg', 'whatcdpass')])
