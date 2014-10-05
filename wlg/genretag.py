@@ -163,6 +163,8 @@ class GenreTags(object):
         multi = self.conf.getfloat('scores', 'src_%s' % source)
         if isinstance(tags, dict):
             max_ = max(tags.values())
+            if max_ == 0:
+                return 0
             for key, val in sorted(tags.items(), key=tags.get, reverse=1)[:99]:
                 if self._add(group, key, val / max_ * multi):
                     added += 1
