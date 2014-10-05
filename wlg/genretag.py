@@ -145,9 +145,18 @@ class GenreTags(object):
         self.regex['filter_album'] = self.get_album_filter(album)
 
     def add_tags(self, source, group, tags):
-        '''Adds tags with or without counts to a given group, scores them
-        while taking the source score multiplier into account.
-        Returns the number of tags added.'''
+        '''Adds multiple tags from a source to a group.
+
+        Tags can be with counts (as dict) or without counts (as list). The tag
+        scores get multiplied with the source score modifier of the
+        corresponding source. Returns the number of tags added. Note that tags
+        that get split later still count as one tag, no matter how many parts
+        came from it.
+
+        :param source: the source where the tags came from
+        :param group: the group where the tags get added to
+        :param tags: the tags with (as dict) or without (as list) counts
+        '''
         if not tags:
             return 0
         added = 0
