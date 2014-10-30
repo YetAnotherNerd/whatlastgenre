@@ -12,6 +12,7 @@ from wlg import __version__
 
 LOG = logging.getLogger('whatlastgenre')
 
+HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 
 def get_daprs(conf):
     '''Returns a list of DataProvider objects activated in the conf file.
@@ -53,7 +54,7 @@ class DataProvider(object):
     '''Base class for DataProviders.'''
 
     session = requests.session()
-    session.headers.update({'User-Agent': "whatlastgenre/%s" % __version__})
+    session.headers.update(HEADERS)
 
     def __init__(self):
         self.name = self.__class__.__name__
@@ -79,7 +80,7 @@ class DataProvider(object):
             return req.json()
         except ValueError as err:
             LOG.info(req.content)
-            raise DataProviderError("Request error: %s" % err.message)
+            raise DataProviderError("request error: %s" % err.message)
 
     def get_artist_data(self, artistname, mbid):
         '''Gets artist data from a DataProvider.'''
@@ -193,7 +194,7 @@ class LastFM(DataProvider):
 
     @classmethod
     def __handle_data(cls, data):
-        '''Shared datahandling for artist and album data from Last.FM.'''
+        '''Helper method for data handling.'''
         if not data or 'toptags' not in data or 'tag' not in data['toptags']:
             return
         tags = data['toptags']['tag']
@@ -228,6 +229,7 @@ class MBrainz(DataProvider):
             if data and 'artist' in data:
                 data = data['artist']
             else:
+                data = None
                 print("%8s artist search found nothing, invalid MBID?"
                       % self.name)
         # search without mbid
@@ -263,6 +265,7 @@ class MBrainz(DataProvider):
                     for i in range(len(data)):
                         data[i]['id'] = None
             else:
+                data = None
                 print("%8s rel.   search found nothing, invalid MBID?"
                       % self.name)
         # search by release-group mbid
@@ -274,6 +277,7 @@ class MBrainz(DataProvider):
             if data and 'release-groups' in data:
                 data = data['release-groups']
             else:
+                data = None
                 print("%8s relgrp search found nothing, invalid MBID?"
                       % self.name)
         # search without mbids

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-'''whatlastgenre mediafile
-
-some kind of mutagen wrapper
-'''
+'''whatlastgenre mediafile'''
 
 from __future__ import print_function
 
@@ -85,7 +82,7 @@ class Album(object):
             return val[0]
         # use longest common substring
         if use_lcs and key in ['artist', 'albumartist']:
-            val = [x for x in val if x]
+            val = [x for x in set(val) if x]
             lcs = self._longest_common_substr(val)
             if lcs and len(lcs) > 2 and lcs == val[0][:len(lcs)]:
                 return lcs

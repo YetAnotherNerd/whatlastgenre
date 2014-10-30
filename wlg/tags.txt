@@ -185,6 +185,7 @@ buy
 c(ompa[ck]t.?)?d(is[ck])?
 c[ao]ver
 calm
+cambuur
 cash
 catch
 ccm

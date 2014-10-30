@@ -9,6 +9,7 @@ from collections import defaultdict
 import difflib
 import itertools
 import logging
+import math
 import pkgutil
 import re
 
@@ -26,7 +27,7 @@ class GenreTags(object):
         filters = ['badtags', 'generic']
         filters += conf.get_list('genres', 'filters')
         # get and validate tagsfile
-        self.tagsfile = self.get_tagsfile(filters)
+        self.tagsfile = self.parse_tagsfile(filters)
         # fill matchlist
         self.matchlist = self.tagsfile.options('basictags')
         self.matchlist += conf.get_list('genres', 'love')
@@ -60,7 +61,7 @@ class GenreTags(object):
             self.regex['filter'].append(re.compile(pat, re.I))
 
     def _add(self, group, name, score):
-        '''Adds a tag with a given name and score to a group.
+        '''Adds a tag with a name and score to a group.
 
         After some filter, replace, match, split and score,
         True is returned if the tag was added, False otherwise.
@@ -82,8 +83,19 @@ class GenreTags(object):
         self.tags[group][name] += score
         return True
 
+    def _replace(self, name):
+        '''Applies all the replaces to a tag name and returns it.
+
+        Uses a precompiled search pattern of all replace patterns to identify
+        tag names that will get some replacement for increased performance.
+        '''
+        if self.regex['replaceme'].search(name):
+            for pattern, repl in self.replaces.items():
+                name = re.sub(pattern, repl, name, 0, re.I)
+        return re.sub('(_| +)', ' ', name).strip()
+
     def _filter(self, name):
-        '''Filters a tag by name, returns True if tag got filtered.'''
+        '''Filters a tag by name, returns True if tag is filtered.'''
         if len(name) < 3 or len(name) > 19:
             return True
         if re.search(r'[^a-z0-9&\-_/\\,;\.\+\* ]', name, re.I):
@@ -94,19 +106,13 @@ class GenreTags(object):
             return True
         return False
 
-    def _replace(self, name):
-        '''Applies all the replaces to a tag name.'''
-        if self.regex['replaceme'].search(name):
-            for pattern, repl in self.replaces.items():
-                name = re.sub(pattern, repl, name, 0, re.I)
-        return re.sub('(_| +)', ' ', name).strip()
-
     def _match(self, name):
-        '''Matches a tag name with existing tag names.'''
+        '''Matches a tag name with known tag names.'''
         mli = []
         for taglist in self.tags.values():
             mli += taglist.keys()
         mli += self.matchlist
+        # next two lines should improve performance
         if name in mli:
             return name
         # don't change cutoff, add replaces instead
@@ -138,12 +144,15 @@ class GenreTags(object):
             return score * self.conf.getfloat('scores', 'splitup')
         return score
 
-    def reset(self, album):
-        '''Resets the genre tags and album filter.'''
-        self.tags = {'artist': defaultdict(float), 'album': defaultdict(float)}
-        self.regex['filter_album'] = self.get_album_filter(album)
+    def reset(self, pattern):
+        '''Resets the genre tags dict and sets a new album filter pattern.
 
-    def add_tags(self, source, group, tags):
+        :param pattern: compiled album filter match pattern
+        '''
+        self.tags = {'artist': defaultdict(float), 'album': defaultdict(float)}
+        self.regex['filter_album'] = pattern
+
+    def add(self, source, group, tags):
         '''Adds multiple tags from a source to a group.
 
         Tags can be with counts (as dict) or without counts (as list). The tag
@@ -176,7 +185,6 @@ class GenreTags(object):
 
     def get(self, various=False):
         '''Merges all tag groups and returns the sorted and formated genres.'''
-        from wlg.whatlastgenre import tagprintstr
         for group, tags in ((k, v) for k, v in self.tags.items() if v):
             # norm tag scores
             max_ = max(tags.values())
@@ -186,7 +194,7 @@ class GenreTags(object):
             tags = [(self.format(k), v) for k, v in sorted
                     (tags.items(), key=lambda (k, v): (v, k), reverse=1)
                     if v > 0.1]
-            tagout = tagprintstr(tags[:12], "%5.2f %-19s")
+            tagout = self.tagprintstr(tags[:12], "%5.2f %-19s")
             LOG.info("Best %6s genres (%d):\n%s", group, len(tags), tagout)
         # merge artist and album genres
         genres = defaultdict(float)
@@ -220,11 +228,25 @@ class GenreTags(object):
         return ' '.join(split)
 
     @classmethod
-    def get_tagsfile(cls, filters):
-        '''Gets the tagsfile.
+    def tagprintstr(cls, tags, pattern):
+        '''Returns a string of tags formated with pattern in 3 columns.
 
-        Reads and parses the tagsfile, validates the results and returns a
-        SafeConfigParser object for the tagsfile
+        :param tags: dict of tag name with scores
+        :param pattern: should not exceed (80-2)/3 = 26 chars length.
+        '''
+        lines = []
+        num = int(math.ceil(len(tags) / 3))
+        for i in range(num):
+            row = []
+            for j in [j for j in range(3) if i + num * j < len(tags)]:
+                col = pattern % (tags[i + num * j][1], tags[i + num * j][0])
+                row.append(col)
+            lines.append(' '.join(row))
+        return '\n'.join(lines)
+
+    @classmethod
+    def parse_tagsfile(cls, filters):
+        '''Returns a ConfigParser object for the tagsfile.
 
         :param filters: list of filters to check for existence
         '''
@@ -244,25 +266,4 @@ class GenreTags(object):
                   " section in the tags.txt file." % (sec, sec))
             exit()
         return parser
-
-    @classmethod
-    def get_album_filter(cls, album):
-        '''Returns a genre tag filter based on the metadata of a given album.'''
-        badtags = []
-        for tag in ['albumartist', 'album']:
-            val = album.get_common_meta(tag)
-            if not val:
-                continue
-            bts = [val]
-            if tag == 'albumartist' and ' ' in bts[0]:
-                bts += bts[0].split(' ')
-            for badtag in bts:
-                for pat in [r'\(.*\)', r'\[.*\]', '{.*}', '-.*-', "'.*'",
-                            '".*"', r'vol(\.|ume)? ', ' and ', 'the ',
-                            r'[\W\d]', r'(\.\*)+']:
-                    badtag = re.sub(pat, '.*', badtag, 0, re.I).strip()
-                badtag = re.sub(r'(^\.\*|\.\*$)', '', badtag, 0, re.I)
-                if len(badtag) > 2:
-                    badtags.append(badtag.strip().lower())
-        return re.compile('.*(' + '|'.join(badtags) + ').*', re.I)
 

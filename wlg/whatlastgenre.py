@@ -14,7 +14,6 @@ import datetime
 import difflib
 import json
 import logging
-import math
 import os
 import re
 import sys
@@ -64,7 +63,7 @@ class Cache(object):
     def get(self, key):
         '''Returns data for a given key.
 
-        Since this method does't check the timestamps of the cache entries
+        Since this method does't check the timestamp of the cache entries
         self.clean() is to be called on instantiation.
         '''
         if self.bypass:
@@ -97,8 +96,9 @@ class Cache(object):
                 or re.match('(echonest|idiomag)##album##', key) \
                 or re.match('.*##.*##.?$', key):
                 del self.cache[key]
-        print("done! (%d removed)" % (size - len(self.cache)))
-        if size > len(self.cache):
+        diff = size - len(self.cache)
+        print("done! (%d removed)" % diff)
+        if diff:
             self.dirty = True
             self.save()
 
@@ -252,7 +252,7 @@ def validate(args, conf):
 def handle_folder(args, dps, cache, genretags, folder):
     '''Loads metadata, receives tags and saves an album.'''
     album = mf.Album(folder[0], folder[1], folder[2])
-    genretags.reset(album)
+    genretags.reset(compile_album_filter(album))
     sdata = {
         'releasetype': None,
         'date' : album.get_common_meta('date'),
@@ -296,6 +296,26 @@ def handle_folder(args, dps, cache, genretags, folder):
     else:
         album.save()
     return genres
+
+def compile_album_filter(album):
+    '''Returns a filter pattern object based on the metadata of an album.'''
+    badtags = []
+    for tag in ['albumartist', 'album']:
+        val = album.get_common_meta(tag)
+        if not val:
+            continue
+        bts = [val]
+        if tag == 'albumartist' and ' ' in bts[0]:
+            bts += bts[0].split(' ')
+        for badtag in bts:
+            for pat in [r'\(.*\)', r'\[.*\]', '{.*}', '-.*-', "'.*'",
+                        '".*"', r'vol(\.|ume)? ', ' and ', 'the ',
+                        r'[\W\d]', r'(\.\*)+']:
+                badtag = re.sub(pat, '.*', badtag, 0, re.I).strip()
+            badtag = re.sub(r'(^\.\*|\.\*$)', '', badtag, 0, re.I)
+            if len(badtag) > 2:
+                badtags.append(badtag.strip().lower())
+    return re.compile('.*(' + '|'.join(badtags) + ').*', re.I)
 
 def get_data(args, dps, cache, genretags, sdata):
     '''Gets all the data from all dps or from cache.'''
@@ -364,7 +384,7 @@ def get_data(args, dps, cache, genretags, sdata):
             continue
         # unique data
         data = data[0]
-        tagsused = genretags.add_tags(dapr.name.lower(), variant, data['tags'])
+        tagsused = genretags.add(dapr.name.lower(), variant, data['tags'])
         LOG.info("%8s %6s search found %2d of %2d tags for '%s'%s", dapr.name,
                  variant, tagsused, min(99, len(data['tags'])), sstr, cachemsg)
         if variant == 'artist' and 'mbid' in data and len(sdata['artist']) == 1:
@@ -440,18 +460,6 @@ def searchstr(str_):
         str_ = re.sub(pat, ' ', str_, 0, re.I)
     return str_.strip().lower()
 
-def tagprintstr(tags, pat):
-    '''Returns a string that shows a dict of tags in columns of 3.'''
-    # (80-2)/3 = 26
-    lines = []
-    num = int(math.ceil(len(tags) / 3))
-    for i in range(num):
-        line = []
-        for j in [j for j in range(3) if i + num * j < len(tags)]:
-            line.append(pat % (tags[i + num * j][1], tags[i + num * j][0]))
-        lines.append(' '.join(line))
-    return '\n'.join(lines)
-
 def print_stats(stats):
     '''Prints out some statistics.'''
     print("\nTime elapsed: %s"
@@ -459,7 +467,7 @@ def print_stats(stats):
     tags = stats['genres']
     if tags:
         tagout = sorted(tags.items(), key=lambda (k, v): (v, k), reverse=1)
-        tagout = tagprintstr(tagout, "%5d %-19s")
+        tagout = gt.GenreTags.tagprintstr(tagout, "%5d %-19s")
         print("\n%d different tags used this often:\n%s" % (len(tags), tagout))
     fldrs = stats['foldernogenres']
     if fldrs:
@@ -477,7 +485,7 @@ def main():
 
     Reads and validates arguments and configuration,
     set up the needed objects and run the main loop.
-    Prints out some stats at the end.
+    Prints out some statistics at the end.
     '''
     print("whatlastgenre v%s\n" % __version__)
     args = get_args()
