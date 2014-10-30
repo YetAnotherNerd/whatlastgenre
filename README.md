@@ -125,7 +125,7 @@ artist search only, fixed list of [genres](http://developer.echonest.com/docs/v4
 
 ##### cache_timout option
 Time in days after which cache hits get invalid.
-Default `30`, Range `3 - 90`
+Default `60`, Range `14 - 180`
 
 #### genres section
 
