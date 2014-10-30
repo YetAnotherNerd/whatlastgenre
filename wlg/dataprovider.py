@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 
+import json
 import logging
 import time
 
@@ -301,6 +302,63 @@ class MBrainz(DataProvider):
 class Discogs(DataProvider):
     '''Discogs DataProvider'''
 
+    def __init__(self):
+        import oauth2, os
+        super(Discogs, self).__init__()
+        # consumer
+        consumer_key = 'sYGBZLljMPsYUnmGOzTX'
+        consumer_secret = 'TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk'
+        consumer = oauth2.Consumer(consumer_key, consumer_secret)
+        # token
+        token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
+        try:
+            # try load access token from file
+            with open(token_file) as file_:
+                data = json.load(file_)
+            token_key = data['key']
+            token_secret = data['secret']
+        except (IOError, KeyError, ValueError):
+            token_key, token_secret = self._authenticate(consumer)
+            # save access token to file
+            with open(token_file, 'w') as file_:
+                json.dump({'key': token_key, 'secret': token_secret}, file_)
+        token = oauth2.Token(token_key, token_secret)
+        # client
+        self.client = oauth2.Client(consumer, token)
+
+    @classmethod
+    def _authenticate(cls, consumer):
+        '''Asks the user to log in to Discogs to get the access token.'''
+        import oauth2, urlparse
+        client = oauth2.Client(consumer)
+
+        request_token_url = 'https://api.discogs.com/oauth/request_token'
+        authorize_url = 'https://www.discogs.com/oauth/authorize'
+        access_token_url = 'https://api.discogs.com/oauth/access_token'
+
+        # get request token
+        resp, content = client.request(request_token_url, 'POST',
+                                       headers=HEADERS)
+        request_token = dict(urlparse.parse_qsl(content))
+        if resp['status'] != '200':
+            raise DataProviderError("invalid response %s." % resp['status'])
+
+        # send user to authorize page
+        print("To enable Discogs support visit:\n%s?oauth_token=%s"
+              % (authorize_url, request_token['oauth_token']))
+        oauth_verifier = raw_input('Verification code: ')
+        token = oauth2.Token(request_token['oauth_token'],
+                             request_token['oauth_token_secret'])
+        token.set_verifier(oauth_verifier)
+        client = oauth2.Client(consumer, token)
+
+        # get access token
+        resp, content = client.request(access_token_url, 'POST',
+                                       headers=HEADERS)
+        access_token = dict(urlparse.parse_qsl(content))
+
+        return access_token['oauth_token'], access_token['oauth_token_secret']
+
     def get_artist_data(self, artistname, _):
         '''Gets artist data from Discogs.'''
         # no artist search support
@@ -308,19 +366,26 @@ class Discogs(DataProvider):
 
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from Discogs.'''
-        data = self._query_jsonapi(
-            'http://api.discogs.com/database/search',
-            {'type': 'master', 'q': artistname + ' ' + albumname})
-        if not data:
-            return
+        while time.time() - self.last_request < self.rate_limit:
+            time.sleep(.1)
+        resp, content = self.client.request(
+            'https://api.discogs.com/database/search?type=master&q=%s'
+            % (artistname + ' ' + albumname), headers=HEADERS)
+        self.last_request = time.time()
+        if resp['status'] != '200':
+            raise DataProviderError("request error: status %s" % resp['status'])
+        try:
+            data = json.loads(content)
+        except ValueError as err:
+            LOG.info(content)
+            raise DataProviderError("request error: %s" % err.message)
         return [{
-            'info': "%s (%s) [%s]: http://www.discogs.com/master/%s"
+            'info': "%s (%s) [%s]: %s"
                     % (x.get('title'), x.get('year'),
-                       ', '.join(x.get('format')), x['id']),
+                       ', '.join(x.get('format')), x['resource_url']),
             'title': x.get('title', ''),
             'tags': x.get('style', []) + x.get('genre', []),
-            'year': x.get('year')} for x in data.get('results', {})]
-
+            'year': x.get('year')} for x in (data or []).get('results', {})]
 
 class Idiomag(DataProvider):
     '''Idiomag DataProvider'''

@@ -18,12 +18,17 @@ setup(
     description=('Improves genre metadata of audio files '
                  'based on tags from various music sites.'),
     long_description=read('README.md'),
-    install_requires=['mutagen', 'requests'],
     packages=['wlg'],
     package_data={'wlg': ['tags.txt']},
-    entry_points={'console_scripts': [
-        'whatlastgenre = wlg.whatlastgenre:main'
-    ]},
+    entry_points={
+        'console_scripts': [
+            'whatlastgenre = wlg.whatlastgenre:main'
+        ]
+    },
+    install_requires=['mutagen', 'requests'],
+    extras_require={
+        'discogs': ['oauth2'],
+    },
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
