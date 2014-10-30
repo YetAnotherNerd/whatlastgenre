@@ -31,6 +31,14 @@ import wlg.mediafile as mf
 LOG = logging.getLogger('whatlastgenre')
 
 
+class MySafeConfigParser(ConfigParser.SafeConfigParser):
+    '''Little addition to SafeConfigParser.'''
+    def get_list(self, sec, opt):
+        '''Gets a csv-string as list.'''
+        list_ = self.get(sec, opt).lower().split(',')
+        return [x.strip() for x in list_ if x.strip()]
+
+
 class Cache(object):
     '''Class that loads and saves a cache data dict as json from/into a file to
     speed things up.'''
@@ -173,7 +181,7 @@ def get_conf(configfile):
             ['scores', 'splitup', '0.33', 1, [0, 1.0]]]
     if not os.path.exists(os.path.dirname(configfile)):
         os.makedirs(os.path.dirname(configfile))
-    config = ConfigParser.SafeConfigParser()
+    config = MySafeConfigParser()
     config.read(configfile)
     dirty = False
     # remove old options
@@ -211,15 +219,10 @@ def get_conf(configfile):
     print("Please edit your configuration file: %s" % configfile)
     exit()
 
-def get_conf_list(conf, sec, opt):
-    '''Gets a configuration string as list.'''
-    return [x.strip() for x in conf.get(sec, opt).lower().split(',')
-            if x.strip() != '']
-
 def validate(args, conf):
     '''Validates args and conf.'''
     # sources
-    sources = get_conf_list(conf, 'wlg', 'sources')
+    sources = conf.get_list('wlg', 'sources')
     for src in sources:
         if src not in ['whatcd', 'lastfm', 'mbrainz', 'discogs',
                        'idiomag', 'echonest']:
@@ -496,9 +499,7 @@ def main():
         return
     cache = Cache(args.cache, args.cacheignore,
                   conf.getint('wlg', 'cache_timeout'))
-    dps = dp.get_daprs(get_conf_list(conf, 'wlg', 'sources'),
-                       [conf.get('wlg', 'whatcduser'),
-                        conf.get('wlg', 'whatcdpass')])
+    dps = dp.get_daprs(conf)
 
     try:  # main loop
         for i, folder in enumerate(folders, start=1):

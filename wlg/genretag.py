@@ -20,25 +20,24 @@ class GenreTags(object):
     '''Class for managing genre tags.'''
 
     def __init__(self, conf):
-        from wlg.whatlastgenre import get_conf_list
         self.conf = conf
         self.tags = None
         # list activated filters
         filters = ['badtags', 'generic']
-        filters += get_conf_list(conf, 'genres', 'filters')
+        filters += conf.get_list('genres', 'filters')
         # get and validate tagsfile
         self.tagsfile = self.get_tagsfile(filters)
         # fill matchlist
         self.matchlist = self.tagsfile.options('basictags')
-        self.matchlist += get_conf_list(conf, 'genres', 'love')
-        self.matchlist += get_conf_list(conf, 'genres', 'hate')
-        self.matchlist += get_conf_list(conf, 'genres', 'blacklist')
+        self.matchlist += conf.get_list('genres', 'love')
+        self.matchlist += conf.get_list('genres', 'hate')
+        self.matchlist += conf.get_list('genres', 'blacklist')
         # fill replaces dict
         self.replaces = {}
         for pattern, repl in self.tagsfile.items('replaceme', True):
             self.replaces.update({pattern: repl})
         # build filter
-        filter_ = get_conf_list(conf, 'genres', 'blacklist')
+        filter_ = conf.get_list('genres', 'blacklist')
         for sec in [s for s in self.tagsfile.sections()
                     if s.startswith('filter_')]:
             if sec[7:] in filters:
@@ -49,7 +48,7 @@ class GenreTags(object):
         # set up regex
         self.regex = {}
         # compile some config options and tagsfile sections
-        for sec, pats in ([(s, get_conf_list(conf, 'genres', s))
+        for sec, pats in ([(s, conf.get_list('genres', s))
                            for s in ['love', 'hate']] +
                           [(s, self.tagsfile.options(s))
                            for s in ['uppercase', 'dontsplit', 'replaceme']]):

@@ -13,19 +13,20 @@ from wlg import __version__
 LOG = logging.getLogger('whatlastgenre')
 
 
-def get_daprs(sources, wcdcred):
-    '''Returns a list of DataProvider objects from a given list of sources.
+def get_daprs(conf):
+    '''Returns a list of DataProvider objects activated in the conf file.
 
-    The DataProviders will later be called in that order they get added here.
+    The DataProviders will later be called in the order they get added here.
     Since lastfm supports search by MBIDs, mbrainz should get added before
     lastfm. DataProviders that provide good spelled tags (eg. sources with a
     fixed set of possible genres) should generally be added before DataProviders
     that provide misspelled tags (eg. lastfm user tags) to avoid getting
     malformed tags due to the tag matching process while adding genre tags.
 
-    :param sources: list of sources to use
-    :param wcdcred: tuple with whatcd username and password
+    :param sources: list of DataProvider names
+    :param conf: ConfigParser object of the configuration file
     '''
+    sources = conf.get_list('wlg', 'sources')
     dps = []
     if 'discogs' in sources:
         dps.append(Discogs())
@@ -34,7 +35,8 @@ def get_daprs(sources, wcdcred):
     if 'idiomag' in sources:
         dps.append(Idiomag())
     if 'whatcd' in sources:
-        dps.append(WhatCD(wcdcred))
+        dps.append(WhatCD((conf.get('wlg', 'whatcduser'),
+                           conf.get('wlg', 'whatcdpass'))))
     if 'mbrainz' in sources:
         dps.append(MBrainz())
     if 'lastfm' in sources:
