@@ -39,8 +39,7 @@ class MySafeConfigParser(ConfigParser.SafeConfigParser):
 
 
 class Cache(object):
-    '''Class that loads and saves a cache data dict as json from/into a file to
-    speed things up.'''
+    '''Loads and saves a dict as json from/into a file for some speedup.'''
 
     def __init__(self, fullpath, bypass, timeout):
         self.fullpath = fullpath

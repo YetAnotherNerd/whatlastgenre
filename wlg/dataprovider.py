@@ -15,6 +15,7 @@ LOG = logging.getLogger('whatlastgenre')
 
 HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 
+
 def get_daprs(conf):
     '''Returns a list of DataProvider objects activated in the conf file.
 
@@ -23,9 +24,8 @@ def get_daprs(conf):
     lastfm. DataProviders that provide good spelled tags (eg. sources with a
     fixed set of possible genres) should generally be added before DataProviders
     that provide misspelled tags (eg. lastfm user tags) to avoid getting
-    malformed tags due to the tag matching process while adding genre tags.
+    malformed tags due to the tag matching process while adding them.
 
-    :param sources: list of DataProvider names
     :param conf: ConfigParser object of the configuration file
     '''
     sources = conf.get_list('wlg', 'sources')
@@ -305,11 +305,8 @@ class Discogs(DataProvider):
     def __init__(self):
         import oauth2, os
         super(Discogs, self).__init__()
-        # consumer
-        consumer_key = 'sYGBZLljMPsYUnmGOzTX'
-        consumer_secret = 'TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk'
-        consumer = oauth2.Consumer(consumer_key, consumer_secret)
-        # token
+        consumer = oauth2.Consumer('sYGBZLljMPsYUnmGOzTX',
+                                   'TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk')
         token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
         try:
             # try load access token from file
@@ -330,31 +327,34 @@ class Discogs(DataProvider):
     def _authenticate(cls, consumer):
         '''Asks the user to log in to Discogs to get the access token.'''
         import oauth2, urlparse
-        client = oauth2.Client(consumer)
 
         request_token_url = 'https://api.discogs.com/oauth/request_token'
         authorize_url = 'https://www.discogs.com/oauth/authorize'
         access_token_url = 'https://api.discogs.com/oauth/access_token'
 
         # get request token
+        client = oauth2.Client(consumer)
         resp, content = client.request(request_token_url, 'POST',
                                        headers=HEADERS)
         request_token = dict(urlparse.parse_qsl(content))
+
         if resp['status'] != '200':
             raise DataProviderError("invalid response %s." % resp['status'])
 
-        # send user to authorize page
+        # get verifier from user
+        print("\nDiscogs now requires authentication.")
+        print("If you don't have an Discogs account or don't wont to use it, "
+              "remove it from 'sources' in the configuration file.")
         print("To enable Discogs support visit:\n%s?oauth_token=%s"
               % (authorize_url, request_token['oauth_token']))
         oauth_verifier = raw_input('Verification code: ')
+
+        # get access token
         token = oauth2.Token(request_token['oauth_token'],
                              request_token['oauth_token_secret'])
         token.set_verifier(oauth_verifier)
         client = oauth2.Client(consumer, token)
-
-        # get access token
-        resp, content = client.request(access_token_url, 'POST',
-                                       headers=HEADERS)
+        _, content = client.request(access_token_url, 'POST', headers=HEADERS)
         access_token = dict(urlparse.parse_qsl(content))
 
         return access_token['oauth_token'], access_token['oauth_token_secret']
@@ -387,6 +387,7 @@ class Discogs(DataProvider):
             'tags': x.get('style', []) + x.get('genre', []),
             'year': x.get('year')} for x in (data or []).get('results', {})]
 
+
 class Idiomag(DataProvider):
     '''Idiomag DataProvider'''
 
@@ -411,7 +412,7 @@ class EchoNest(DataProvider):
 
     def __init__(self):
         super(EchoNest, self).__init__()
-        self.rate_limit = 3
+        self.rate_limit = 3.0
 
     def get_artist_data(self, artistname, _):
         '''Gets artist data from EchoNest.'''

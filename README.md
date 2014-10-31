@@ -58,17 +58,20 @@ You'll need Python 2.7.
 Install dependencies with your package manager, on Debian based distros run
 this as root:
 
-    apt-get install python-mutagen python-requests python-oauth2
+    apt-get install python-mutagen python-requests
 
 * Alternatively, install dependencies by using python-pip:
-`pip install mutagen requests oauth2`
+`pip install mutagen requests`
 * Clone the git or download and unzip the [source package]
 (http://github.com/YetAnotherNerd/whatlastgenre/archive/master.zip)
 * Run it without install by using `./whatlastgenre` from the directory you
 cloned/extracted to
 * Install it by running `python setup.py install` as root in that directory
 
-oauth2 is only required for Discogs, you can omit it if you don't want to use Discogs.
+##### Optional Dependencies
+* `oauth2` is required for Discogs, you can omit it if you don't want to use
+Discogs (disabled by default). Use `apt-get install python-oauth2` or
+`pip install oauth2` to install it (like above)
 
 
 ## Configuration
@@ -106,22 +109,22 @@ splitup = 0.33
 
 ##### sources option
 The music sites where to get the genre tags from.
-* `whatcd` [[URL](https://what.cd/)]
+* `whatcd` [[URL](https://what.cd)]
 well-kept tags from users
-* `lastfm` [[URL](http://www.last.fm/)]
+* `lastfm` [[URL](http://last.fm)]
 mbid search possible, many personal tags from users
-* `mbrainz` [[URL](http://musicbrainz.org/)]
+* `mbrainz` [[URL](http://musicbrainz.org)]
 home of mbids
-* `discogs` [[URL](http://www.idiomag.com/)]
-album search only, fixed list of
-[genres](http://www.discogs.com/help/submission-guidelines-release-genres-styles.html)
-and
-[styles](http://wiki.discogs.com/index.php/Style_Guide)
-(now requires authentication, you need an own account)
-* `idiomag` [[URL](http://www.idiomag.com/)]
-artist search only
-* `echonest` [[URL](http://echonest.com/)]
-artist search only, fixed list of [genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
+* `discogs` [[URL](http://discogs.com)]
+album only, fixed list of [genres]
+(http://discogs.com/help/submission-guidelines-release-genres-styles.html) and
+[styles](http://wiki.discogs.com/index.php/Style_Guide),
+now requires authentication (own account needed)
+* `idiomag` [[URL](http://idiomag.com)]
+artist only
+* `echonest` [[URL](http://echonest.com)]
+artist only, fixed list of
+[genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
 
 ##### cache_timout option
 Time in days after which cache hits get invalid.
@@ -240,3 +243,4 @@ whatlastgenre doesn't correct any other tags. If your music files are badly or
 not tagged it won't work well at all.
 
 Please report any bugs and errors you encounter, i would like to fix them :)
+
