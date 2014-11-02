@@ -194,7 +194,8 @@ class GenreTags(object):
             tags = [(self.format(k), v) for k, v in sorted
                     (tags.items(), key=lambda (k, v): (v, k), reverse=1)
                     if v > 0.1]
-            tagout = self.tagprintstr(tags[:12], "%5.2f %-19s")
+            tagout = tags if LOG.level == logging.DEBUG else tags[:12]
+            tagout = self.tagprintstr(tagout, "%5.2f %-19s")
             LOG.info("Best %6s genres (%d):\n%s", group, len(tags), tagout)
         # merge artist and album genres
         genres = defaultdict(float)

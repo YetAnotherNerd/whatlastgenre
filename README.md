@@ -196,7 +196,7 @@ positional arguments:
 
 optional arguments:
   -h, --help           show this help message and exit
-  -v, --verbose        more detailed output (default: False)
+  -v, --verbose        verbose output (-vv for debug) (default: 0)
   -n, --dry            don't save metadata (default: False)
   -i, --interactive    interactive mode (default: False)
   -c, --cacheignore    ignore cache hits (default: False)

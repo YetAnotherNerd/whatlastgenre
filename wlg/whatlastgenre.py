@@ -133,8 +133,8 @@ def get_args():
                     'based on tags from various music sites.')
     args.add_argument('path', nargs='+',
                       help='folder(s) to scan for albums')
-    args.add_argument('-v', '--verbose', action='store_true',
-                      help='more detailed output')
+    args.add_argument('-v', '--verbose', action='count', default=0,
+                      help='verbose output (-vv for debug)')
     args.add_argument('-n', '--dry', action='store_true',
                       help='don\'t save metadata')
     args.add_argument('-i', '--interactive', action='store_true',
@@ -379,7 +379,9 @@ def get_data(args, dps, cache, genretags, sdata):
         tagsused = genretags.add(dapr.name.lower(), variant, data['tags'])
         LOG.info("%8s %6s search found %2d of %2d tags for '%s'%s", dapr.name,
                  variant, tagsused, min(99, len(data['tags'])), sstr, cachemsg)
-        if variant == 'artist' and 'mbid' in data and len(sdata['artist']) == 1:
+        LOG.debug(data['tags'])
+        if variant == 'artist' and 'mbid' in data \
+                and len(sdata['artist']) == 1:
             sdata['mbids']['albumartistid'] = data['mbid']
         elif variant == 'album':
             if 'mbid' in data:
@@ -489,9 +491,15 @@ def main():
     conf = get_conf()
     validate(args, conf)
 
+    if args.verbose == 0:
+        loglvl = logging.WARN
+    elif args.verbose == 1:
+        loglvl = logging.INFO
+    else:
+        loglvl = logging.DEBUG
     hdlr = logging.StreamHandler(sys.stdout)
-    hdlr.setLevel(logging.INFO if args.verbose else logging.WARN)
-    LOG.setLevel(logging.INFO if args.verbose else logging.WARN)
+    hdlr.setLevel(loglvl)
+    LOG.setLevel(loglvl)
     LOG.addHandler(hdlr)
 
     stats = {'starttime': time.time(),
