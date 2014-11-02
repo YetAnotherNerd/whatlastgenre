@@ -215,10 +215,10 @@ class MBrainz(DataProvider):
 
     def _query(self, typ, query):
         '''Queries the MusicBrainz API.'''
+        url = 'http://musicbrainz.org/ws/2/' + typ
         params = {'fmt': 'json'}
         params.update({'query': query})
-        return self._query_jsonapi('http://musicbrainz.org/ws/2/' + typ + '/',
-                                   params)
+        return self._query_jsonapi(url, params)
 
     def get_artist_data(self, artistname, mbid):
         '''Gets artist data from MusicBrainz.'''
@@ -227,18 +227,16 @@ class MBrainz(DataProvider):
         if mbid:
             LOG.info("%8s artist search using %s mbid.", self.name, mbid)
             data = self._query('artist', 'arid:"' + mbid + '"')
-            if data and 'artist' in data:
-                data = data['artist']
-            else:
-                data = None
+            data = (data or {}).get('artists', None)
+            if not data:
                 print("%8s artist search found nothing, invalid MBID?"
                       % self.name)
         # search without mbid
         if not data:
             data = self._query('artist', 'artist:"' + artistname + '"')
-            if not data or 'artist' not in data:
+            if not data or 'artists' not in data:
                 return
-            data = [x for x in data['artist'] if int(x['score']) > 90]
+            data = [x for x in data['artists'] if int(x['score']) > 90]
         return [{
             'info': "%s (%s) [%s] [%s-%s]: http://musicbrainz.org/artist/%s"
                     % (x['name'], x.get('type', ''), x.get('country', ''),
@@ -257,16 +255,13 @@ class MBrainz(DataProvider):
             LOG.info("%8s  album search using %s %s mbid.",
                      self.name, mbids[mbid], mbid)
             data = self._query('release', 'reid:"' + mbids[mbid] + '"')
-            if data and 'releases' in data:
-                data = data['releases']
-                if data:
-                    mbids['releasegroupid'] = \
-                        data[0]['release-group'].get('id')
-                    # remove albumids since relgrpids are expected later
-                    for i in range(len(data)):
-                        data[i]['id'] = None
+            data = (data or {}).get('releases', None)
+            if data:
+                mbids['releasegroupid'] = data[0]['release-group'].get('id')
+                # remove albumids since relgrpids are expected later
+                for i in range(len(data)):
+                    data[i]['id'] = None
             else:
-                data = None
                 print("%8s rel.   search found nothing, invalid MBID?"
                       % self.name)
         # search by release-group mbid
@@ -275,10 +270,8 @@ class MBrainz(DataProvider):
             LOG.info("%8s  album search using %s %s mbid.",
                      self.name, mbids[mbid], mbid)
             data = self._query('release-group', 'rgid:"' + mbids[mbid] + '"')
-            if data and 'release-groups' in data:
-                data = data['release-groups']
-            else:
-                data = None
+            data = (data or {}).get('release-groups', None)
+            if not data:
                 print("%8s relgrp search found nothing, invalid MBID?"
                       % self.name)
         # search without mbids
