@@ -23,9 +23,9 @@ def get_daprs(conf):
     The DataProviders will later be called in the order they get added here.
     Since lastfm supports search by MBIDs, mbrainz should get added before
     lastfm. DataProviders that provide good spelled tags (eg. sources with a
-    fixed set of possible genres) should generally be added before DataProviders
-    that provide misspelled tags (eg. lastfm user tags) to avoid getting
-    malformed tags due to the tag matching process while adding them.
+    fixed set of possible genres) should generally be added before
+    DataProviders that provide misspelled tags (eg. lastfm user tags) to avoid
+    getting malformed tags due to the tag matching process while adding them.
 
     :param conf: ConfigParser object of the configuration file
     '''
@@ -297,7 +297,8 @@ class Discogs(DataProvider):
     '''Discogs DataProvider'''
 
     def __init__(self):
-        import oauth2, os
+        import oauth2
+        import os
         super(Discogs, self).__init__()
         consumer = oauth2.Consumer('sYGBZLljMPsYUnmGOzTX',
                                    'TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk')
@@ -320,7 +321,8 @@ class Discogs(DataProvider):
     @classmethod
     def _authenticate(cls, consumer):
         '''Asks the user to log in to Discogs to get the access token.'''
-        import oauth2, urlparse
+        import oauth2
+        import urlparse
 
         request_token_url = 'https://api.discogs.com/oauth/request_token'
         authorize_url = 'https://www.discogs.com/oauth/authorize'
@@ -371,7 +373,8 @@ class Discogs(DataProvider):
             raise DataProviderError("request error: %s" % err.message)
         self.last_request = time.time()
         if resp['status'] != '200':
-            raise DataProviderError("request error: status %s" % resp['status'])
+            raise DataProviderError("request error: status %s"
+                                    % resp['status'])
         try:
             data = json.loads(content)
         except ValueError as err:

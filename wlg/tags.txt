@@ -16,6 +16,8 @@ acapella
 alternative
 avantgarde
 bossa nova
+chamber
+downtempo
 electro-swing
 female vocalist
 instrumental
@@ -66,6 +68,7 @@ usa
 [dontsplit]
 (fe)?male vocalist
 dr(ill|um) & bass
+easy listening
 rhythm & blues
 rock & roll
 stage & screen
@@ -78,17 +81,17 @@ stage & screen
 (nu)[ -]?(.+) = \g<1> \g<2>
 (neo|post)[ -]?(.+) = \g<1>-\g<2>
 ^(c|k|j)[ -]?(folk|goth|hip-hop|pop|rock|ska) = \g<1>-\g<2>
-ele[ck][tr]{2}(o(nica?)?|ic)[ -]?(?!swing)(.*) = electronic \g<3>
+#ele[ck][tr]{2}(o(nica?)?|ic)[ -]?((?!swing)|.*) = electronic \g<3>
 euro[ -]?(?!p[ea]|pean)(.+) = euro-\g<1>
 goth[ic]{2}?[ -]?(.*) = gothic \g<1>
 (pop|jazz|hip.?hop).?(rock|rap) = \g<1>&\g<2>
 # tags with ampersands
-d(rum)? ?(and|'?n'?|&) ?b(ass)? = drum & bass
-drill ?(and|'?n'?|&)? ?bass = drill & bass
-hard ?(and|'?n'?|&)? ?heavy = hard & heavy
-r(hythm)? ?(and|'?n'?|&)? ?b(lues)? = rhythm & blues
-rock ?(and|'?n'?|&)? ?roll = rock & roll
-stage ?(and|'?n'?|&)? ?screen = stage & screen
+d(rum)?[ -]?(and|'?n'?|&)?[ -]?b(ass)? = drum & bass
+drill[ -]?(and|'?n'?|&)?[ -]?bass = drill & bass
+hard[ -]?(and|'?n'?|&)?[ -]?heavy = hard & heavy
+r(hythm)?[ -]?(and|'?n'?|&)?[ -]?b(lues)? = rhythm & blues
+rock[ -]?(and|'?n'?|&)?[ -]?roll = rock & roll
+stage[ -]?(and|'?n'?|&)?[ -]?screen = stage & screen
 # year related
 .*best.*of( ([0-9]{2}){1,2}'?s?)?.* = charts
 .*top ?[0-9]{2,3}.* = charts
@@ -96,13 +99,16 @@ stage ?(and|'?n'?|&)? ?screen = stage & screen
 ^(20)?([0-2])[0-9]'?(s|er)? = 20\g<2>0s
 ^([1-2][0-9])th century = \g<1>00s
 # abbreviation related
-alt(ern)?(\.|ative)?[ -]? = alternative_
+alt(ern)?(\.|ative)?[ \-]? = alternative_
+avant(\.|garde?)? = avantgarde
+ele[ck]tro(nic(?!a))?[ -]? = electronic_
+goth(ic)? = gothic
 progg?(ress)?(\.|ive)?[ -]? = progressive_
 psych(\.|edelic?a?)?[ -]? = psychedelic_
 trad(ition)?(\.|nal)?[ -]? = traditional_
 sci(ence)?[ -]?fi(ction)? = science fiction
 # other
-(8( | -)?bit|bitpop|chip(.?tune)?) = chiptune
+(8[ -]?bit|bitpop|chip(.?tune)?) = chiptune
 (cabaret|comedi(an|e)|humou?r|kabarett|parod(ie|y)) = comedy
 (weihnacht(en)?|x.?mas) = christmas
 ^(ost|vgm|scores?) = soundtrack
@@ -114,7 +120,7 @@ beatboxing = beatbox
 bluesan = blues
 br(eaks|oken ?beat) = breakbeat
 chill?(ed|en|ing?|[ -]?out)? = chillout
-dow[nm][ -]?tempo = downtempo
+dow[nm][ -]?(beat|tempo) = downtempo
 g?old(i(es?)?|en)? = oldies
 jazz( |-)?hip( |-)?hop = jazz-hop
 kraut( |-)rock = krautrock
@@ -125,6 +131,7 @@ regueton = reggaeton
 relax(ed|i(ng|on))? = chillout
 schlager(hit)? = charts
 scratch = turntablism
+shoegaze(r|ing?) = shoegaze
 unplug(ged)? = acoustic
 (?<!be)bop = bebop
 independent = indie
@@ -336,6 +343,7 @@ lore
 lost
 loudness ?war
 luvstep
+lyric
 m(usic)?brainz
 mag(azin|ic)
 mas(hup|ter)
@@ -538,7 +546,7 @@ bas(ic(ally|s)?|s)
 beats?
 best
 big
-black
+bla(ck|xploitation)
 blue
 bo[wxy]s?
 bossa
@@ -564,9 +572,11 @@ desi
 die
 divine
 doom
+doujin
 dream
 easy
 euro
+evo
 fast
 films?
 fox
@@ -582,7 +592,7 @@ gun
 guy
 gypsy
 hall
-har(d|sh)
+har(d(rum)?|sh)
 hate
 heavy
 hip
@@ -590,9 +600,11 @@ hits?
 hop
 hrte
 hypnotic
+illout
 ingnieur
 jam
 jese
+klezmer
 kuschel
 light
 listen(ers?|ing?)?
@@ -673,6 +685,7 @@ tra(ditional|y)
 trip
 underground
 uplifting
+urban
 urdu
 video( ?game)?s?
 vip
@@ -716,6 +729,87 @@ tony
 tristan
 victor
 wagner
+
+## optional filters
+
+[filter_instrument]
+accordi?on(iste)?
+beat.?box
+cello
+clarinet
+computer( ?synthesizer)?
+contrabass
+cumbia
+didgeridoo
+drum(mer|s)?
+flute
+guitar(iste?|s)?
+harp
+honky ?tonk
+keyboard
+organ(ist)?
+percussions?
+pian(ist|o)
+saxophone
+strings
+synth(esizers?)?
+trumpet
+vibraphone
+violin(ist)?
+vocal(ist)?
+
+[filter_label]
+.*label.*
+.*records.*
+4ad
+aaahh
+anticon
+archaic ?horizon
+audiolith
+bandcamp
+beggars ?banquet
+blocsonic
+blue ?note
+bmg
+border ?community
+candyrat
+creative ?commons
+cup ?of ?tea
+domino
+e[ck]topla[sz]m
+ecm
+eimsbush
+emi
+gomma
+interscope
+jamendo
+kitsune
+left ?field( house)?
+lilith
+marvel
+moving ?shadow
+ninja tune
+parlophone
+perlon
+playhouse
+plytoteka
+poly ?canyon( echo)?
+pretty lights( music)?
+rhino
+saddle ?creek
+sentrax
+shiny ?entertainment
+sic( ?music)?
+sleaze
+smalltown supersound
+soma( ?fm)?
+sony( ?bmg( ?music)?)?
+t(hree )?b(lind )?m(ice)?
+too ?pure
+tru ?thoughts
+vanity house
+virgin
+warp
 
 [filter_location]
 (mid(dle)? ?)?(north|east|south|west)(ern|[ -]?coast)?
@@ -786,7 +880,7 @@ indian?
 ira(ck?|n(ian?)?)
 ireland
 irish
-irland(e|ais)
+i[rs]land(e|ais)
 israeli?
 ital(ian|y)
 jamaican?
@@ -819,6 +913,7 @@ netherlands?
 new ?(hampshire|jersey|orleans|york( ?city)?)
 nor(eg|dic|ge|sk|vg(e|ien)?|way|wegian)
 nyc?
+oceanic
 ohio
 oxford
 paris
@@ -860,83 +955,7 @@ wales
 welsh
 wisconsin
 york
-
-[filter_label]
-.*label.*
-.*records.*
-4ad
-aaahh
-anticon
-archaic ?horizon
-audiolith
-bandcamp
-beggars ?banquet
-blocsonic
-blue ?note
-bmg
-border ?community
-candyrat
-creative ?commons
-cup ?of ?tea
-domino
-e[ck]topla[sz]m
-ecm
-eimsbush
-emi
-gomma
-interscope
-kitsune
-left ?field( house)?
-lilith
-marvel
-moving ?shadow
-ninja tune
-parlophone
-perlon
-playhouse
-plytoteka
-poly ?canyon( echo)?
-pretty lights( music)?
-rhino
-saddle ?creek
-sentrax
-shiny ?entertainment
-sic( ?music)?
-sleaze
-smalltown supersound
-soma( ?fm)?
-sony( ?bmg( ?music)?)?
-t(hree )?b(lind )?m(ice)?
-too ?pure
-tru ?thoughts
-vanity house
-virgin
-warp
-
-[filter_instrument]
-accordi?on(iste)?
-beat.?box
-cello
-clarinet
-computer( ?synthesizer)?
-cumbia
-didgeridoo
-drum(mer|s)?
-flute
-guitar(iste?|s)?
-harp
-honky ?tonk
-keyboard
-organ(ist)?
-percussions?
-pian(ist|o)
-saxophone
-strings
-synth(esizers?)?
-trumpet
-vibraphone
-violin(ist)?
-vocal(ist)?
+zealand
 
 [filter_year]
 ([0-9]{2}){1,2}s?

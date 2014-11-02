@@ -13,10 +13,10 @@ import mutagen
 LOG = logging.getLogger('whatlastgenre')
 
 # Regex pattern to recognize Various Artist strings
-VAPAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
+VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
 
 # Musicbrainz ID of 'Various Artists'
-VAMBID = '89ad4ac3-39f7-470e-963a-56509c546377'
+VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
 
 def find_music_folders(paths):
@@ -24,13 +24,10 @@ def find_music_folders(paths):
     folders = []
     for path in paths:
         for root, _, files in os.walk(path):
-            for afile in files:
-                ext = os.path.splitext(afile)[1].lower()
-                if ext in ['.flac', '.ogg', '.mp3', '.m4a']:
-                    tracks = [t for t in files if t.lower().endswith(ext)]
-                    folders.append([root, ext[1:], tracks])
-                    break
-    print("Found %d music folders!" % len(folders))
+            for ext in ['flac', 'ogg', 'mp3', 'm4a']:
+                tracks = [t for t in files if t.lower().endswith('.' + ext)]
+                if tracks:
+                    folders.append([root, ext, tracks])
     return folders
 
 
@@ -51,7 +48,7 @@ class Album(object):
         # common album tag is necessary for now
         album = self.get_common_meta('album')
         if not album:
-            raise AlbumError("Not all tracks have the same album-tag.")
+            raise AlbumError("Not all tracks have the same or any album-tag.")
         # put artist in empty aartist
         artist = self.get_common_meta('artist')
         if artist and not self.get_common_meta('albumartist'):
@@ -61,14 +58,14 @@ class Album(object):
         if mbidart and not self.get_common_meta('musicbrainz_albumartistid'):
             self.set_common_meta('musicbrainz_albumartistid', mbidart)
         # handle various artists
-        if artist and VAPAT.match(artist):
+        if artist and VA_PAT.match(artist):
             artist = None
             self.set_common_meta('artist', None)
         aartist = self.get_common_meta('albumartist')
-        if aartist and VAPAT.match(aartist):
+        if aartist and VA_PAT.match(aartist):
             aartist = None
             self.set_common_meta('albumartist', None)
-            self.set_common_meta("musicbrainz_albumartistid", VAMBID)
+            self.set_common_meta("musicbrainz_albumartistid", VA_MBID)
         LOG.info("albumartist=%s, album=%s, date=%s",
                  aartist, album, self.get_common_meta('date'))
 

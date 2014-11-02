@@ -91,9 +91,9 @@ class Cache(object):
         size = len(self.cache)
         for key, val in self.cache.items():
             if time.time() - val.get('time', 0) > self.timeout \
-                or re.match('discogs##artist##', key) \
-                or re.match('(echonest|idiomag)##album##', key) \
-                or re.match('.*##.*##.?$', key):
+                    or re.match('discogs##artist##', key) \
+                    or re.match('(echonest|idiomag)##album##', key) \
+                    or re.match('.*##.*##.?$', key):
                 del self.cache[key]
         diff = size - len(self.cache)
         print("done! (%d removed)" % diff)
@@ -119,10 +119,10 @@ class Cache(object):
             os.rename(tmpfile.name, self.fullpath)
             self.time = time.time()
             self.dirty = False
-            print("done! (%d entries, %.2f MB)"
-                  % (len(self.cache), os.path.getsize(self.fullpath) / 2 ** 20))
+            size_mb = os.path.getsize(self.fullpath) / 2 ** 20
+            print("done! (%d entries, %.2f MB)" % (len(self.cache), size_mb))
         except KeyboardInterrupt:
-            pass
+            os.remove(tmpfile.name)
 
 
 def get_args():
@@ -142,7 +142,7 @@ def get_args():
     args.add_argument('-c', '--no-cache', action='store_true',
                       help='bypass cache hits')
     args.add_argument('-r', '--tag-release', action='store_true',
-                      help='tag release type (from What)')
+                      help='tag release type (from What.CD)')
     args.add_argument('-m', '--tag-mbids', action='store_true',
                       help='tag musicbrainz ids')
     args.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
@@ -156,7 +156,7 @@ def get_conf():
     configfile = os.path.expanduser('~/.whatlastgenre/config')
     # [section, option, default, required, [min, max]]
     conf = [['wlg', 'sources', 'whatcd, mbrainz, lastfm', 1, []],
-            ['wlg', 'cache_timeout', '60', 1, [14, 180]],
+            ['wlg', 'cache_timeout', '30', 1, [14, 180]],
             ['wlg', 'whatcduser', '', 0, []],
             ['wlg', 'whatcdpass', '', 0, []],
             ['genres', 'love', 'soundtrack', 0, []],
@@ -211,6 +211,7 @@ def get_conf():
     print("Please edit your configuration file: %s" % configfile)
     exit()
 
+
 def validate(args, conf):
     '''Validates args and conf.'''
     # sources
@@ -241,13 +242,14 @@ def validate(args, conf):
               "MBIDs tagging disabled.\n")
         args.tag_mbids = False
 
+
 def handle_folder(args, dps, cache, genretags, folder):
     '''Loads metadata, receives tags and saves an album.'''
     album = mf.Album(folder[0], folder[1], folder[2])
     genretags.reset(compile_album_filter(album))
     sdata = {
         'releasetype': None,
-        'date' : album.get_common_meta('date'),
+        'date': album.get_common_meta('date'),
         'album': searchstr(album.get_common_meta('album')),
         'artist': [(searchstr(album.get_common_meta('albumartist')),
                     album.get_common_meta('musicbrainz_albumartistid'))],
@@ -260,7 +262,7 @@ def handle_folder(args, dps, cache, genretags, folder):
     # search for all track artists if no albumartist
     if not album.get_common_meta('albumartist'):
         for track in [t for t in album.tracks if t.get_meta('artist')
-                      and not mf.VAPAT.match(t.get_meta('artist'))]:
+                      and not mf.VA_PAT.match(t.get_meta('artist'))]:
             sdata['artist'].append((searchstr(track.get_meta('artist')),
                                     track.get_meta('musicbrainz_artistid')))
     # get data from dataproviders
@@ -289,6 +291,7 @@ def handle_folder(args, dps, cache, genretags, folder):
         album.save()
     return genres
 
+
 def compile_album_filter(album):
     '''Returns a filter pattern object based on the metadata of an album.'''
     badtags = []
@@ -309,11 +312,12 @@ def compile_album_filter(album):
                 badtags.append(badtag.strip().lower())
     return re.compile('.*(' + '|'.join(badtags) + ').*', re.I)
 
+
 def get_data(args, dps, cache, genretags, sdata):
     '''Gets all the data from all dps or from cache.'''
-    tupels = [(0, 'album')]
-    tupels += [(i, 'artist') for i in range(len(sdata['artist']))]
-    tuples = [(i, v, d) for (i, v) in tupels for d in dps]
+    tuples = [(0, 'album')]
+    tuples += [(i, 'artist') for i in range(len(sdata['artist']))]
+    tuples = [(i, v, d) for (i, v) in tuples for d in dps]
     for i, variant, dapr in tuples:
         sstr = [sdata['artist'][i][0]]
         if variant == 'album':
@@ -390,6 +394,7 @@ def get_data(args, dps, cache, genretags, sdata):
                 sdata['releasetype'] = genretags.format(data['releasetype'])
     return sdata
 
+
 def filter_data(source, variant, sdata, data):
     '''Prefilters data to reduce needed interactivity.'''
     if not data or len(data) == 1:
@@ -425,6 +430,7 @@ def filter_data(source, variant, sdata, data):
                     d['releasetype'].lower() == sdata['releasetype'].lower()]
     return data
 
+
 def interactive(source, variant, data):
     '''Asks the user to choose from a list of possibilities.'''
     print("Multiple %s results from %s, which is it?" % (variant, source))
@@ -443,16 +449,18 @@ def interactive(source, variant, data):
             break
     return [data[num - 1]] if num else data
 
+
 def searchstr(str_):
     '''Cleans up a string for use in searching.'''
     if not str_:
         return ''
     for pat in [r'\(.*\)', r'\[.*\]', '{.*}', "- .* -", "'.*'", '".*"',
                 ' (- )?(album|single|ep|(official )?remix(es)?|soundtrack)$',
-                r'(ft|feat(\.|uring)?) .*', r'vol(\.|ume)? ', ' and ', 'the ',
-                ' ost', '[!?/&:,.]', ' +']:
+                r'(ft(\.)?|feat(\.|uring)?) .*', r'vol(\.|ume)? ', ' and ',
+                '^the ', ' ost', '[!?/&:,.]', ' +']:
         str_ = re.sub(pat, ' ', str_, 0, re.I)
     return str_.strip().lower()
+
 
 def print_stats(stats):
     '''Prints out some statistics.'''
@@ -465,14 +473,15 @@ def print_stats(stats):
         print("\n%d different tags used this often:\n%s" % (len(tags), tagout))
     fldrs = stats['foldernogenres']
     if fldrs:
-        print("\n%d albums with no genre tags found:\n%s"
+        print("\n%d album(s) with no genre tags found:\n%s"
               % (len(fldrs), '\n'.join(sorted(fldrs))))
     fldrs = stats['foldererrors']
     if fldrs:
-        print("\n%d albums with errors:" % len(fldrs))
+        print("\n%d album(s) with errors:" % len(fldrs))
         for error in set(fldrs.values()):
             fldrs = ["%s" % k for k, v in sorted(fldrs.items()) if v == error]
             print("'%s':\n%s" % (error, '\n'.join(fldrs)))
+
 
 def main():
     '''main function of whatlastgenre.
@@ -508,6 +517,7 @@ def main():
              'foldernogenres': []}
 
     folders = mf.find_music_folders(args.path)
+    print("Found %d music folders!" % len(folders))
     if not folders:
         return
 
@@ -515,8 +525,10 @@ def main():
     cache = Cache(args.no_cache, conf.getint('wlg', 'cache_timeout'))
     dps = dp.get_daprs(conf)
 
-    try:  # main loop
+    try:
+        # main loop
         for i, folder in enumerate(folders, start=1):
+            folderstr = folder[0] + ' [' + folder[1].upper() + ']'
             # save cache periodically
             if time.time() - cache.time > 600:
                 cache.save()
@@ -525,18 +537,16 @@ def main():
             for j in range(60):
                 print('#' if j < int(i / len(folders) * 60) else '-', end='')
             print("] %2.0f%%" % int(i / len(folders) * 100))
-            # handle folders
             try:
                 genres = handle_folder(args, dps, cache, genretags, folder)
                 if not genres:
-                    stats['foldernogenres'].append(folder[0])
+                    stats['foldernogenres'].append(folderstr)
                     continue
-                # add genres to stats
                 for tag in genres:
                     stats['genres'][tag] += 1
             except mf.AlbumError as err:
                 print(err.message)
-                stats['foldererrors'].update({folder[0]: err.message})
+                stats['foldererrors'].update({folderstr: err.message})
         print("\n...all done!")
     except KeyboardInterrupt:
         print()

@@ -72,7 +72,7 @@ class GenreTags(object):
         '''
         if not score:
             return False
-        name = name.encode('ascii', 'ignore').lower()
+        name = name.lower()
         name = self._replace(name)
         if self._filter(name):
             return False
@@ -80,6 +80,7 @@ class GenreTags(object):
         score = self._split(group, name, score)
         if not score:
             return False
+        name = name.encode('ascii', 'ignore')
         self.tags[group][name] += score
         return True
 
@@ -264,8 +265,7 @@ class GenreTags(object):
         for sec in [s for s in filters if
                     not parser.has_section('filter_%s' % s) and
                     not parser.has_section('filter_%s_fuzzy' % s)]:
-            print("The configured filter '%s' doesn't has a [filter_%s[_fuzzy]]"
-                  " section in the tags.txt file." % (sec, sec))
-            exit()
+            print("The configured filter '%s' doesn't have a "
+                  "[filter_%s[_fuzzy]] section in the tags.txt file and will "
+                  "be ignored.\n" % (sec, sec))
         return parser
-
