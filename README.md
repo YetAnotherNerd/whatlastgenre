@@ -189,9 +189,7 @@ Default `0.33`, Range `0.0 - 1.0`
 
 ## Usage
 ```
-usage: whatlastgenre [-h] [-v] [-n] [-c] [-i] [-r] [-m] [-l N]
-                     [--config CONFIG] [--cache CACHE]
-                     path [path ...]
+usage: whatlastgenre [-h] [-v] [-n] [-i] [-c] [-r] [-m] [-l N] path [path ...]
 
 positional arguments:
   path                 folder(s) to scan for albums
@@ -205,10 +203,6 @@ optional arguments:
   -r, --tag-release    tag release type (from What) (default: False)
   -m, --tag-mbids      tag musicbrainz ids (default: False)
   -l N, --tag-limit N  max. number of genre tags (default: 4)
-  --config CONFIG      location of the configuration file
-                       (default: ~/.whatlastgenre/config)
-  --cache CACHE        location of the cache file
-                       (default: ~/.whatlastgenre/cache)
 ```
 
 If you seriously want to tag release-types `-r` or musicbrainz-ids `-m` you

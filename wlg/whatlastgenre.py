@@ -41,8 +41,8 @@ class MySafeConfigParser(ConfigParser.SafeConfigParser):
 class Cache(object):
     '''Loads and saves a dict as json from/into a file for some speedup.'''
 
-    def __init__(self, fullpath, bypass, timeout):
-        self.fullpath = fullpath
+    def __init__(self, bypass, timeout):
+        self.fullpath = os.path.expanduser('~/.whatlastgenre/cache')
         self.bypass = bypass
         self.timeout = timeout * 60 * 60 * 24
         self.time = time.time()
@@ -139,25 +139,21 @@ def get_args():
                       help='don\'t save metadata')
     args.add_argument('-i', '--interactive', action='store_true',
                       help='interactive mode')
-    args.add_argument('-c', '--cacheignore', action='store_true',
-                      help='ignore cache hits')
+    args.add_argument('-c', '--no-cache', action='store_true',
+                      help='bypass cache hits')
     args.add_argument('-r', '--tag-release', action='store_true',
                       help='tag release type (from What)')
     args.add_argument('-m', '--tag-mbids', action='store_true',
                       help='tag musicbrainz ids')
     args.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
                       help='max. number of genre tags')
-    args.add_argument('--config',
-                      default=os.path.expanduser('~/.whatlastgenre/config'),
-                      help='location of the configuration file')
-    args.add_argument('--cache',
-                      default=os.path.expanduser('~/.whatlastgenre/cache'),
-                      help='location of the cache file')
     args = args.parse_args()
     return args
 
-def get_conf(configfile):
+
+def get_conf():
     '''Reads, maintains and writes the configuration file.'''
+    configfile = os.path.expanduser('~/.whatlastgenre/config')
     # [section, option, default, required, [min, max]]
     conf = [['wlg', 'sources', 'whatcd, mbrainz, lastfm', 1, []],
             ['wlg', 'cache_timeout', '60', 1, [14, 180]],
@@ -484,8 +480,13 @@ def main():
     Prints out some statistics at the end.
     '''
     print("whatlastgenre v%s\n" % __version__)
+
+    wlgdir = os.path.expanduser('~/.whatlastgenre')
+    if not os.path.exists(wlgdir):
+        os.makedirs(wlgdir)
+
     args = get_args()
-    conf = get_conf(args.config)
+    conf = get_conf()
     validate(args, conf)
 
     hdlr = logging.StreamHandler(sys.stdout)
@@ -497,12 +498,13 @@ def main():
              'genres': defaultdict(int),
              'foldererrors': {},
              'foldernogenres': []}
-    genretags = gt.GenreTags(conf)
+
     folders = mf.find_music_folders(args.path)
     if not folders:
         return
-    cache = Cache(args.cache, args.cacheignore,
-                  conf.getint('wlg', 'cache_timeout'))
+
+    genretags = gt.GenreTags(conf)
+    cache = Cache(args.no_cache, conf.getint('wlg', 'cache_timeout'))
     dps = dp.get_daprs(conf)
 
     try:  # main loop
