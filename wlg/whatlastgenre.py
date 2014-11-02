@@ -456,7 +456,7 @@ def searchstr(str_):
         return ''
     for pat in [r'\(.*\)', r'\[.*\]', '{.*}', "- .* -", "'.*'", '".*"',
                 ' (- )?(album|single|ep|(official )?remix(es)?|soundtrack)$',
-                r'(ft(\.)?|feat(\.|uring)?) .*', r'vol(\.|ume)? ', ' and ',
+                r'[ \(]f(ea)?t(\.|uring)? .*', r'vol(\.|ume)? ', ' and ',
                 '^the ', ' ost', '[!?/&:,.]', ' +']:
         str_ = re.sub(pat, ' ', str_, 0, re.I)
     return str_.strip().lower()
