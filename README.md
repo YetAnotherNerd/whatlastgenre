@@ -90,7 +90,7 @@ whatcdpass = whatpassword
 love = soundtrack
 hate = alternative, electronic, indie, pop, rock
 blacklist = charts, male vocalist, other
-filters = instrument, label, location, name, year
+filters = instrument, label, location, year
 [scores]
 src_whatcd = 1.66
 src_lastfm = 0.66
@@ -143,8 +143,7 @@ Use this to activate filters for specific tag groups:
 * `instrument` instrument related names, like piano or guitarist
 * `label` label names
 * `location` country, city and nationality names
-* `name` person names
-* `year` year tags, like 1980s
+* `year` year tags, like 2010, 80s
 
 #### scores section
 

@@ -24,7 +24,7 @@ class GenreTags(object):
         self.conf = conf
         self.tags = None
         # list activated filters
-        filters = ['badtags', 'generic']
+        filters = ['badtags', 'generic', 'name']
         filters += conf.get_list('genres', 'filters')
         # get and validate tagsfile
         self.tagsfile = self.parse_tagsfile(filters)

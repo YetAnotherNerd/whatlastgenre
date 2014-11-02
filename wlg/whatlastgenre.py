@@ -167,19 +167,16 @@ def get_conf(configfile):
             ['genres', 'hate',
              'alternative, electronic, indie, pop, rock', 0, []],
             ['genres', 'blacklist', 'charts, male vocalist, other', 0, []],
-            ['genres', 'filters',
-             'instrument, label, location, name, year', 0, []],
-            ['scores', 'src_whatcd', '1.66', 1, [0.3, 2.0]],
-            ['scores', 'src_mbrainz', '1.00', 1, [0.3, 2.0]],
-            ['scores', 'src_lastfm', '0.66', 1, [0.3, 2.0]],
-            ['scores', 'src_discogs', '1.00', 1, [0.3, 2.0]],
-            ['scores', 'src_idiomag', '1.00', 1, [0.3, 2.0]],
-            ['scores', 'src_echonest', '1.00', 1, [0.3, 2.0]],
+            ['genres', 'filters', 'instrument, label, location, year', 0, []],
             ['scores', 'artist', '1.33', 1, [0.5, 2.0]],
             ['scores', 'various', '0.66', 1, [0.1, 1.0]],
-            ['scores', 'splitup', '0.33', 1, [0, 1.0]]]
-    if not os.path.exists(os.path.dirname(configfile)):
-        os.makedirs(os.path.dirname(configfile))
+            ['scores', 'splitup', '0.33', 1, [0, 1.0]],
+            ['scores', 'src_whatcd', '1.66', 1, [0.3, 2.0]],
+            ['scores', 'src_lastfm', '0.66', 1, [0.3, 2.0]],
+            ['scores', 'src_mbrainz', '1.00', 1, [0.3, 2.0]],
+            ['scores', 'src_discogs', '1.00', 1, [0.3, 2.0]],
+            ['scores', 'src_idiomag', '1.00', 1, [0.3, 2.0]],
+            ['scores', 'src_echonest', '1.00', 1, [0.3, 2.0]]]
     config = MySafeConfigParser()
     config.read(configfile)
     dirty = False
