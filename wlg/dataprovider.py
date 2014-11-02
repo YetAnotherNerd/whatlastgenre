@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import json
 import logging
+from ssl import SSLError
 import time
 
 import requests
@@ -361,9 +362,13 @@ class Discogs(DataProvider):
         '''Gets album data from Discogs.'''
         while time.time() - self.last_request < self.rate_limit:
             time.sleep(.1)
-        resp, content = self.client.request(
-            'https://api.discogs.com/database/search?type=master&q=%s'
-            % (artistname + ' ' + albumname), headers=HEADERS)
+        try:
+            resp, content = self.client.request(
+                'https://api.discogs.com/database/search?type=master&q=%s'
+                % (artistname + ' ' + albumname).decode('ascii', 'ignore'),
+                headers=HEADERS)
+        except SSLError as err:
+            raise DataProviderError("request error: %s" % err.message)
         self.last_request = time.time()
         if resp['status'] != '200':
             raise DataProviderError("request error: status %s" % resp['status'])
