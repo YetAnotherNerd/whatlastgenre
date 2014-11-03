@@ -61,7 +61,15 @@ class Album(object):
         print("[%s] %s" % (ext.upper(), path))
         self.path = path
         self.ext = ext
-        self.tracks = [Track(path, t) for t in tracks]
+        # load tracks
+        self.tracks = []
+        for track in tracks:
+            try:
+                self.tracks.append(Track(path, track))
+            except TrackError as err:
+                print("Error loading track '%s': %s" % (track, err.message))
+        if not self.tracks:
+            raise AlbumError("Could not load any tracks.")
         # validate and handle metadata
         # common album tag is necessary for now
         album = self.get_common_meta('album')
@@ -114,7 +122,11 @@ class Album(object):
         print("Saving metadata... ", end='')
         dirty = False
         for track in self.tracks:
-            dirty = track.save() or dirty
+            try:
+                dirty = track.save() or dirty
+            except TrackError as err:
+                print("Error saving track '%s': %s"
+                      % (track.filename, err.message))
         print("done!" if dirty else "(no changes)")
 
     @classmethod
@@ -130,6 +142,11 @@ class Album(object):
         return substr
 
 
+class TrackError(Exception):
+    '''If something went wrong while handling a Track.'''
+    pass
+
+
 class Track(object):
     '''Class for managing tracks.'''
 
@@ -137,13 +154,16 @@ class Track(object):
         self.filename = filename
         self.ext = os.path.splitext(filename)[1].lower()[1:]
         self.fullpath = os.path.join(path, filename)
-        self.stat = os.stat(self.fullpath)
         self.dirty = False
         self.muta = None
         try:
+            self.stat = os.stat(self.fullpath)
             self.muta = mutagen.File(self.fullpath, easy=True)
-        except IOError as err:
-            print("Error loading track %s: %s" % (self.filename, err.strerror))
+        except (IOError, OSError) as err:
+            raise TrackError(err.strerror)
+        if not self.muta:
+            # will be improved with MutagenError from mutagen-1.25
+            raise TrackError('unknown mutagen error')
 
     def _translate_key(self, key):
         '''Translate the metadata key based on ext, etc.'''
@@ -206,7 +226,6 @@ class Track(object):
             self.muta.save()
             # preserve modtime
             os.utime(self.fullpath, (self.stat.st_atime, self.stat.st_mtime))
-            return True
         except IOError as err:
-            print("Error saving track %s: %s" % (self.filename, err.strerror))
-        return False
+            raise TrackError(err.strerror)
+        return True
