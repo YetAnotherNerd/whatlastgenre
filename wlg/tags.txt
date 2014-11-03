@@ -96,9 +96,7 @@ stage & screen
 (nu)[ -]?(.+) = \g<1> \g<2>
 (neo|post)[ -]?(.+) = \g<1>-\g<2>
 ^(c|k|j)[ -]?(folk|goth|hip-hop|pop|rock|ska) = \g<1>-\g<2>
-#ele[ck][tr]{2}(o(nica?)?|ic)[ -]?((?!swing)|.*) = electronic \g<3>
 euro[ -]?(?!p[ea]|pean)(.+) = euro-\g<1>
-goth[ic]{2}?[ -]?(.*) = gothic \g<1>
 (pop|jazz|hip.?hop).?(rock|rap) = \g<1>&\g<2>
 # tags with ampersands
 d(rum)?[ -]?(and|'?n'?|&)?[ -]?b(ass)? = drum & bass
@@ -114,7 +112,7 @@ stage[ -]?(and|'?n'?|&)?[ -]?screen = stage & screen
 ^(20)?([0-2])[0-9]'?(s|er)? = 20\g<2>0s
 ^([1-2][0-9])th century = \g<1>00s
 # abbreviation related
-alt(ern)?(\.|ative)?[ \-]? = alternative_
+alt(ern)?(\.|ative)?[ -]? = alternative_
 avant(\.|garde?)? = avantgarde
 ele[ck]tro(nic(?!a))?[ -]? = electronic_
 goth(ic)? = gothic
@@ -264,8 +262,7 @@ factor
 fading
 fahr
 family
-fan.?club
-fantas
+fan(.?club|d|tas)
 fase
 fav
 fax
@@ -277,11 +274,11 @@ fine
 fix
 fla(sh|wless)
 flutter
+fonk
 format
 fre[ei]
 freund
 fuck
-fun
 fuzz
 g[iu]rl
 gameboy
@@ -306,6 +303,7 @@ haunt
 have
 herbst
 heul
+hi.?fi
 hidden
 histor(ic|y)
 high
@@ -318,6 +316,7 @@ hyphy
 i(book|mac|pod|phone|tunes)
 idiot
 idol
+improvi
 incredible
 initial
 ins(ane|omnia)
@@ -546,6 +545,7 @@ zombie
 
 [filter_generic]
 (one|two|three|four|five|six|seven|eight|nine|ten)
+(i)*v?(i)*
 (re-?)?rip
 acid
 actor
@@ -586,18 +586,19 @@ depressive
 desi
 die
 divine
-doom
+doo(m)?
 doujin
 dream
 easy
 euro
 evo
+fan
 fast
-films?
+fil(k|ms?)
 fox
 fre(ak|e)
 full
-funeral
+fun(eral)?
 fusion
 future
 games?
@@ -697,7 +698,7 @@ title
 top
 touhou
 tra(ditional|y)
-trip
+tri(bal|p)
 underground
 uplifting
 urban
@@ -708,6 +709,7 @@ wah
 wave
 white
 witch
+wop
 word
 wtf
 
@@ -724,6 +726,7 @@ edgar
 fabio
 fergie
 george
+heintje
 jason
 john
 jones
@@ -731,6 +734,7 @@ katie
 kim
 kirsten
 martens?
+mercury
 micha
 paul
 qlencja
@@ -762,6 +766,7 @@ guitar(iste?|s)?
 harp
 honky ?tonk
 keyboard
+orchestral?
 organ(ist)?
 percussions?
 pian(ist|o)
@@ -867,6 +872,7 @@ den(mark|ver)
 detroit
 deutsch(er?|land)?
 dutch
+eire
 engl(and|isc?h)
 erfurt
 estonian?
