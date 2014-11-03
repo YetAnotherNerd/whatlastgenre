@@ -44,7 +44,7 @@ a score of 0.5 and so on.
 Tags supplied without a count will be scored `0.85^(n-1)`, where `n` is the
 total number of tags supplied by this source. The more tags the lower the score
 for each tag will be. So if only one tag is supplied, it will get a score of
-1.0, two tags will get a score of 0.85 each, three get 0.72 each and so on...
+1.0, two tags will get a score of 0.85 each and so on...
 
 ##### Tag merging of artist and album tags
 After all tags have been gathered the scores of album and artist tags will be
@@ -52,14 +52,12 @@ scaled and then merged together taking the artist score modifier option into
 account. This enables that multiple albums from one artist get more equal tags
 by giving tags found by artist searches advantage over tags found by album
 searches.
-
 See `artist` score option below.
 
 ##### Tag scoring for various artist albums without any specific album artist
 If there is no specific album artist for a various artist album every track
 artist gets used for searching. Tags for artists that appear multiple times in
 that album get counted multiple times.
-
 See `various` score option below.
 
 
@@ -81,14 +79,12 @@ cloned/extracted to
 
 ##### Optional Dependencies
 * `oauth2` is required for Discogs (disabled by default). If you want to use
-Discogs, use `apt-get install python-oauth2` or `pip install oauth2` to
-install it (like above)
+Discogs, install it like above and active discogs in the config (see below).
 
 
 ## Configuration
-A configuration file with default values will be created on first run.
-
-The default location for the configuration file is `~/.whatlastgenre/config`.
+A configuration file with default values will be created at
+`~/.whatlastgenre/config` on first run.
 
 ### Example configuration file
 ```
@@ -206,7 +202,7 @@ provide bad, inaccurate or personal tags. Increase if you trust the tags from
 a source, lower if the source provides many inaccurate or personal tags. If you
 don't want tags from a specific source remove it from the sources list option.
 
-Default `1.0`, Range `0.5 - 2.0`. See sources option above.
+Default `1.0`, Range `0.5 - 2.0`. See `sources` option above.
 
 
 ## Usage
@@ -253,9 +249,7 @@ To get the most of it for all albums in /home/user/music and /media/music:
 	$ whatlastgenre -irml 5 /home/user/music /media/music
 
 
-
 whatlastgenre doesn't correct any other tags. If your music files are badly or
 not tagged it won't work well at all.
 
 Please report any bugs and errors you encounter, i would like to fix them :)
-

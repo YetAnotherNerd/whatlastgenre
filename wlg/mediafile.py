@@ -34,7 +34,11 @@ VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
 
 def find_music_folders(paths):
-    '''Scans paths for folders containing music files.'''
+    '''Scans paths for folders containing music files.
+
+    An album cannot have tracks with different extensions. Groups of tracks
+    with the same extension in one folder are seen as separate Albums.
+    '''
     folders = []
     for path in paths:
         for root, _, files in os.walk(path):
@@ -130,7 +134,7 @@ class Track(object):
     '''Class for managing tracks.'''
 
     def __init__(self, path, filename):
-        self.fullpath = filename
+        self.filename = filename
         self.ext = os.path.splitext(filename)[1].lower()[1:]
         self.fullpath = os.path.join(path, filename)
         self.stat = os.stat(self.fullpath)
@@ -139,7 +143,7 @@ class Track(object):
         try:
             self.muta = mutagen.File(self.fullpath, easy=True)
         except IOError as err:
-            print("Error loading track %s: %s" % (self.fullpath, err.message))
+            print("Error loading track %s: %s" % (self.filename, err.strerror))
 
     def _translate_key(self, key):
         '''Translate the metadata key based on ext, etc.'''
@@ -204,5 +208,5 @@ class Track(object):
             os.utime(self.fullpath, (self.stat.st_atime, self.stat.st_mtime))
             return True
         except IOError as err:
-            print("Error saving track %s: %s" % (self.fullpath, err.message))
+            print("Error saving track %s: %s" % (self.filename, err.strerror))
         return False

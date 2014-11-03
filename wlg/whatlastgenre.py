@@ -535,14 +535,13 @@ def main():
     cache = Cache(args.no_cache, conf.getint('wlg', 'cache_timeout'))
     dps = dp.get_daprs(conf)
 
-    try:
-        # main loop
+    try:  # main loop
         for i, folder in enumerate(folders, start=1):
             folderstr = folder[0] + ' [' + folder[1].upper() + ']'
             # save cache periodically
             if time.time() - cache.time > 600:
                 cache.save()
-            # print progress bar
+            # progress bar
             print("\n(%2d/%d) [" % (i, len(folders)), end='')
             for j in range(60):
                 print('#' if j < int(i / len(folders) * 60) else '-', end='')
