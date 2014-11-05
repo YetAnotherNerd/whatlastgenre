@@ -193,8 +193,8 @@ class GenreTags(object):
                 if self._add(group, key, val / max_ * multi):
                     added += 1
         elif isinstance(tags, list):
-            score = .85 ** (len(tags) - 1)
-            for name in tags:
+            score = max(0.1, .85 ** (len(tags) - 1))
+            for name in tags[:99]:
                 if self._add(group, name, score * multi):
                     added += 1
         return added

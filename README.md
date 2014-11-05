@@ -37,14 +37,15 @@ explained" below for more details.
 ##### Tag scoring with count (What.CD, Last.FM, MusicBrainz, Idiomag)
 If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
-tag gets a score of 1.0, a tag having only half of the top tag's count gets
-a score of 0.5 and so on.
+tag gets a score of `1.0`, a tag having only half of the top tag's count gets
+a score of `0.5` and so on.
 
 ##### Tag scoring without count (What.CD, Discogs, EchoNest, Idiomag)
-Tags supplied without a count will be scored `0.85^(n-1)`, where `n` is the
-total number of tags supplied by this source. The more tags the lower the score
-for each tag will be. So if only one tag is supplied, it will get a score of
-1.0, two tags will get a score of 0.85 each and so on...
+Tags supplied without a count will be scored `max(0.1, 0.85^(n-1))`, where `n`
+is the total number of tags supplied by this source. The more tags the lower
+the score for each tag will be. So if only one tag is supplied, it will get a
+score of `1.0`, two tags will get a score of `0.85` each and so on. The minimum
+score is `0.1`, which applies if there are more then 15 tags supplied.
 
 ##### Tag merging of artist and album tags
 After all tags have been gathered the scores of album and artist tags will be
