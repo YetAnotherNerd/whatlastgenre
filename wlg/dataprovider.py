@@ -144,8 +144,10 @@ class WhatCD(DataProvider):
     def get_artist_data(self, artistname, _):
         '''Gets artist data from What.CD.'''
         data = self._query({'action': 'artist', 'artistname': artistname})
+        tags = data.get('tags', {})
+        max_ = max([0] + [t['count'] for t in tags])
         return [{'tags': {t['name'].replace('.', ' '): int(t['count'])
-                          for t in data.get('tags', {})}}]
+                          for t in tags if int(t['count']) > (max_ / 3)}}]
 
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from What.CD.'''
