@@ -34,18 +34,15 @@ VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
 
 def find_music_folders(paths):
-    '''Scans paths for folders containing music files.
-
-    An album cannot have tracks with different extensions. Groups of tracks
-    with the same extension in one folder are seen as separate Albums.
-    '''
+    '''Scans paths for folders containing music files.'''
     folders = []
     for path in paths:
         for root, _, files in os.walk(path):
-            for ext in ['flac', 'ogg', 'mp3', 'm4a']:
-                tracks = [t for t in files if t.lower().endswith('.' + ext)]
-                if tracks:
-                    folders.append([root, ext, tracks])
+            for file_ in files:
+                ext = os.path.splitext(file_)[1].lower()
+                if ext in ['.mp3', '.flac', '.ogg', '.m4a']:
+                    folders.append(root)
+                    break
     return folders
 
 
@@ -57,45 +54,40 @@ class AlbumError(Exception):
 class Album(object):
     '''Class for managing albums.'''
 
-    def __init__(self, path, ext, tracks):
-        print("[%s] %s" % (ext.upper(), path))
+    def __init__(self, path):
         self.path = path
-        self.ext = ext
         # load tracks
         self.tracks = []
-        for track in tracks:
+        for file_ in os.listdir(path):
+            if os.path.splitext(file_)[1].lower() \
+                    not in ['.mp3', '.flac', '.ogg', '.m4a']:
+                continue
             try:
-                self.tracks.append(Track(path, track))
+                self.tracks.append(Track(path, file_))
             except TrackError as err:
-                print("Error loading track '%s': %s" % (track, err.message))
+                print("Error loading track '%s': %s" % (file_, err.message))
         if not self.tracks:
-            raise AlbumError("Could not load any tracks.")
-        # validate and handle metadata
-        # common album tag is necessary for now
-        album = self.get_common_meta('album')
-        if not album:
-            raise AlbumError("Not all tracks have the same or any album-tag.")
-        # put artist in empty aartist
-        artist = self.get_common_meta('artist')
-        if artist and not self.get_common_meta('albumartist'):
-            self.set_common_meta('albumartist', artist)
-        # put artist mbid in empty aartist mbid
-        mbidart = self.get_common_meta('musicbrainz_artistid')
-        if mbidart and not self.get_common_meta('musicbrainz_albumartistid'):
-            self.set_common_meta('musicbrainz_albumartistid', mbidart)
-        # handle various artists
-        if artist and VA_PAT.match(artist):
-            artist = None
-            self.set_common_meta('artist', None)
-        aartist = self.get_common_meta('albumartist')
-        if aartist and VA_PAT.match(aartist):
-            aartist = None
-            self.set_common_meta('albumartist', None)
-            self.set_common_meta("musicbrainz_albumartistid", VA_MBID)
-        LOG.info("albumartist=%s, album=%s, date=%s",
-                 aartist, album, self.get_common_meta('date'))
+            raise AlbumError("Could not load any tracks")
+        if not self.get_meta('album'):
+            raise AlbumError("Not all tracks have the same or any album-tag")
+        # album type (track extensions)
+        self.type = ','.join(set(t.ext for t in self.tracks)).upper()
+        # put artist in empty albumartist
+        if not self.get_meta('albumartist'):
+            self.set_meta('albumartist', self.get_meta('artist'))
+        # put artist mbid in empty albumartist mbid
+        if not self.get_meta('musicbrainz_albumartistid'):
+            self.set_meta('musicbrainz_albumartistid',
+                          self.get_meta('musicbrainz_artistid'))
+        # various artists
+        if VA_PAT.match(self.get_meta('artist') or ''):
+            self.set_meta('artist', None)
+            self.set_meta('musicbrainz_artistid', None)
+        if VA_PAT.match(self.get_meta('albumartist') or ''):
+            self.set_meta('albumartist', None)
+            self.set_meta("musicbrainz_albumartistid", VA_MBID)
 
-    def get_common_meta(self, key, use_lcs=True):
+    def get_meta(self, key, use_lcs=True):
         '''Gets metadata that all tracks have in common.'''
         val = []
         for track in self.tracks:
@@ -112,7 +104,7 @@ class Album(object):
         # no common value for this key
         return None
 
-    def set_common_meta(self, key, val):
+    def set_meta(self, key, val):
         '''Sets metadata for all tracks.'''
         for track in self.tracks:
             track.set_meta(key, val)

@@ -253,24 +253,22 @@ def validate(args, conf):
         args.tag_mbids = False
 
 
-def handle_folder(args, dps, cache, genretags, folder):
-    '''Loads metadata, receives tags and saves an album.'''
-    album = mf.Album(folder[0], folder[1], folder[2])
+def handle_album(args, dps, cache, genretags, album):
+    '''Receives tags and saves an album.'''
     genretags.reset(compile_album_filter(album))
     sdata = {
         'releasetype': None,
-        'date': album.get_common_meta('date'),
-        'album': searchstr(album.get_common_meta('album')),
-        'artist': [(searchstr(album.get_common_meta('albumartist')),
-                    album.get_common_meta('musicbrainz_albumartistid'))],
-        'mbids': {'albumartistid':
-                  album.get_common_meta('musicbrainz_albumartistid'),
+        'date': album.get_meta('date'),
+        'album': searchstr(album.get_meta('album')),
+        'artist': [(searchstr(album.get_meta('albumartist')),
+                    album.get_meta('musicbrainz_albumartistid'))],
+        'mbids': {'albumartistid': album.get_meta('musicbrainz_albumartistid'),
                   'releasegroupid':
-                  album.get_common_meta('musicbrainz_releasegroupid'),
-                  'albumid': album.get_common_meta('musicbrainz_albumid')}
+                      album.get_meta('musicbrainz_releasegroupid'),
+                  'albumid': album.get_meta('musicbrainz_albumid')}
     }
     # search for all track artists if no albumartist
-    if not album.get_common_meta('albumartist'):
+    if not album.get_meta('albumartist'):
         for track in [t for t in album.tracks if t.get_meta('artist')
                       and not mf.VA_PAT.match(t.get_meta('artist'))]:
             sdata['artist'].append((searchstr(track.get_meta('artist')),
@@ -281,19 +279,17 @@ def handle_folder(args, dps, cache, genretags, folder):
     genres = genretags.get(len(sdata['artist']) > 1)[:args.tag_limit]
     if genres:
         print("Genres: %s" % ', '.join(genres))
-        album.set_common_meta('genre', genres)
-    else:
-        print("Genres: None found :-(")
+        album.set_meta('genre', genres)
     # set releasetype
     if args.tag_release and sdata.get('releasetype'):
         print("RelTyp: %s" % sdata['releasetype'])
-        album.set_common_meta('releasetype', sdata['releasetype'])
+        album.set_meta('releasetype', sdata['releasetype'])
     # set mbrainz ids
     if args.tag_mbids and 'mbids' in sdata:
         LOG.info("MB-IDs: %s", ', '.join(["%s=%s" % (k, v) for k, v
                                           in sdata['mbids'].items()]))
         for key, val in sdata['mbids'].items():
-            album.set_common_meta('musicbrainz_' + key, val)
+            album.set_meta('musicbrainz_' + key, val)
     # save metadata
     if args.dry:
         print("DRY-RUN! Not saving metadata.")
@@ -306,7 +302,7 @@ def compile_album_filter(album):
     '''Returns a filter pattern object based on the metadata of an album.'''
     badtags = []
     for tag in ['albumartist', 'album']:
-        val = album.get_common_meta(tag)
+        val = album.get_meta(tag)
         if not val:
             continue
         bts = [val]
@@ -569,7 +565,6 @@ def main():
 
     try:  # main loop
         for i, folder in enumerate(folders, start=1):
-            folderstr = folder[0] + ' [' + folder[1].upper() + ']'
             # save cache periodically
             if time.time() - cache.time > 600:
                 cache.save()
@@ -579,14 +574,20 @@ def main():
                 print('#' if j < int(i / len(folders) * 60) else '-', end='')
             print("] %2.0f%%" % int(i / len(folders) * 100))
             try:
-                genres = handle_folder(args, dps, cache, genretags, folder)
+                print(folder)
+                album = mf.Album(folder)
+                LOG.info("[%s] albumartist=%s, album=%s, date=%s", album.type,
+                         album.get_meta('albumartist'),
+                         album.get_meta('album'),
+                         album.get_meta('date'))
+                genres = handle_album(args, dps, cache, genretags, album)
                 if not genres:
                     raise mf.AlbumError("No genres found")
                 for tag in genres:
                     stats['genres'][tag] += 1
             except mf.AlbumError as err:
                 print(err.message)
-                stats['folders'].update({folderstr: err.message})
+                stats['folders'].update({folder: err.message})
         print("\n...all done!")
     except KeyboardInterrupt:
         print()
