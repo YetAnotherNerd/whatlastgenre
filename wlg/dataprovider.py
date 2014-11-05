@@ -75,7 +75,7 @@ class DataProvider(object):
     def __init__(self):
         self.name = self.__class__.__name__
         self.last_request = time.time()
-        self.rate_limit = 0.5  # min. seconds between requests
+        self.rate_limit = 1.0  # min. seconds between requests
         self.stats = {
             'time_resp': 0.0,
             'time_wait': 0.0,
@@ -135,6 +135,7 @@ class WhatCD(DataProvider):
         super(WhatCD, self).__init__()
         self.cred = cred
         self.loggedin = False
+        # http://github.com/WhatCD/Gazelle/wiki/JSON-API-Documentation
         self.rate_limit = 2.0
 
     def __del__(self):
@@ -186,6 +187,11 @@ class WhatCD(DataProvider):
 
 class LastFM(DataProvider):
     '''Last.FM DataProvider'''
+
+    def __init__(self):
+        super(LastFM, self).__init__()
+        # http://lastfm.de/api/tos
+        self.rate_limit = 0.25
 
     def _query(self, params):
         '''Queries the Last.FM API.'''
@@ -249,6 +255,7 @@ class MBrainz(DataProvider):
 
     def __init__(self):
         super(MBrainz, self).__init__()
+        # http://musicbrainz.org/doc/XML_Web_Service/Rate_Limiting
         self.rate_limit = 1.0
 
     def _query(self, typ, query):
@@ -337,6 +344,8 @@ class Discogs(DataProvider):
         import oauth2
         import os
         super(Discogs, self).__init__()
+        # http://www.discogs.com/developers/#header:home-rate-limiting
+        self.rate_limit = 1.0
         consumer = oauth2.Consumer('sYGBZLljMPsYUnmGOzTX',
                                    'TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk')
         token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
@@ -451,10 +460,6 @@ class Idiomag(DataProvider):
 
 class EchoNest(DataProvider):
     '''EchoNest DataProvider'''
-
-    def __init__(self):
-        super(EchoNest, self).__init__()
-        self.rate_limit = 3.0
 
     def get_artist_data(self, artistname, _):
         '''Gets artist data from EchoNest.'''
