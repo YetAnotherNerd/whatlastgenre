@@ -79,8 +79,9 @@ cloned/extracted to
 * Install it by running `python setup.py install` as root in that directory
 
 ##### Optional Dependencies
-* `oauth2` is required for Discogs (disabled by default). If you want to use
-Discogs, install it like above and active discogs in the config (see below).
+* `oauth2` is required for Discogs (disabled by default).
+If you want to use Discogs, install `oauth2` like above and activate `discogs`
+in the configuration file (see below).
 
 
 ## Configuration
@@ -239,15 +240,15 @@ for specific albums rerun with `-c` on this albums to ignore cache hits.
 
 Do a verbose dry-run on your albums in /home/user/music changing nothing:
 
-	$ whatlastgenre -vn /home/user/music
+	whatlastgenre -vn /home/user/music
 
 Tag max. 3 genre tags for all albums in /home/user/music:
 
-	$ whatlastgenre -l 3 /home/user/music
+	whatlastgenre -l 3 /home/user/music
 
 To get the most of it for all albums in /home/user/music and /media/music:
 
-	$ whatlastgenre -irml 5 /home/user/music /media/music
+	whatlastgenre -irml 5 /home/user/music /media/music
 
 
 whatlastgenre doesn't correct any other tags. If your music files are badly or
