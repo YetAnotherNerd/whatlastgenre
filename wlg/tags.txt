@@ -112,7 +112,7 @@ stage[ -]?(and|'?n'?|&)?[ -]?screen = stage & screen
 ^(20)?([0-2])[0-9]'?(s|er)? = 20\g<2>0s
 ^([1-2][0-9])th century = \g<1>00s
 # abbreviation related
-alt(ern)?(\.|ative)?[ -]? = alternative_
+alt(ern)?(\.|ati[fv]e?)?[ -]? = alternative_
 avant(\.|garde?)? = avantgarde
 ele[ck]tro(nic(?!a))?[ -]? = electronic_
 goth(ic)? = gothic
@@ -171,6 +171,7 @@ anime
 ant(hology|i)
 aor
 apart
+apocal
 aquire
 arc(arde|hive)
 area
@@ -186,6 +187,7 @@ background
 balance
 ballar?d
 bea(ch|utiful)
+beer
 beg
 below
 bizar
@@ -197,9 +199,10 @@ boring
 bou(lder|nce)
 box.?set
 brain
-brilliant
+brill(iant)?
 brood
 bueno
+build
 bust
 buy
 c(ompa[ck]t.?)?d(is[ck])?
@@ -208,6 +211,7 @@ calm
 cambuur
 cash
 catch
+cause
 ccm
 che(ese|ck)
 chi(ck|ld)
@@ -226,13 +230,14 @@ data
 dead
 defa(c(e|ing)|ult)
 delux
-design
+des(ert|ign)
 dialog
 digital
 dirty
 dis(appointing|[ck]|cogs|ney)
 djs?
 dopeness
+download
 dr\.?[ ]
 drama
 driv
@@ -250,7 +255,7 @@ energ
 enfp
 engel
 epic
-ethereal
+ether
 eve(n|ry)
 evil
 excellent
@@ -269,7 +274,7 @@ fax
 fear
 fett
 fiction
-filth
+filt(er|h)
 fine
 fix
 fla(sh|wless)
@@ -278,6 +283,7 @@ fonk
 format
 fre[ei]
 freund
+frlab
 fuck
 fuzz
 g[iu]rl
@@ -346,17 +352,19 @@ ldt
 leg(al|end|it)
 lesbian
 library
+lick
 lieb
 like
 liquid
 listener
 little
 live
+lizard
 lo*ve
 lore
 lost
-loudness ?war
-luvstep
+loud(ness)?
+luv(step)?
 lyric
 m(usic)?brainz
 mag(azin|ic)
@@ -373,6 +381,7 @@ mix
 mon(ey|go)
 mood
 mor(gen|n)
+move
 moviemeter
 mugge
 multi
@@ -392,6 +401,7 @@ noo(dle|n)
 nouvelle
 novely
 number
+obeah
 obsessive
 official
 ofwgkta
@@ -400,9 +410,10 @@ pa?c?ka?ge?
 par(k|ty)
 patience
 peanut
-per(fect|manent|sistence)
+per(fect|iod|manent|sistence)
 phantom
 picks
+pilot
 pirate
 piss
 pizza
@@ -412,10 +423,11 @@ plunder
 podcast
 poet
 popular
+portal
 positiv
 praise
 pri(mary|vat|ze)
-pro(duc|je[ck]|of)
+pro(duc|je[ck]|of|ssimo)
 p(ar)?t.?[0-9]
 public
 purchase
@@ -425,6 +437,7 @@ qui(et|rk)
 racist
 radio
 rainy
+random
 rare
 rate
 rea([dl]|son)
@@ -436,6 +449,7 @@ remember
 repla
 retard
 rev(ival|olution)
+ritual
 romantic
 rough
 rules
@@ -453,14 +467,16 @@ sel(bst|ect)
 sensual
 serie
 sex
-shit
+shi(m|t)
 sho(ck|uld)
 side
+sign
 simillia
 sing(en|le)
 skate
-slang
+sla(m|ng)
 sleep
+sludge
 smart
 sober
 solo
@@ -471,11 +487,12 @@ spotify
 spring
 squeeze
 sta(nd(ard)?|r|te)
-sto(ne(?!er)|ry)
-str(ange|eam|ess|ong)
+sto(mp|ry)
+str(ange|e(am|ss)|ide|ong)
 stu(dio|dy|n)
 styl
 sud[eo]
+sultry
 sun(daze|set|shine|rise)
 super
 surf
@@ -485,7 +502,7 @@ takt
 talent
 team
 teen
-tell
+tel(e|l)
 test
 that
 the(atre|me|re)
@@ -496,35 +513,41 @@ tight
 time
 tod(ay|o)
 tomorrow
+tongue
 totec
 touch
+toy
 tra(ck|iler|p|urig|uer)
-tribute
+tri(bute|o)
 tro(ll|pic)
 trust
 tune
 twee
+typo
 ugly
 unbekannt
 uni(on|vers)
 unknown
 user
-vari(ous|t)
+vari(e|ous|t)
 ver(miform|schieden)
 vinyl
-virtuos
-vis(a|ual)
+vir(al|tuos)
+vis(a|ion|ual)
 voodoo
 vox
+wait
+wake
 want
 wasser
+warm
 watch
 wayne
 web
 wedding
 ween
 weird
-welcome
+wel(come|l)
 wexp
 what.?cd
 who
@@ -535,6 +558,7 @@ wolle
 won(der|ky)
 wor(k|ship)
 wunsch
+wu.?tang
 xx+
 yarr
 yea[hr]
@@ -550,14 +574,17 @@ zombie
 acid
 actor
 adult
+afro
+auto
 age
 all
 and
 arena
 art
 aus
-band
+ban(ds?|g)
 bas(ic(ally|s)?|s)
+batt
 beats?
 best
 big
@@ -572,15 +599,17 @@ bubblegum
 chaotic
 chemic(al)?
 classic
+cloud
 club
 coast
-cold
-conscious
+col(d|lab)
+con(cret|scious)
 cool
 core
 critic(al)?
 dark
 death
+debut
 deep
 depressive
 desi
@@ -589,12 +618,14 @@ divine
 doo(m)?
 doujin
 dream
+drill
 easy
 euro
 evo
 fan
 fast
 fil(k|ms?)
+flow
 fox
 fre(ak|e)
 full
@@ -603,7 +634,9 @@ fusion
 future
 games?
 gangst(a|er)
+gaze
 ghetto
+glam
 gun
 guy
 gypsy
@@ -617,16 +650,23 @@ hop
 hrte
 hypnotic
 illout
+impulse
 ingnieur
+isrc
 jam
 jese
+juma
+kiwi
 klezmer
 kuschel
+labrador
+language
 light
 listen(ers?|ing?)?
 los
 math
 mel(anchol(i[ce]|y)|odic)
+meme
 merkliste
 mile
 mod(al|ern)?
@@ -634,7 +674,8 @@ more
 movies?
 mtv
 mundart
-music
+musi(c|que)
+native
 nerd
 nes
 neue?
@@ -681,7 +722,7 @@ speed
 spoken
 spy
 step
-stoner
+stoner?
 street
 sub
 suicid(al)
@@ -699,6 +740,7 @@ top
 touhou
 tra(ditional|y)
 tri(bal|p)
+qn5
 underground
 uplifting
 urban
@@ -710,8 +752,10 @@ wave
 white
 witch
 wop
-word
+words?
 wtf
+ye.ye
+zef
 
 [filter_name]
 adam
@@ -734,18 +778,22 @@ katie
 kim
 kirsten
 martens?
+max
 mercury
 micha
 paul
 qlencja
+richard
 robert
 roger
 rusbeh
 ryan
 sarah
 th?om
+timbaland
 tony
 tristan
+valerie
 victor
 wagner
 
@@ -753,7 +801,9 @@ wagner
 
 [filter_instrument]
 accordi?on(iste)?
+arranger
 beat.?box
+brass
 cello
 clarinet
 computer( ?synthesizer)?
@@ -762,6 +812,7 @@ cumbia
 didgeridoo
 drum(mer|s)?
 flute
+grammophon
 guitar(iste?|s)?
 harp
 honky ?tonk
@@ -774,13 +825,17 @@ saxophone
 strings
 synth(esizers?)?
 trumpet
+twang
+ukulele
 vibraphone
 violin(ist)?
-vocal(ist)?
+vocal(ist|s)?
+zither
 
 [filter_label]
 .*label.*
 .*records.*
+(las.?)?vegas
 4ad
 aaahh
 anticon
@@ -800,17 +855,19 @@ e[ck]topla[sz]m
 ecm
 eimsbush
 emi
-gomma
+g[ao]mma(rec)?
 interscope
 jamendo
 kitsune
 left ?field( house)?
 lilith
 marvel
+motown
 moving ?shadow
 ninja tune
 parlophone
 perlon
+pitchfork
 playhouse
 plytoteka
 poly ?canyon( echo)?
@@ -833,9 +890,11 @@ warp
 
 [filter_location]
 (mid(dle)? ?)?(north|east|south|west)(ern|[ -]?coast)?
+(new.?)?(hampshire|jersey|orleans|york( ?city)?)
 aboriginal
-african?
+africaa?(ns?)?
 ame?rica(in|na?)?
+arab(ic)?
 arizona
 asi[ae]n?
 athens?
@@ -858,7 +917,7 @@ bro(adway|oklyn)
 brussel
 burlington
 california
-canad(a|i[ae]n)
+can(an?d(a|i[ae]n)|terbury)
 caribbean
 chi(cago|le(an)|na|nese)
 cit(ies|y)
@@ -921,25 +980,31 @@ m[ao]rocc(an|o)
 ma[dn]chester
 madrid
 mali([ae]n)?
+marseille
 massachusetts
 melbourne
 memphis
+metropo(po)?lis
 mexic(an|o)
 miami
 michigan
 min(den|nesotan?)
 munich
+nantes
 nashville
 netherlands?
-new ?(hampshire|jersey|orleans|york( ?city)?)
+nigeria(n)?
 nor(eg|dic|ge|sk|vg(e|ien)?|way|wegian)
 nyc?
+oakland
 oceanic
 ohio
 oxford
 paris
+philadelphia
 pittsburgh
 pol(and|ish)?
+potter
 puerto ?rico
 que?bec(ois)?
 queens
@@ -951,6 +1016,7 @@ scandinavi?[ae]n?
 scott?ish
 seattle
 senegal
+sheffield
 soo?maa?liy?an?
 spa(in|nish)
 sri ?lankan?
@@ -964,7 +1030,7 @@ sydney
 tchad
 texas
 toronto
-uk(rainian)?
+uk(rain(e|ian))?
 united ?(kingdom|states)
 usa?
 utah
