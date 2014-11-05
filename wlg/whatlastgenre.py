@@ -469,10 +469,10 @@ def searchstr(str_):
     '''Cleans up a string for use in searching.'''
     if not str_:
         return ''
-    for pat in [r'\(.*\)', r'\[.*\]', '{.*}', "- .* -", "'.*'", '".*"',
-                ' (- )?(album|single|ep|(official )?remix(es)?|soundtrack)$',
-                r'[ \(]f(ea)?t(\.|uring)? .*', r'vol(\.|ume)? ', ' and ',
-                '^the ', ' ost', '[!?/&:,.]', ' +']:
+    for pat in [
+            r'\(.*\)$', r'\[.*\]', '{.*}', "- .* -", "'.*'", '".*"',
+            ' (- )?(album|single|ep|(official )?remix(es)?|soundtrack|ost)$',
+            r'[ \(]f(ea)?t(\.|uring)? .*', r'vol(\.|ume)? ', '[!?/:,]', ' +']:
         str_ = re.sub(pat, ' ', str_, 0, re.I)
     return str_.strip().lower()
 
