@@ -353,12 +353,14 @@ def get_data(args, dps, cache, genretags, sdata):
             except RuntimeError:
                 continue
             except dp.DataProviderError as err:
+                dapr.add_stats(1, 1, 0, [0, 0])
                 print("%8s %s" % (dapr.name, err.message))
                 continue
         if not data or (len(data) == 1 and not data[0].get('tags')):
             LOG.info("%8s %6s search found    no    tags for '%s'%s",
                      dapr.name, variant, sstr, cachemsg)
             cache.set(cachekey, None)
+            dapr.add_stats(1, 0, 0, [0, 0])
             continue
         # filter
         data = filter_data(dapr.name.lower(), variant, sdata, data)
@@ -387,6 +389,8 @@ def get_data(args, dps, cache, genretags, sdata):
         if len(data) > 1:
             print("%8s %6s search found %d ambiguous results for '%s' (use -i)"
                   "%s" % (dapr.name, variant, len(data), sstr, cachemsg))
+            dapr.add_stats(1, 0, len(data),
+                           [sum(len(d['tags']) for d in data), 0])
             continue
         # unique data
         data = data[0]
@@ -394,6 +398,7 @@ def get_data(args, dps, cache, genretags, sdata):
         LOG.info("%8s %6s search found %2d of %2d tags for '%s'%s", dapr.name,
                  variant, tagsused, min(99, len(data['tags'])), sstr, cachemsg)
         LOG.debug(data['tags'])
+        dapr.add_stats(1, 0, 1, [len(data['tags']), tagsused])
         if variant == 'artist' and 'mbid' in data \
                 and len(sdata['artist']) == 1:
             sdata['mbids']['albumartistid'] = data['mbid']
@@ -472,25 +477,53 @@ def searchstr(str_):
     return str_.strip().lower()
 
 
-def print_stats(stats):
+def print_stats(stats, dps):
     '''Prints out some statistics.'''
     print("\nTime elapsed: %s"
           % datetime.timedelta(seconds=time.time() - stats['starttime']))
+    # genre tag statistics
     tags = stats['genres']
     if tags:
         tagout = sorted(tags.items(), key=lambda (k, v): (v, k), reverse=1)
         tagout = gt.GenreTags.tagprintstr(tagout, "%5d %-19s")
         print("\n%d different tags used this often:\n%s" % (len(tags), tagout))
-    fldrs = stats['foldernogenres']
-    if fldrs:
-        print("\n%d album(s) with no genre tags found:\n%s"
-              % (len(fldrs), '\n'.join(sorted(fldrs))))
-    fldrs = stats['foldererrors']
-    if fldrs:
-        print("\n%d album(s) with errors:" % len(fldrs))
-        for error in set(fldrs.values()):
-            fldrs = ["%s" % k for k, v in sorted(fldrs.items()) if v == error]
-            print("'%s':\n%s" % (error, '\n'.join(fldrs)))
+    # data provider statistics
+    if LOG.level <= logging.INFO:
+        print('\n%-13s ' % 'Source stats', end='')
+        stat = {}
+        for dapr in dps:
+            stat[dapr.name] = dapr.stats
+            queries = max(0.001, float(stat[dapr.name]['queries']))
+            realqueries = max(0.001, float(stat[dapr.name]['realqueries']))
+            tags = max(0.001, float(stat[dapr.name]['tags']))
+            stat[dapr.name].update({
+                'time_resp_avg': stat[dapr.name]['time_resp'] / realqueries,
+                'time_wait_avg': stat[dapr.name]['time_wait'] / realqueries,
+                'results/query': stat[dapr.name]['results'] / queries,
+                'tags/query': stat[dapr.name]['tags'] / queries,
+                'goodtags_perc': stat[dapr.name]['goodtags'] / tags})
+            print("| %-8s " % dapr.name, end='')
+        print('\n--------------', end='')
+        for _ in range(len(dps)):
+            print('+----------', end='')
+        print()
+        for statname in [
+                'errors', 'realqueries', 'queries', 'results', 'results/query',
+                'tags', 'tags/query', 'goodtags', 'goodtags_perc',
+                'time_resp_avg', 'time_wait_avg']:
+            print("%-13s " % statname, end='')
+            for dapr in dps:
+                val = stat[dapr.name][statname]
+                print("| " + ("%8.2f" if isinstance(val, float) else "%8d")
+                      % val + ' ', end='')
+            print()
+    # folder errors/messages
+    stat = stats['folders']
+    if stat:
+        print("\n%d album(s) with errors/messages:" % len(stat))
+        for msg in set(stat.values()):
+            fldrs = [k for k, v in sorted(stat.items()) if v == msg]
+            print("%s:\n%s" % (msg, '\n'.join(fldrs)))
 
 
 def main():
@@ -523,8 +556,7 @@ def main():
 
     stats = {'starttime': time.time(),
              'genres': defaultdict(int),
-             'foldererrors': {},
-             'foldernogenres': []}
+             'folders': {}}
 
     folders = mf.find_music_folders(args.path)
     print("Found %d music folders!" % len(folders))
@@ -549,14 +581,13 @@ def main():
             try:
                 genres = handle_folder(args, dps, cache, genretags, folder)
                 if not genres:
-                    stats['foldernogenres'].append(folderstr)
-                    continue
+                    raise mf.AlbumError("No genres found")
                 for tag in genres:
                     stats['genres'][tag] += 1
             except mf.AlbumError as err:
                 print(err.message)
-                stats['foldererrors'].update({folderstr: err.message})
+                stats['folders'].update({folderstr: err.message})
         print("\n...all done!")
     except KeyboardInterrupt:
         print()
-    print_stats(stats)
+    print_stats(stats, dps)

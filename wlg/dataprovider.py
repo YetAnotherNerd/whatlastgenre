@@ -76,17 +76,30 @@ class DataProvider(object):
         self.name = self.__class__.__name__
         self.last_request = time.time()
         self.rate_limit = 0.5  # min. seconds between requests
+        self.stats = {
+            'time_resp': 0.0,
+            'time_wait': 0.0,
+            'queries': 0,
+            'realqueries': 0,
+            'results': 0,
+            'errors': 0,
+            'tags': 0,
+            'goodtags': 0}
 
     def _query_jsonapi(self, url, params):
         '''Queries an api by url and params and returns the json results.'''
+        self.stats['realqueries'] += 1
+        self.stats['time_wait'] += max(
+            0, self.rate_limit - time.time() + self.last_request)
         while time.time() - self.last_request < self.rate_limit:
             time.sleep(.1)
+        self.last_request = time.time()
         try:
             req = self.session.get(url, params=params)
         except (requests.exceptions.ConnectionError,
                 requests.exceptions.HTTPError) as err:
             raise DataProviderError("connection error: %s" % err.message)
-        self.last_request = time.time()
+        self.stats['time_resp'] += time.time() - self.last_request
         if req.status_code != 200:
             if req.status_code == 400 and isinstance(self, Idiomag):
                 return
@@ -97,6 +110,14 @@ class DataProvider(object):
         except ValueError as err:
             LOG.info(req.content)
             raise DataProviderError("request error: %s" % err.message)
+
+    def add_stats(self, queries, errors, results, tags):
+        '''Adds some stats to the internal stat counter from outside.'''
+        self.stats['queries'] += queries
+        self.stats['errors'] += errors
+        self.stats['results'] += results
+        self.stats['tags'] += tags[0]
+        self.stats['goodtags'] += tags[1]
 
     def get_artist_data(self, artistname, mbid):
         '''Gets artist data from a DataProvider.'''
@@ -378,8 +399,12 @@ class Discogs(DataProvider):
 
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from Discogs.'''
+        self.stats['realqueries'] += 1
+        self.stats['time_wait'] += max(
+            0, self.rate_limit - time.time() + self.last_request)
         while time.time() - self.last_request < self.rate_limit:
             time.sleep(.1)
+        self.last_request = time.time()
         try:
             resp, content = self.client.request(
                 'https://api.discogs.com/database/search?type=master&q=%s'
@@ -387,7 +412,7 @@ class Discogs(DataProvider):
                 headers=HEADERS)
         except SSLError as err:
             raise DataProviderError("request error: %s" % err.message)
-        self.last_request = time.time()
+        self.stats['time_resp'] += time.time() - self.last_request
         if resp['status'] != '200':
             raise DataProviderError("request error: status %s"
                                     % resp['status'])
