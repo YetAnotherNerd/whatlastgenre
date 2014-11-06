@@ -470,9 +470,10 @@ class Idiomag(DataProvider):
         data = self._query_jsonapi(
             'http://www.idiomag.com/api/artist/tags/json',
             {'key': "77744b037d7b32a615d556aa279c26b5", 'artist': artistname})
+        if not data:
+            return
         return [{'tags': {t['name']: int(t['value'])
-                          for t in x.get('tag', {})}}
-                for x in (data or {}).get('profile', {})]
+                          for t in data.get('profile', {}).get('tag', [])}}]
 
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from Idiomag.'''
