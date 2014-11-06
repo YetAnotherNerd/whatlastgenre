@@ -447,10 +447,9 @@ class Idiomag(DataProvider):
         data = self._query_jsonapi(
             'http://www.idiomag.com/api/artist/tags/json',
             {'key': "77744b037d7b32a615d556aa279c26b5", 'artist': artistname})
-        if not data:
-            return
         return [{'tags': {t['name']: int(t['value'])
-                          for t in data.get('profile', {}).get('tag', {})}}]
+                          for t in x.get('tag', {})}}
+                for x in (data or {}).get('profile', {})]
 
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from Idiomag.'''
@@ -461,16 +460,19 @@ class Idiomag(DataProvider):
 class EchoNest(DataProvider):
     '''EchoNest DataProvider'''
 
+    def __init__(self):
+        super(EchoNest, self).__init__()
+        # http://developer.echonest.com/docs/v4#rate-limits
+        self.rate_limit = 3.0
+
     def get_artist_data(self, artistname, _):
         '''Gets artist data from EchoNest.'''
         data = self._query_jsonapi(
             'http://developer.echonest.com/api/v4/artist/search',
             {'api_key': "ZS0LNJH7V6ML8AHW3", 'format': 'json',
              'bucket': 'genre', 'results': 1, 'name': artistname})
-        if not data:
-            return
-        return [{'tags': [t['name'] for t in x['genres']]}
-                for x in data.get('response', {}).get('artists', {})]
+        return [{'tags': [t['name'] for t in x.get('genres', [])]}
+                for x in (data or {}).get('response', {}).get('artists', {})]
 
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from EchoNest.'''
