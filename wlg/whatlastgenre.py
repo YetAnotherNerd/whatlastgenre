@@ -212,7 +212,7 @@ def get_conf():
         else:
             continue
         print("%s option too %s value of %.2f." % (opt, cor[1], cor[0]))
-        config.set(sec, opt, cor[0])
+        config.set(sec, opt, str(cor[0]))
         dirty = True
     if not dirty:
         return config
