@@ -159,7 +159,7 @@ class GenreTags(object):
                 combis = itertools.combinations(parts, len(parts) - 1)
                 for combi in set(combis):
                     self._add(group, ' '.join(combi), score)
-                return 0
+                return score * self.conf.getfloat('scores', 'splitup')
         return score
 
     def reset(self, pattern):
