@@ -107,7 +107,8 @@ class GenreTags(object):
         if self.regex['replaceme'].search(name):
             for pattern, repl in self.replaces.items():
                 name = re.sub(pattern, repl, name, 0, re.I)
-        return re.sub('(_| +)', ' ', name).strip()
+            name = re.sub('_', ' ', name)
+        return re.sub(' +', ' ', name).strip()
 
     def _filter(self, name):
         '''Filters a tag by name, returns True if tag is filtered.'''
