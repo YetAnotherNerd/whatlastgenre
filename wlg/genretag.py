@@ -51,6 +51,15 @@ class GenreTags(object):
         self.replaces = {}
         for pattern, repl in self.tagsfile.items('replaceme', True):
             self.replaces.update({pattern: repl})
+        # set up regex
+        self.regex = {}
+        # compile some config options and tagsfile sections
+        for sec, pats in (
+                [(s, conf.get_list('genres', s)) for s in ['love', 'hate']] +
+                [(s, self.tagsfile.options(s)) for s in
+                 ['basictags', 'uppercase', 'dontsplit', 'splitpart',
+                  'replaceme', 'filter_location']]):
+            self.regex[sec] = re.compile('(%s)$' % '|'.join(pats), re.I)
         # build filter
         filter_ = conf.get_list('genres', 'blacklist')
         for sec in [s for s in self.tagsfile.sections()
@@ -60,14 +69,6 @@ class GenreTags(object):
             elif sec.endswith('_fuzzy') and sec[7:-6] in filters:
                 for tag in self.tagsfile.options(sec):
                     filter_.append('.*%s.*' % tag)
-        # set up regex
-        self.regex = {}
-        # compile some config options and tagsfile sections
-        for sec, pats in ([(s, conf.get_list('genres', s))
-                           for s in ['love', 'hate']] +
-                          [(s, self.tagsfile.options(s))
-                           for s in ['uppercase', 'dontsplit', 'replaceme']]):
-            self.regex[sec] = re.compile('(%s)$' % '|'.join(pats), re.I)
         # compile filter in chunks
         self.regex['filter'] = []
         for i in range(0, len(filter_), 256):
@@ -138,26 +139,27 @@ class GenreTags(object):
         return name
 
     def _split(self, group, name, score):
-        '''Splits a tag and adds its parts with modified score,
-        returns the remaining score for the base tag.'''
+        '''Splits a tag and adds its parts with modified score.
+
+        Returns the remaining score for the base tag.
+        '''
         if self.regex['dontsplit'].match(name):
             return score
-        name = re.sub(r'([_/\\,;\.\+\*]| and )', '&', name, 0, re.I)
+        name = re.sub(r'([/\\,;\+\*]| and )', '&', name, 0, re.I)
         if '&' in name:
-            for part in [p for p in name.split('&') if not self._filter(p)]:
-                self._add(group, part, score)
-                return None
-        elif ' ' in name.strip():
-            rawparts = name.split(' ')
-            parts = [p for p in rawparts if not self._filter(p)]
-            if not parts:
-                return None
-            parts = itertools.combinations(parts, max(1, len(parts) - 1))
-            for part in set(parts):
-                self._add(group, ' '.join(part), score)
-            if len(rawparts) > 2:
-                return None
-            return score * self.conf.getfloat('scores', 'splitup')
+            for part in name.split('&'):
+                self._add(group, part.strip(), score)
+            return None
+        if ' ' in name.strip():
+            parts = name.split(' ')
+            if any(p for p in parts
+                   if self.regex['basictags'].match(p)
+                   or self.regex['splitpart'].match(p)
+                   or self.regex['filter_location'].match(p)):
+                combis = itertools.combinations(parts, len(parts) - 1)
+                for combi in set(combis):
+                    self._add(group, ' '.join(combi), score)
+                return 0
         return score
 
     def reset(self, pattern):
@@ -273,7 +275,7 @@ class GenreTags(object):
         parser.readfp(StringIO.StringIO(tagsfilestr))
         # tags file validation
         for sec in [s for s in ['basictags', 'uppercase', 'dontsplit',
-                                'replaceme']
+                                'splitpart', 'replaceme']
                     if not parser.has_section(s)]:
             print("Got no [%s] from tag.txt file." % sec)
             exit()

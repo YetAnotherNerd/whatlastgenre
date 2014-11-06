@@ -18,6 +18,7 @@
 # [basictags]   mainly to differentiate between very similar but different tags
 # [uppercase]   tags with length>2 which should be uppercase
 # [dontsplit]   regex tags that shouldn't get split
+# [splitpart]   regex parts of tags that should get split by space
 # [replaceme]   regex replacements: pattern = replacement
 # [filter_<name>[_fuzzy]] sections: regular expressions filters
 #   lines will get surrounded by .* if you append _fuzzy
@@ -28,25 +29,53 @@
 
 [basictags]
 acapella
+acoustic
 alternative
+ambient
 avantgarde
+blues
 bossa nova
 chamber
+chillout
+classical
+country
+crossover
+dance
 downtempo
+dub
 electro-swing
+electronic
 female vocalist
+folk
+funk
+g-funk
+house
+indie
+industrial
 instrumental
 jazz
+lounge
 male vocalist
+metal
 minimal
 minimalist
+p-funk
 progressive
+psychedelic
 psy-trance
+punk
 ragga
 reggae
+rap
 singer-songwriter
+soul
+swing
 synthpop
+tango
 tech-house
+techno
+trance
+world
 # c/j/k-genres
 goth
 hip-hop
@@ -84,9 +113,21 @@ usa
 (fe)?male vocalist
 dr(ill|um) & bass
 easy listening
+nu .+
 rhythm & blues
 rock & roll
 stage & screen
+
+[splitpart]
+contemporary
+dark
+fast
+future
+heavy
+light
+mellow
+slow
+speed
 
 [replaceme]
 # tags by affix
