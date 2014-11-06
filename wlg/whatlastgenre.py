@@ -349,14 +349,14 @@ def get_data(args, dps, cache, genretags, sdata):
             except RuntimeError:
                 continue
             except dp.DataProviderError as err:
-                dapr.add_stats(1, 1, 0, [0, 0])
-                print("%8s %s" % (dapr.name, err.message))
+                print("%-8s %s" % (dapr.name, err.message))
+                dapr.add_query_stats(error=True)
                 continue
-        if not data or (len(data) == 1 and not data[0].get('tags')):
-            LOG.info("%8s %6s search found    no    tags for '%s'%s",
+        if not data:
+            LOG.info("%-8s %-6s search found    no results for '%s'%s",
                      dapr.name, variant, sstr, cachemsg)
+            dapr.add_query_stats()
             cache.set(cachekey, None)
-            dapr.add_stats(1, 0, 0, [0, 0])
             continue
         # filter
         data = filter_data(dapr.name.lower(), variant, sdata, data)
@@ -383,18 +383,23 @@ def get_data(args, dps, cache, genretags, sdata):
             cache.set(cachekey, data)
         # still multiple results?
         if len(data) > 1:
-            print("%8s %6s search found %d ambiguous results for '%s' (use -i)"
-                  "%s" % (dapr.name, variant, len(data), sstr, cachemsg))
-            dapr.add_stats(1, 0, len(data),
-                           [sum(len(d['tags']) for d in data), 0])
+            print("%-8s %-6s search found    %2d results for '%s'%s (use -i)"
+                  % (dapr.name, variant, len(data), sstr, cachemsg))
+            dapr.add_query_stats(results=len(data))
             continue
         # unique data
         data = data[0]
-        tagsused = genretags.add(dapr.name.lower(), variant, data['tags'])
-        LOG.info("%8s %6s search found %2d of %2d tags for '%s'%s", dapr.name,
-                 variant, tagsused, min(99, len(data['tags'])), sstr, cachemsg)
+        if not data.get('tags'):
+            LOG.info("%-8s %-6s search found    no    tags for '%s'%s",
+                     dapr.name, variant, sstr, cachemsg)
+            dapr.add_query_stats(results=1)
+            continue
+        tags = min(99, len(data['tags']))
+        goodtags = genretags.add(dapr.name.lower(), variant, data['tags'])
+        LOG.info("%-8s %-6s search found %2d of %2d tags for '%s'%s",
+                 dapr.name, variant, goodtags, tags, sstr, cachemsg)
         LOG.debug(data['tags'])
-        dapr.add_stats(1, 0, 1, [len(data['tags']), tagsused])
+        dapr.add_query_stats(results=1, tags=tags, goodtags=goodtags)
         if variant == 'artist' and 'mbid' in data \
                 and len(sdata['artist']) == 1:
             sdata['mbids']['albumartistid'] = data['mbid']
@@ -497,7 +502,7 @@ def print_stats(stats, dps):
                 'time_wait_avg': stat[dapr.name]['time_wait'] / realqueries,
                 'results/query': stat[dapr.name]['results'] / queries,
                 'tags/query': stat[dapr.name]['tags'] / queries,
-                'goodtags_perc': stat[dapr.name]['goodtags'] / tags})
+                'goodtags/tags': stat[dapr.name]['goodtags'] / tags})
             print("| %-8s " % dapr.name, end='')
         print('\n--------------', end='')
         for _ in range(len(dps)):
@@ -505,8 +510,10 @@ def print_stats(stats, dps):
         print()
         for statname in [
                 'errors', 'realqueries', 'queries', 'results', 'results/query',
-                'tags', 'tags/query', 'goodtags', 'goodtags_perc',
+                'tags', 'tags/query', 'goodtags', 'goodtags/tags',
                 'time_resp_avg', 'time_wait_avg']:
+            if not any(stat[dapr.name][statname] for dapr in dps):
+                continue
             print("%-13s " % statname, end='')
             for dapr in dps:
                 val = stat[dapr.name][statname]

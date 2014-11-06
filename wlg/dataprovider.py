@@ -97,26 +97,29 @@ class DataProvider(object):
             req = self.session.get(url, params=params)
         except (requests.exceptions.ConnectionError,
                 requests.exceptions.HTTPError) as err:
+            LOG.info(req.content)
             raise DataProviderError("connection error: %s" % err.message)
         self.stats['time_resp'] += time.time() - self.last_request
         if req.status_code != 200:
             if req.status_code == 400 and isinstance(self, Idiomag):
                 return
+            LOG.info(req.content)
             raise DataProviderError("request error: status code %s"
                                     % req.status_code)
         try:
             return req.json()
         except ValueError as err:
             LOG.info(req.content)
-            raise DataProviderError("request error: %s" % err.message)
+            raise DataProviderError("request error: %s" % err.strerror)
 
-    def add_stats(self, queries, errors, results, tags):
-        '''Adds some stats to the internal stat counter from outside.'''
-        self.stats['queries'] += queries
-        self.stats['errors'] += errors
+    def add_query_stats(self, error=False, results=0, tags=0, goodtags=0):
+        '''Adds some stats to the internal stat counter.'''
+        if error:
+            self.stats['errors'] += 1
+        self.stats['queries'] += 1
         self.stats['results'] += results
-        self.stats['tags'] += tags[0]
-        self.stats['goodtags'] += tags[1]
+        self.stats['tags'] += tags
+        self.stats['goodtags'] += goodtags
 
     def get_artist_data(self, artistname, mbid):
         '''Gets artist data from a DataProvider.'''
@@ -207,7 +210,7 @@ class LastFM(DataProvider):
         data = None
         # search with mbid
         if mbid:
-            LOG.info("%8s artist search using %s mbid.", self.name, mbid)
+            LOG.info("%-8s artist search using %s mbid.", self.name, mbid)
             data = self._query({'method': 'artist.gettoptags', 'mbid': mbid})
         # search without mbid
         if not data:
@@ -225,7 +228,7 @@ class LastFM(DataProvider):
         # search with mbid
         mbid = 'albumid'
         if mbid in mbids and mbids[mbid]:
-            LOG.info("%8s  album search using %s %s mbid.",
+            LOG.info("%-8s album  search using %s %s mbid.",
                      self.name, mbids[mbid], mbid)
             data = self._query({'method': 'album.gettoptags',
                                 'mbid': mbids[mbid]})
@@ -269,11 +272,11 @@ class MBrainz(DataProvider):
         data = None
         # search by mbid
         if mbid:
-            LOG.info("%8s artist search using %s mbid.", self.name, mbid)
+            LOG.info("%-8s artist search using %s mbid.", self.name, mbid)
             data = self._query('artist', 'arid:"' + mbid + '"')
             data = (data or {}).get('artists', None)
             if not data:
-                print("%8s artist search found nothing, invalid MBID?"
+                print("%-8s artist search found nothing, invalid MBID?"
                       % self.name)
         # search without mbid
         if not data:
@@ -296,7 +299,7 @@ class MBrainz(DataProvider):
         # search by release mbid (just if there is no release-group mbid)
         mbid = 'albumid'
         if not mbids.get('releasegroupid') and mbids.get(mbid):
-            LOG.info("%8s  album search using %s %s mbid.",
+            LOG.info("%-8s album  search using %s %s mbid.",
                      self.name, mbids[mbid], mbid)
             data = self._query('release', 'reid:"' + mbids[mbid] + '"')
             data = (data or {}).get('releases', None)
@@ -306,17 +309,17 @@ class MBrainz(DataProvider):
                 for i in range(len(data)):
                     data[i]['id'] = None
             else:
-                print("%8s rel.   search found nothing, invalid MBID?"
+                print("%-8s rel.   search found nothing, invalid MBID?"
                       % self.name)
         # search by release-group mbid
         mbid = 'releasegroupid'
         if not data and mbids.get(mbid):
-            LOG.info("%8s  album search using %s %s mbid.",
+            LOG.info("%-8s album  search using %s %s mbid.",
                      self.name, mbids[mbid], mbid)
             data = self._query('release-group', 'rgid:"' + mbids[mbid] + '"')
             data = (data or {}).get('release-groups', None)
             if not data:
-                print("%8s relgrp search found nothing, invalid MBID?"
+                print("%-8s relgrp search found nothing, invalid MBID?"
                       % self.name)
         # search without mbids
         if not data:
@@ -424,16 +427,16 @@ class Discogs(DataProvider):
                 % (artistname + ' ' + albumname).decode('ascii', 'ignore'),
                 headers=HEADERS)
         except SSLError as err:
-            raise DataProviderError("request error: %s" % err.message)
+            raise DataProviderError("request error: %s" % err.strerror)
         self.stats['time_resp'] += time.time() - self.last_request
         if resp['status'] != '200':
-            raise DataProviderError("request error: status %s"
-                                    % resp['status'])
+            LOG.info(content)
+            raise DataProviderError("request error: status " + resp['status'])
         try:
             data = json.loads(content)
         except ValueError as err:
             LOG.info(content)
-            raise DataProviderError("request error: %s" % err.message)
+            raise DataProviderError("request error: %s" % err.strerror)
         return [{
             'info': "%s (%s) [%s]: %s"
                     % (x.get('title'), x.get('year'),
