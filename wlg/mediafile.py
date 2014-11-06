@@ -55,6 +55,8 @@ class Album(object):
     '''Class for managing albums.'''
 
     def __init__(self, path):
+        if not os.path.exists(path):
+            raise AlbumError("Folder vanished")
         self.path = path
         # load tracks
         self.tracks = []
