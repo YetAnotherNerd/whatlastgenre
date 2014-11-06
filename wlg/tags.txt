@@ -161,6 +161,7 @@ rapper = rap
 ((mon|tues|wednes|thurs|fri|satur|sun)day|(mon|diens|donners|frei|sams|sonn)tag|mittwoch)
 ([ck]ompa[ck]t)
 (ba|u)rh?ythm
+([a-z]+[0-9]+)
 abend
 above
 after
@@ -216,7 +217,7 @@ ccm
 che(ese|ck)
 chi(ck|ld)
 cinema
-classifi
+cla(p|ssifi)
 clever
 code
 colle(ct|ge)
@@ -294,6 +295,7 @@ geek
 geht.?ab
 gen(eral|iaa?l|iu|re)
 ges(ang|chichte)
+global
 goo?l?d
 gr+l
 gra(b|mmy|nt)
@@ -303,6 +305,7 @@ haben
 hae(nge|ven)
 hae?rte
 hair
+hand
 happ
 hates
 haunt
@@ -345,6 +348,7 @@ keep
 kick
 kitty
 know
+labor
 languages
 laptop
 last.?fm
@@ -488,7 +492,7 @@ spring
 squeeze
 sta(nd(ard)?|r|te)
 sto(mp|ry)
-str(ange|e(am|ss)|ide|ong)
+str(ange|eam|eet|ess|ide|ong)
 stu(dio|dy|n)
 styl
 sud[eo]
@@ -583,13 +587,14 @@ arena
 art
 aus
 ban(ds?|g)
-bas(ic(ally|s)?|s)
+bas(ic(ally|s)?|s(ebebop)?)
 batt
 beats?
 best
 big
 bla(ck|xploitation)
 blue
+bmore
 bo[wxy]s?
 bossa
 brother
@@ -608,10 +613,12 @@ cool
 core
 critic(al)?
 dark
+dass?
 death
 debut
 deep
 depressive
+der
 desi
 die
 divine
@@ -629,7 +636,7 @@ flow
 fox
 fre(ak|e)
 full
-fun(eral)?
+fun(eral|ny)?
 fusion
 future
 games?
@@ -661,6 +668,7 @@ klezmer
 kuschel
 labrador
 language
+lebe
 light
 listen(ers?|ing?)?
 los
@@ -771,6 +779,7 @@ fabio
 fergie
 george
 heintje
+jack
 jason
 john
 jones
@@ -919,6 +928,7 @@ burlington
 california
 can(an?d(a|i[ae]n)|terbury)
 caribbean
+celtic
 chi(cago|le(an)|na|nese)
 cit(ies|y)
 cleveland
@@ -1011,7 +1021,7 @@ queens
 rio ?de ?janeiro
 rom[ae](nian?)?
 russ(ian?|o)
-san( .* )
+san .*
 scandinavi?[ae]n?
 scott?ish
 seattle
