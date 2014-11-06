@@ -422,10 +422,13 @@ class Discogs(DataProvider):
             time.sleep(.1)
         self.last_request = time.time()
         try:
-            resp, content = self.client.request(
-                'https://api.discogs.com/database/search?type=master&q=%s'
-                % (artistname + ' ' + albumname).decode('ascii', 'ignore'),
-                headers=HEADERS)
+            # FIXME: oauth2 can't handle unicode
+            # long term plan is not to use oauth2 lib anyway
+            url = 'https://api.discogs.com/database/search'
+            url += '?release_title=' + albumname.decode('ascii', 'ignore')
+            if artistname:
+                url += '&artist=' + artistname.decode('ascii', 'ignore')
+            resp, content = self.client.request(url, headers=HEADERS)
         except SSLError as err:
             raise DataProviderError("request error: %s" % err.strerror)
         self.stats['time_resp'] += time.time() - self.last_request
@@ -437,13 +440,26 @@ class Discogs(DataProvider):
         except ValueError as err:
             LOG.info(content)
             raise DataProviderError("request error: %s" % err.strerror)
+
+        data = (data or {}).get('results', [])
+        masters = [x for x in data if x.get('type') == 'master']
+        releases = [x for x in data if x.get('type') == 'release']
+        # merge release tags with master tags
+        for master in masters:
+            tags = master.get('genre', [])
+            tags += master.get('style', [])
+            for release in releases:
+                if release.get('title') == master.get('title'):
+                    tags += release.get('genre', [])
+                    tags += release.get('style', [])
+            master['tags'] = list(set(tags))
+
         return [{
             'info': "%s (%s) [%s]: %s"
                     % (x.get('title'), x.get('year'),
                        ', '.join(x.get('format')), x['resource_url']),
-            'title': x.get('title', ''),
-            'tags': x.get('style', []) + x.get('genre', []),
-            'year': x.get('year')} for x in (data or []).get('results', {})]
+            'title': x.get('title', ''), 'tags': x.get('tags'),
+            'year': x.get('year')} for x in masters]
 
 
 class Idiomag(DataProvider):
