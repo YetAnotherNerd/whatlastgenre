@@ -70,8 +70,8 @@ class GenreTags(object):
             self.regex[sec] = re.compile('(%s)$' % '|'.join(pats), re.I)
         # compile filter in chunks
         self.regex['filter'] = []
-        for i in range(0, len(filter_), 384):
-            pat = '(%s)$' % '|'.join(filter_[i:i + 384])
+        for i in range(0, len(filter_), 256):
+            pat = '(%s)$' % '|'.join(filter_[i:i + 256])
             self.regex['filter'].append(re.compile(pat, re.I))
 
     def _add(self, group, name, score):
