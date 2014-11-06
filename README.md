@@ -185,15 +185,14 @@ Default `0.66`, Range `0.1 - 1.0`
 
 ##### splitup option
 Score multiplier for modifying the score of the base tag from a tag that got
-split up by space, this enables you to decide whether to keep, prefer or ban
+split up by space. This enables you to decide whether to keep, prefer or ban
 the base tags. For example, lets say we have 'Alternative Rock' with a score
 of 1: It will end up as Alternative with score 1, Rock with score 1 and
 Alternative Rock with score `1 * <splitup-score>`. So if you don't want to keep
-Alternative Rock, just set it to 0, but consider using a very small number
-instead to avoid banning them totally.
+Alternative Rock, just set it to 0.
 
 Default `0.33`, Range `0.0 - 1.0`
-* `= 0.0` forget about the "base" tags
+* `= 0.0` forget about the base tags
 * `< 1.0` prefer split parts
 * `= 1.0` handle them equally
 
