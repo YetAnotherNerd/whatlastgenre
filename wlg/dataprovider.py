@@ -24,7 +24,6 @@ import logging
 import os
 import time
 
-from OpenSSL.SSL import SysCallError
 import requests
 
 from wlg import __version__
@@ -100,7 +99,7 @@ class DataProvider(object):
         self.last_request = time.time()
         try:
             req = self.session.get(url, params=params)
-        except (requests.exceptions.RequestException, SysCallError) as err:
+        except requests.exceptions.RequestException as err:
             raise DataProviderError("request error: %s" % err.message)
         self.stats['time_resp'] += time.time() - self.last_request
         if req.status_code != 200:
@@ -395,7 +394,7 @@ class Discogs(DataProvider):
         params = {'release_title': albumname}
         if artistname:
             params.update({'artist': artistname})
-        data = self._query_jsonapi('https://api.discogs.com/database/search',
+        data = self._query_jsonapi('http://api.discogs.com/database/search',
                                    params)
         data = (data or {}).get('results', [])
         masters = [x for x in data if x.get('type') == 'master']
