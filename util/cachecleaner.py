@@ -36,7 +36,7 @@ Examples:
 Make sure whatlastgenre is not running while running this util script.
 '''
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 import argparse
 import json
