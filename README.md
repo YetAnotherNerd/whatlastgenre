@@ -79,8 +79,8 @@ cloned/extracted to
 * Install it by running `python setup.py install` as root in that directory
 
 ##### Optional Dependencies
-* `oauth2` is required for Discogs (disabled by default).
-If you want to use Discogs, install `oauth2` like above and activate `discogs`
+* `rauth` is required for Discogs (disabled by default).
+If you want to use Discogs, install `rauth` like above and activate `discogs`
 in the configuration file (see below).
 
 

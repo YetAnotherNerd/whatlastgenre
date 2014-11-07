@@ -47,7 +47,7 @@ setup(
     },
     install_requires=['mutagen', 'requests'],
     extras_require={
-        'discogs': ['oauth2'],
+        'discogs': ['rauth'],
     },
     classifiers=[
         'Development Status :: 4 - Beta',

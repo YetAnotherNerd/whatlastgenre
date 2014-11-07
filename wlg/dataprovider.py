@@ -21,9 +21,12 @@ from __future__ import print_function
 
 import json
 import logging
+import os
 import time
 
+from OpenSSL.SSL import SysCallError
 import requests
+
 from wlg import __version__
 
 
@@ -71,11 +74,10 @@ class DataProviderError(Exception):
 class DataProvider(object):
     '''Base class for DataProviders.'''
 
-    session = requests.session()
-    session.headers.update(HEADERS)
-
     def __init__(self):
         self.name = self.__class__.__name__
+        self.session = requests.session()
+        self.session.headers.update(HEADERS)
         self.last_request = time.time()
         self.rate_limit = 1.0  # min. seconds between requests
         self.stats = {
@@ -98,10 +100,8 @@ class DataProvider(object):
         self.last_request = time.time()
         try:
             req = self.session.get(url, params=params)
-        except (requests.exceptions.ConnectionError,
-                requests.exceptions.HTTPError) as err:
-            LOG.info(req.content)
-            raise DataProviderError("connection error: %s" % err.message)
+        except (requests.exceptions.RequestException, SysCallError) as err:
+            raise DataProviderError("request error: %s" % err.message)
         self.stats['time_resp'] += time.time() - self.last_request
         if req.status_code != 200:
             if req.status_code == 400 and isinstance(self, Idiomag):
@@ -347,68 +347,43 @@ class Discogs(DataProvider):
 
     def __init__(self):
         super(Discogs, self).__init__()
-        import oauth2
-        import os
+        import rauth
         # http://www.discogs.com/developers/#header:home-rate-limiting
         self.rate_limit = 1.0
-        consumer = oauth2.Consumer('sYGBZLljMPsYUnmGOzTX',
-                                   'TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk')
+
+        discogs = rauth.OAuth1Service(
+            consumer_key='sYGBZLljMPsYUnmGOzTX',
+            consumer_secret='TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk',
+            request_token_url='https://api.discogs.com/oauth/request_token',
+            access_token_url='https://api.discogs.com/oauth/access_token',
+            authorize_url='https://www.discogs.com/oauth/authorize')
         token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
         try:
             # try load access token from file
             with open(token_file) as file_:
                 data = json.load(file_)
-            key = data['key']
-            secret = data['secret']
+            acc_token = data['token']
+            acc_secret = data['secret']
         except (IOError, KeyError, ValueError):
-            key, secret = self._authenticate(consumer)
+            # get request token
+            req_token, req_secret = discogs.get_request_token(headers=HEADERS)
+            # get verifier from user
+            print("\nDiscogs now requires authentication.")
+            print("If you don't have an account or don't want to use it, "
+                  "remove it from 'sources' in the configuration file.")
+            print("To enable Discogs support visit:\n%s"
+                  % discogs.get_authorize_url(req_token))
+            verifier = raw_input('Verification code: ')
+            # get access token
+            acc_token, acc_secret = discogs.get_access_token(
+                req_token, req_secret, data={'oauth_verifier': verifier},
+                headers=HEADERS)
             # save access token to file
             with open(token_file, 'w') as file_:
-                json.dump({'key': key, 'secret': secret}, file_)
-            # FIXME: dirty, don't know why it doesn't work in one run
-            # long term plan is not to use oauth2 lib anyway
-            exit()
-        self.client = oauth2.Client(consumer, oauth2.Token(key, secret))
+                json.dump({'token': acc_token, 'secret': acc_secret}, file_)
 
-    @classmethod
-    def _authenticate(cls, consumer):
-        '''Asks the user to log in to Discogs to get the access token.'''
-        import oauth2
-        import urlparse
-
-        request_token_url = 'https://api.discogs.com/oauth/request_token'
-        authorize_url = 'https://www.discogs.com/oauth/authorize'
-        access_token_url = 'https://api.discogs.com/oauth/access_token'
-
-        # get request token
-        client = oauth2.Client(consumer)
-        resp, content = client.request(
-            request_token_url, 'POST', headers=HEADERS)
-        if resp['status'] != '200':
-            LOG.info(content)
-            raise DataProviderError("invalid response %s." % resp['status'])
-        request_token = dict(urlparse.parse_qsl(content))
-        token = oauth2.Token(request_token['oauth_token'],
-                             request_token['oauth_token_secret'])
-
-        # get verifier from user
-        print("\nDiscogs now requires authentication.")
-        print("If you don't have an Discogs account or don't wont to use it, "
-              "remove it from 'sources' in the configuration file.")
-        print("To enable Discogs support visit:\n%s?oauth_token=%s"
-              % (authorize_url, token.key))
-        token.set_verifier(raw_input('Verification code: '))
-
-        # get access token
-        client = oauth2.Client(consumer, token)
-        resp, content = client.request(
-            access_token_url, 'POST', headers=HEADERS)
-        if resp['status'] != '200':
-            LOG.info(content)
-            raise DataProviderError("invalid response %s." % resp['status'])
-        access_token = dict(urlparse.parse_qsl(content))
-
-        return access_token['oauth_token'], access_token['oauth_token_secret']
+        self.session = discogs.get_session((acc_token, acc_secret))
+        self.session.headers.update(HEADERS)
 
     def get_artist_data(self, artistname, _):
         '''Gets artist data from Discogs.'''
@@ -417,33 +392,11 @@ class Discogs(DataProvider):
 
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from Discogs.'''
-        from ssl import SSLError
-        self.stats['realqueries'] += 1
-        self.stats['time_wait'] += max(
-            0, self.rate_limit - time.time() + self.last_request)
-        while time.time() - self.last_request < self.rate_limit:
-            time.sleep(.1)
-        self.last_request = time.time()
-        try:
-            # FIXME: oauth2 can't handle unicode
-            # long term plan is not to use oauth2 lib anyway
-            url = 'https://api.discogs.com/database/search'
-            url += '?release_title=' + albumname.decode('ascii', 'ignore')
-            if artistname:
-                url += '&artist=' + artistname.decode('ascii', 'ignore')
-            resp, content = self.client.request(url, headers=HEADERS)
-        except SSLError as err:
-            raise DataProviderError("request error: %s" % err.strerror)
-        self.stats['time_resp'] += time.time() - self.last_request
-        if resp['status'] != '200':
-            LOG.info(content)
-            raise DataProviderError("request error: status " + resp['status'])
-        try:
-            data = json.loads(content)
-        except ValueError as err:
-            LOG.info(content)
-            raise DataProviderError("request error: %s" % err.strerror)
-
+        params = {'release_title': albumname}
+        if artistname:
+            params.update({'artist': artistname})
+        data = self._query_jsonapi('https://api.discogs.com/database/search',
+                                   params)
         data = (data or {}).get('results', [])
         masters = [x for x in data if x.get('type') == 'master']
         releases = [x for x in data if x.get('type') == 'release']
@@ -456,7 +409,6 @@ class Discogs(DataProvider):
                     tags += release.get('genre', [])
                     tags += release.get('style', [])
             master['tags'] = list(set(tags))
-
         return [{
             'info': "%s (%s) [%s]: %s"
                     % (x.get('title'), x.get('year'),
