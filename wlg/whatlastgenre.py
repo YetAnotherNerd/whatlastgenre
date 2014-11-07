@@ -1,17 +1,19 @@
 # whatlastgenre
-# Improve genre metadata of audio files based on tags from various music sites.
+# Improves genre metadata of audio files
+# based on tags from various music sites.
 #
 # Copyright (c) 2012-2014 YetAnotherNerd
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
 
 '''whatlastgenre'''
 
@@ -31,7 +33,6 @@ import tempfile
 import time
 
 from wlg import __version__
-
 import wlg.dataprovider as dp
 import wlg.genretag as gt
 import wlg.mediafile as mf
@@ -49,7 +50,9 @@ class MySafeConfigParser(ConfigParser.SafeConfigParser):
 
 
 class Cache(object):
-    '''Loads and saves a dict as json from/into a file for some speedup.'''
+    '''Loads and saves a dict as json from/into a file for some
+    speedup.
+    '''
 
     def __init__(self, bypass, timeout):
         self.fullpath = os.path.expanduser('~/.whatlastgenre/cache')
@@ -72,8 +75,8 @@ class Cache(object):
     def get(self, key):
         '''Returns data for a given key.
 
-        Since this method does't check the timestamp of the cache entries
-        self.clean() is to be called on instantiation.
+        Since this method does't check the timestamp of the cache
+        entries self.clean() is to be called on instantiation.
         '''
         if self.bypass:
             return
@@ -299,7 +302,7 @@ def handle_album(args, dps, cache, genretags, album):
 
 
 def compile_album_filter(album):
-    '''Returns a filter pattern object based on the metadata of an album.'''
+    '''Returns a filter pattern based on the metadata of an album.'''
     badtags = []
     for tag in ['albumartist', 'album']:
         val = album.get_meta(tag)

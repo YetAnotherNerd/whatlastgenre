@@ -1,17 +1,19 @@
 # whatlastgenre
-# Improve genre metadata of audio files based on tags from various music sites.
+# Improves genre metadata of audio files
+# based on tags from various music sites.
 #
 # Copyright (c) 2012-2014 YetAnotherNerd
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
 
 '''whatlastgenre genretag'''
 
@@ -102,8 +104,9 @@ class GenreTags(object):
     def _replace(self, name):
         '''Applies all the replaces to a tag name and returns it.
 
-        Uses a precompiled search pattern of all replace patterns to identify
-        tag names that will get some replacement for increased performance.
+        Uses a precompiled search pattern of all replace patterns
+        to identify tag names that will get some replacement for
+        increased performance.
         '''
         if self.regex['replaceme'].search(name):
             for pattern, repl in self.replaces.items():
@@ -163,7 +166,7 @@ class GenreTags(object):
         return score
 
     def reset(self, pattern):
-        '''Resets the genre tags dict and sets a new album filter pattern.
+        '''Resets the tags dict and sets a new album filter pattern.
 
         :param pattern: compiled album filter match pattern
         '''
@@ -173,15 +176,15 @@ class GenreTags(object):
     def add(self, source, group, tags):
         '''Adds multiple tags from a source to a group.
 
-        Tags can be with counts (as dict) or without counts (as list). The tag
-        scores get multiplied with the source score modifier of the
-        corresponding source. Returns the number of tags added. Note that tags
-        that get split later still count as one tag, no matter how many parts
-        came from it.
+        Tags can be with counts (as dict) or without counts (as list).
+        The tag scores get multiplied with the source score modifier of
+        the corresponding source. Returns the number of tags added.
+        Note that tags that get split later still count as one tag, no
+        matter how many parts came from it.
 
-        :param source: the source where the tags came from
-        :param group: the group where the tags get added to
-        :param tags: the tags with (as dict) or without (as list) counts
+        :param source: source where the tags came from
+        :param group: group where the tags get added to
+        :param tags: tags with (as dict) or without (as list) counts
         '''
         if not tags:
             return 0
@@ -203,7 +206,9 @@ class GenreTags(object):
         return added
 
     def get(self, various=False):
-        '''Merges all tag groups and returns the sorted and formated genres.'''
+        '''Merges all tag groups and returns the sorted and formated
+        genres.
+        '''
         for group, tags in ((k, v) for k, v in self.tags.items() if v):
             # norm tag scores
             max_ = max(tags.values())

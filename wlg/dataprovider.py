@@ -1,17 +1,19 @@
 # whatlastgenre
-# Improve genre metadata of audio files based on tags from various music sites.
+# Improves genre metadata of audio files
+# based on tags from various music sites.
 #
 # Copyright (c) 2012-2014 YetAnotherNerd
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
 
 '''whatlastgenre dataprovider'''
 
@@ -31,14 +33,15 @@ HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 
 
 def get_daprs(conf):
-    '''Returns a list of DataProvider objects activated in the conf file.
+    '''Returns a list of DataProviders activated in the conf file.
 
-    The DataProviders will later be called in the order they get added here.
-    Since lastfm supports search by MBIDs, mbrainz should get added before
-    lastfm. DataProviders that provide good spelled tags (eg. sources with a
-    fixed set of possible genres) should generally be added before
-    DataProviders that provide misspelled tags (eg. lastfm user tags) to avoid
-    getting malformed tags due to the tag matching process while adding them.
+    The DataProviders will later be called in the order they get added
+    here.  Since lastfm supports search by MBIDs, mbrainz should get
+    added before lastfm.  DataProviders that provide good spelled tags
+    (eg. sources with a fixed set of possible genres) should generally
+    be added before DataProviders that provide misspelled tags (eg.
+    lastfm user tags) to avoid getting malformed tags due to the tag
+    matching process while adding them.
 
     :param conf: ConfigParser object of the configuration file
     '''
@@ -86,7 +89,7 @@ class DataProvider(object):
             'goodtags': 0}
 
     def _query_jsonapi(self, url, params):
-        '''Queries an api by url and params and returns the json results.'''
+        '''Queries an api and returns the json results.'''
         self.stats['realqueries'] += 1
         self.stats['time_wait'] += max(
             0, self.rate_limit - time.time() + self.last_request)
@@ -252,8 +255,8 @@ class LastFM(DataProvider):
 
 class MBrainz(DataProvider):
     '''MusicBrainz DataProvider'''
-    # NOTE: its possible not to use ?query=*id: when searching by mbid, but
-    # directly put the mbid into the url, then don't forget to add ?inc=tags
+    # NOTE: its possible not to use ?query=*id: when searching by mbid,
+    # but directly put the mbid into the url, then add ?inc=tags
 
     def __init__(self):
         super(MBrainz, self).__init__()
