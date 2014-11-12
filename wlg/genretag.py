@@ -252,16 +252,16 @@ class GenreTags(object):
 
     def format(self, name):
         '''Formats a tag to correct case.'''
-        split = name.split(' ')
-        for i in range(len(split)):
-            if len(split[i]) < 3 and split[i] != 'nu' or \
-                    self.regex['uppercase'].match(split[i]):
-                split[i] = split[i].upper()
+        words = name.split(' ')
+        for i, word in enumerate(words):
+            if len(word) < 3 and word != 'nu' or \
+                    self.regex['uppercase'].match(word):
+                words[i] = word.upper()
             elif re.match('[0-9]{4}s', name, re.I):
-                split[i] = split[i].lower()
+                words[i] = word.lower()
             else:
-                split[i] = split[i].title()
-        return ' '.join(split)
+                words[i] = word.title()
+        return ' '.join(words)
 
     @classmethod
     def tagprintstr(cls, tags, pattern):

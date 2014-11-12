@@ -139,27 +139,27 @@ class Cache(object):
 
 def get_args():
     '''Gets the cmdline arguments from ArgumentParser.'''
-    args = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Improves genre metadata of audio files '
                     'based on tags from various music sites.')
-    args.add_argument('path', nargs='+',
-                      help='folder(s) to scan for albums')
-    args.add_argument('-v', '--verbose', action='count', default=0,
-                      help='verbose output (-vv for debug)')
-    args.add_argument('-n', '--dry', action='store_true',
-                      help='don\'t save metadata')
-    args.add_argument('-i', '--interactive', action='store_true',
-                      help='interactive mode')
-    args.add_argument('-c', '--no-cache', action='store_true',
-                      help='bypass cache hits')
-    args.add_argument('-r', '--tag-release', action='store_true',
-                      help='tag release type (from What.CD)')
-    args.add_argument('-m', '--tag-mbids', action='store_true',
-                      help='tag musicbrainz ids')
-    args.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
-                      help='max. number of genre tags')
-    args = args.parse_args()
+    parser.add_argument('path', nargs='+',
+                        help='folder(s) to scan for albums')
+    parser.add_argument('-v', '--verbose', action='count', default=0,
+                        help='verbose output (-vv for debug)')
+    parser.add_argument('-n', '--dry', action='store_true',
+                        help='don\'t save metadata')
+    parser.add_argument('-i', '--interactive', action='store_true',
+                        help='interactive mode')
+    parser.add_argument('-c', '--no-cache', action='store_true',
+                        help='bypass cache hits')
+    parser.add_argument('-r', '--tag-release', action='store_true',
+                        help='tag release type (from What.CD)')
+    parser.add_argument('-m', '--tag-mbids', action='store_true',
+                        help='tag musicbrainz ids')
+    parser.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
+                        help='max. number of genre tags')
+    args = parser.parse_args()
     return args
 
 

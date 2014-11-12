@@ -126,15 +126,18 @@ class Album(object):
         print("done!" if dirty else "(no changes)")
 
     @classmethod
-    def _longest_common_substr(cls, data):
-        '''Returns the longest common substring from a list of strings.'''
+    def _longest_common_substr(cls, strs):
+        '''Returns the longest common substr for a list of strings.
+
+        :param strs: list of strings to get the lcs for
+        '''
         substr = ''
-        if len(data) > 1 and data[0]:
-            for i in range(len(data[0])):
-                for j in range(len(data[0]) - i + 1):
-                    if j > len(substr) and all(data[0][i:i + j] in x
-                                               for x in data):
-                        substr = data[0][i:i + j]
+        if len(strs) > 1 and strs[0]:
+            for i in range(len(strs[0])):
+                for j in range(len(strs[0]) - i + 1):
+                    if j > len(substr) and all(strs[0][i:i + j] in x
+                                               for x in strs):
+                        substr = strs[0][i:i + j]
         return substr
 
 
