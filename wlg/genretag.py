@@ -165,13 +165,24 @@ class GenreTags(object):
                 return score * self.conf.getfloat('scores', 'splitup')
         return score
 
-    def reset(self, pattern):
-        '''Resets the tags dict and sets a new album filter pattern.
+    def reset(self, album):
+        '''Resets the tags dict and sets a new album filter.
 
-        :param pattern: compiled album filter match pattern
+        :param album: album to compile filter from
         '''
         self.tags = {'artist': defaultdict(float), 'album': defaultdict(float)}
-        self.regex['filter_album'] = pattern
+
+        filter_ = [album.get_meta(x) for x in ['albumartist', 'album']
+                   if album.get_meta(x)]
+        filter_ += [x for f in filter_ if ' ' in f for x in f.split(' ')]
+        filter_ = [re.sub(r'[^a-z0-9 ]', '', f, 0, re.I).strip().lower()
+                   for f in set(filter_)]
+        filter_ = [f for f in filter_ if len(f) > 2 and
+                   not self.regex['basictags'].match(f) and
+                   not self.regex['dontsplit'].match(f)]
+        LOG.debug('album filter items: %s', filter_)
+        filter_ = '(%s)$' % '|'.join(filter_)
+        self.regex['filter_album'] = re.compile(filter_, re.I)
 
     def add(self, source, group, tags):
         '''Adds multiple tags from a source to a group.

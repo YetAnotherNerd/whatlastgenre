@@ -257,7 +257,7 @@ def validate(args, conf):
 
 def handle_album(args, dps, cache, genretags, album):
     '''Receives tags and saves an album.'''
-    genretags.reset(compile_album_filter(album))
+    genretags.reset(album)
     sdata = {
         'releasetype': None,
         'date': album.get_meta('date'),
@@ -293,32 +293,11 @@ def handle_album(args, dps, cache, genretags, album):
         for key, val in sdata['mbids'].items():
             album.set_meta('musicbrainz_' + key, val)
     # save metadata
-    if args.dry:
+    if args.dry:  # and not "Trip-Hop" in genres:
         print("DRY-RUN! Not saving metadata.")
     else:
         album.save()
     return genres
-
-
-def compile_album_filter(album):
-    '''Returns a filter pattern based on the metadata of an album.'''
-    badtags = []
-    for tag in ['albumartist', 'album']:
-        val = album.get_meta(tag)
-        if not val:
-            continue
-        bts = [val]
-        if tag == 'albumartist' and ' ' in bts[0]:
-            bts += bts[0].split(' ')
-        for badtag in bts:
-            for pat in [r'\(.*\)', r'\[.*\]', '{.*}', '-.*-', "'.*'",
-                        '".*"', r'vol(\.|ume)? ', ' and ', 'the ',
-                        r'[\W\d]', r'(\.\*)+']:
-                badtag = re.sub(pat, '.*', badtag, 0, re.I).strip()
-            badtag = re.sub(r'(^\.\*|\.\*$)', '', badtag, 0, re.I)
-            if len(badtag) > 2:
-                badtags.append(badtag.strip().lower())
-    return re.compile('.*(' + '|'.join(badtags) + ').*', re.I)
 
 
 def get_data(args, dps, cache, genretags, sdata):
