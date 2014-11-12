@@ -105,14 +105,14 @@ class DataProvider(object):
         if req.status_code != 200:
             if req.status_code == 400 and isinstance(self, Idiomag):
                 return
-            LOG.info(req.content)
+            LOG.debug(req.content)
             raise DataProviderError("request error: status code %s"
                                     % req.status_code)
         try:
             return req.json()
         except ValueError as err:
-            LOG.info(req.content)
-            raise DataProviderError("request error: %s" % err.strerror)
+            LOG.debug(req.content)
+            raise DataProviderError("request error: %s" % err.message)
 
     def add_query_stats(self, error=False, results=0, tags=0, goodtags=0):
         '''Adds some stats to the internal stat counter.'''

@@ -160,6 +160,8 @@ class GenreTags(object):
                    or self.regex['splitpart'].match(p)
                    or self.regex['filter_location'].match(p)):
                 combis = itertools.combinations(parts, len(parts) - 1)
+                LOG.debug("split '%s' -> %s", name,
+                          [' '.join(c) for c in set(combis)])
                 for combi in set(combis):
                     self._add(group, ' '.join(combi), score)
                 return score * self.conf.getfloat('scores', 'splitup')

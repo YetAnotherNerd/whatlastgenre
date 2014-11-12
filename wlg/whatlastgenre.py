@@ -160,6 +160,19 @@ def get_args():
     parser.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
                         help='max. number of genre tags')
     args = parser.parse_args()
+
+    if args.verbose == 0:
+        loglvl = logging.WARN
+    elif args.verbose == 1:
+        loglvl = logging.INFO
+    else:
+        loglvl = logging.DEBUG
+    hdlr = logging.StreamHandler(sys.stdout)
+    hdlr.setLevel(loglvl)
+    LOG.setLevel(loglvl)
+    LOG.addHandler(hdlr)
+
+    LOG.debug("args: %s\n", args)
     return args
 
 
@@ -234,7 +247,7 @@ def validate(args, conf):
             msg = "%s is not a valid source" % src
         elif src == 'whatcd' and not (conf.get('wlg', 'whatcduser') and
                                       conf.get('wlg', 'whatcdpass')):
-            msg = "No WhatCD credentials specified"
+            msg = "No What.CD credentials specified"
         else:
             continue
         print("%s. %s support disabled.\n" % (msg, src))
@@ -246,7 +259,7 @@ def validate(args, conf):
         exit()
     # options
     if args.tag_release and 'whatcd' not in sources:
-        print("Can't tag release with WhatCD support disabled. "
+        print("Can't tag release with What.CD support disabled. "
               "Release tagging disabled.\n")
         args.tag_release = False
     if args.tag_mbids and 'mbrainz' not in sources:
@@ -375,11 +388,11 @@ def get_data(args, dps, cache, genretags, sdata):
                      dapr.name, variant, sstr, cachemsg)
             dapr.add_query_stats(results=1)
             continue
+        LOG.debug(data['tags'])
         tags = min(99, len(data['tags']))
         goodtags = genretags.add(dapr.name.lower(), variant, data['tags'])
         LOG.info("%-8s %-6s search found %2d of %2d tags for '%s'%s",
                  dapr.name, variant, goodtags, tags, sstr, cachemsg)
-        LOG.debug(data['tags'])
         dapr.add_query_stats(results=1, tags=tags, goodtags=goodtags)
         if variant == 'artist' and 'mbid' in data \
                 and len(sdata['artist']) == 1:
@@ -414,7 +427,8 @@ def filter_data(source, variant, sdata, data):
 
 def interactive(source, variant, data):
     '''Asks the user to choose from a list of possibilities.'''
-    print("Multiple %s results from %s, which is it?" % (variant, source))
+    print("%-8s %-6s search found    %2d results. Which is it?"
+          % (source, variant, len(data)))
     for i in range(len(data)):
         print("#%2d: %s" % (i + 1, data[i]['info']))
     while True:
@@ -456,34 +470,35 @@ def print_stats(stats, dps):
     # data provider statistics
     if LOG.level <= logging.INFO:
         print('\n%-13s ' % 'Source stats', end='')
-        stat = {}
         for dapr in dps:
-            stat[dapr.name] = dapr.stats
-            queries = max(0.001, float(stat[dapr.name]['queries']))
-            realqueries = max(0.001, float(stat[dapr.name]['realqueries']))
-            tags = max(0.001, float(stat[dapr.name]['tags']))
-            stat[dapr.name].update({
-                'time_resp_avg': stat[dapr.name]['time_resp'] / realqueries,
-                'time_wait_avg': stat[dapr.name]['time_wait'] / realqueries,
-                'results/query': stat[dapr.name]['results'] / queries,
-                'tags/query': stat[dapr.name]['tags'] / queries,
-                'goodtags/tags': stat[dapr.name]['goodtags'] / tags})
+            dapr.stats.update({
+                'time_resp_avg':
+                dapr.stats['time_resp'] / max(.001, dapr.stats['realqueries']),
+                'time_wait_avg':
+                dapr.stats['time_wait'] / max(.001, dapr.stats['realqueries']),
+                'results/query':
+                dapr.stats['results'] / max(.001, dapr.stats['queries']),
+                'tags/result':
+                dapr.stats['tags'] / max(.001, dapr.stats['results']),
+                'goodtags/tags':
+                dapr.stats['goodtags'] / max(.001, dapr.stats['tags'])})
             print("| %-8s " % dapr.name, end='')
         print('\n--------------', end='')
         for _ in range(len(dps)):
             print('+----------', end='')
         print()
-        for statname in [
+        for key in [
                 'errors', 'realqueries', 'queries', 'results', 'results/query',
-                'tags', 'tags/query', 'goodtags', 'goodtags/tags',
+                'tags', 'tags/result', 'goodtags', 'goodtags/tags',
                 'time_resp_avg', 'time_wait_avg']:
-            if not any(stat[dapr.name][statname] for dapr in dps):
+            if not any(dapr.stats[key] for dapr in dps):
                 continue
-            print("%-13s " % statname, end='')
+            print("%-13s " % key, end='')
             for dapr in dps:
-                val = stat[dapr.name][statname]
-                print("| " + ("%8.2f" if isinstance(val, float) else "%8d")
-                      % val + ' ', end='')
+                if isinstance(dapr.stats[key], float):
+                    print("| %8.2f " % dapr.stats[key], end='')
+                else:
+                    print("| %8d " % dapr.stats[key], end='')
             print()
     # folder errors/messages
     stat = stats['folders']
@@ -510,17 +525,6 @@ def main():
     args = get_args()
     conf = get_conf()
     validate(args, conf)
-
-    if args.verbose == 0:
-        loglvl = logging.WARN
-    elif args.verbose == 1:
-        loglvl = logging.INFO
-    else:
-        loglvl = logging.DEBUG
-    hdlr = logging.StreamHandler(sys.stdout)
-    hdlr.setLevel(loglvl)
-    LOG.setLevel(loglvl)
-    LOG.addHandler(hdlr)
 
     stats = {'starttime': time.time(),
              'genres': defaultdict(int),

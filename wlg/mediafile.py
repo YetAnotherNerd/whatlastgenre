@@ -85,9 +85,11 @@ class Album(object):
                           self.get_meta('musicbrainz_artistid'))
         # various artists
         if VA_PAT.match(self.get_meta('artist') or ''):
+            LOG.info('removing VA artist')
             self.set_meta('artist', None)
             self.set_meta('musicbrainz_artistid', None)
         if VA_PAT.match(self.get_meta('albumartist') or ''):
+            LOG.info('removing VA albumartist')
             self.set_meta('albumartist', None)
             self.set_meta("musicbrainz_albumartistid", VA_MBID)
 
