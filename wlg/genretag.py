@@ -80,7 +80,7 @@ class GenreTags(object):
     def _add(self, group, name, score):
         '''Adds a tag with a name and score to a group.
 
-        After some filter, replace, match, split and score,
+        After some replace, match, filter, split and score,
         True is returned if the tag was added, False otherwise.
 
         :param group: tag group (for different scores on merging later)
@@ -90,56 +90,35 @@ class GenreTags(object):
         if not score:
             return False
         name = name.lower()
-        name = self._replace(name)
-        if self._filter(name):
+        # replace: Use precompiled 'replaceme' search pattern for
+        # increased performance.
+        if self.regex['replaceme'].search(name):
+            oldname = name
+            for pattern, repl in self.replaces.items():
+                name = re.sub(pattern, repl, name, 0, re.I)
+            name = re.sub('[_ ]+', ' ', name, 0, re.I).strip()
+            if oldname != name:
+                LOG.debug("replace '%s' -> '%s'", oldname, name)
+        # match: don't change cutoff (use replaces instead)
+        match = difflib.get_close_matches(name, self.matchlist, 1, .8572)
+        if match and match[0] != name:
+            LOG.debug("match '%s' -> '%s'", name, match[0])
+            name = match[0]
+        # filter
+        if len(name) < 3 \
+                or re.search(r'[^a-z0-9&\-_/\\,;\.\+\* ]', name, re.I) \
+                or self.regex['filter_album'].match(name) \
+                or any(f.match(name) for f in self.regex['filter']):
+            LOG.debug("filter '%s'", name)
             return False
-        name = self._match(name)
+        # split
         score = self._split(group, name, score)
-        if not score:
+        if not score or len(name) > 19:
             return False
+        # add it
         name = name.encode('ascii', 'ignore')
         self.tags[group][name] += score
         return True
-
-    def _replace(self, name):
-        '''Applies all the replaces to a tag name and returns it.
-
-        Uses a precompiled search pattern of all replace patterns
-        to identify tag names that will get some replacement for
-        increased performance.
-        '''
-        if self.regex['replaceme'].search(name):
-            for pattern, repl in self.replaces.items():
-                name = re.sub(pattern, repl, name, 0, re.I)
-            name = re.sub('_', ' ', name)
-        return re.sub(' +', ' ', name).strip()
-
-    def _filter(self, name):
-        '''Filters a tag by name, returns True if tag is filtered.'''
-        if len(name) < 3 or len(name) > 19:
-            return True
-        if re.search(r'[^a-z0-9&\-_/\\,;\.\+\* ]', name, re.I):
-            return True
-        if self.regex['filter_album'].match(name):
-            return True
-        if any(f.match(name) for f in self.regex['filter']):
-            return True
-        return False
-
-    def _match(self, name):
-        '''Matches a tag name with known tag names.'''
-        mli = []
-        for taglist in self.tags.values():
-            mli += taglist.keys()
-        mli += self.matchlist
-        # next two lines should improve performance
-        if name in mli:
-            return name
-        # don't change cutoff, add replaces instead
-        match = difflib.get_close_matches(name, mli, 1, .8572)
-        if match:
-            return match[0].lower()
-        return name
 
     def _split(self, group, name, score):
         '''Splits a tag and adds its parts with modified score.
