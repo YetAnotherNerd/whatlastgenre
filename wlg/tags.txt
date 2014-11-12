@@ -44,6 +44,7 @@ classical
 country
 crossover
 dance
+dancehall
 downtempo
 dub
 electro-swing
@@ -51,7 +52,6 @@ electronic
 female vocalist
 folk
 funk
-g-funk
 house
 indie
 industrial
@@ -62,7 +62,6 @@ male vocalist
 metal
 minimal
 minimalist
-p-funk
 progressive
 psychedelic
 psy-trance
@@ -78,6 +77,7 @@ tango
 tech-house
 techno
 trance
+trip-hop
 world
 # c/j/k-genres
 goth
@@ -114,6 +114,8 @@ usa
 
 [dontsplit]
 (fe)?male vocalist
+big (band|beat)
+doo wop
 dr(ill|um) & bass
 easy listening
 nu .+
@@ -134,37 +136,37 @@ speed
 
 [replaceme]
 # tags by affix
-([^ -]+)[ -]?musi[ck] = \g<1>
-([^ -]+)[ -]?(hop) = \g<1>-\g<2>
-([^ -]+)[ -]?(jazz|metal|rock) = \g<1> \g<2>
-(nu)[ -]?(.+) = \g<1> \g<2>
-(neo|post)[ -]?(.+) = \g<1>-\g<2>
-^(c|k|j)[ -]?(folk|goth|hip-hop|pop|rock|ska) = \g<1>-\g<2>
+([^ .-]+)[ .-]?musi[ck] = \g<1>
+([^ .-]+)[ .-]?(hop) = \g<1>-\g<2>
+([^ .-]+)[ .-]?(jazz|metal|rock) = \g<1> \g<2>
+(^| )(nu)[ .-]?(.+) = \g<2> \g<3>
+(^| )(neo|post)[ .-]?(.+) = \g<2>-\g<3>
+(^| )(c|k|j)[ .-]?(folk|goth|hip-hop|pop|rock|ska) = \g<2>-\g<3>
+(^| )(p|g)[ .-]?funk = \g<2>-funk
 euro[ -]?(?!p[ea]|pean)(.+) = euro-\g<1>
 (pop|jazz|hip.?hop).?(rock|rap) = \g<1>&\g<2>
 # tags with ampersands
-d(rum)?[ -]?(and|'?n'?|&)?[ -]?b(ass)? = drum & bass
+(?!an)d(rum)?[ -]?(and|'?n'?|&)?[ -]?b(ass)? = drum & bass
 drill[ -]?(and|'?n'?|&)?[ -]?bass = drill & bass
 hard[ -]?(and|'?n'?|&)?[ -]?heavy = hard & heavy
 r(hythm)?[ -]?(and|'?n'?|&)?[ -]?b(lues)? = rhythm & blues
 rock[ -]?(and|'?n'?|&)?[ -]?roll = rock & roll
 stage[ -]?(and|'?n'?|&)?[ -]?screen = stage & screen
 # year related
-.*best.*of( ([0-9]{2}){1,2}'?s?)?.* = charts
-.*top ?[0-9]{2,3}.* = charts
-^(19)?([3-9])[0-9]'?(s|er)? = 19\g<2>0s
-^(20)?([0-2])[0-9]'?(s|er)? = 20\g<2>0s
-^([1-2][0-9])th century = \g<1>00s
+^([2-9])0'?(s|er) = 19\g<1>0s
+^([0-1])0'?(s|er) = 20\g<1>0s
+^([12][09])([0-9])[0-9]'?(s|er)? = \g<1>\g<2>0s
 # abbreviation related
-alt(ern)?(\.|ati[fv]e?)?[ -]? = alternative_
-avant(\.|garde?)? = avantgarde
-ele[ck]tro(nic(?!a))?[ -]? = electronic_
+alt(ern)?(\.|ati[fv]e?)?[ .-]? = alternative_
+avant(\.| ?garde?)? = avantgarde
+ele[ck]tro(nic(?!a))?[ .-]? = electronic_
 goth(ic)? = gothic
-progg?(ress)?(\.|ive)?[ -]? = progressive_
-psych(\.|edelic?a?)?[ -]? = psychedelic_
-trad(ition)?(\.|nal)?[ -]? = traditional_
-sci(ence)?[ -]?fi(ction)? = science fiction
+progg?(ress)?(\.|ive)?[ -.]? = progressive_
+psych(\.|edelic?a?)?[ .-]? = psychedelic_
+trad(ition)?(\.|nal)?[ .-]? = traditional_
+sci(ence)?[ .-]?fi(ction)? = science fiction
 # other
+.*(best.*of|top ?[0-9]{2,3}).* = charts
 (8[ -]?bit|bitpop|chip(.?tune)?) = chiptune
 (cabaret|comedi(an|e)|humou?r|kabarett|parod(ie|y)) = comedy
 (weihnacht(en)?|x.?mas) = christmas
@@ -194,6 +196,7 @@ unplug(ged)? = acoustic
 independent = indie
 minimal ?ele[ck]tro(nica?)? = minimal
 rapper = rap
+welt = world
 
 
 ## filter sections
@@ -223,7 +226,7 @@ area
 arrangeur
 artist
 audio
-aut(omod|umn)
+aut(omod|onom|umn)
 available
 awesome
 b.tch
@@ -299,6 +302,7 @@ emotion
 energ
 enfp
 engel
+entrop
 epic
 ether
 eve(n|ry)
@@ -354,6 +358,7 @@ happ
 hates
 haunt
 have
+heal
 herbst
 heul
 hi.?fi
@@ -385,7 +390,7 @@ jewel.*case
 journ
 jug(g?al|end)
 juicy
-jukebox
+juke
 k21
 kappe
 keep
@@ -399,6 +404,7 @@ last.?fm
 ldt
 leg(al|end|it)
 lesbian
+level
 library
 lick
 lieb
@@ -418,8 +424,10 @@ m(usic)?brainz
 mag(azin|ic)
 mas(hup|ter)
 mbs
+mega
 memor[iy]
 mersey
+mess
 milestone
 mine
 mirror
@@ -458,7 +466,7 @@ pa?c?ka?ge?
 par(k|ty)
 patience
 peanut
-per(fect|iod|manent|sistence)
+per(fect|iod|manent|sist|son)
 phantom
 picks
 pilot
@@ -513,7 +521,7 @@ see[kn]
 sega
 sel(bst|ect)
 sensual
-serie
+ser(en|ie)
 sex
 shi(m|t)
 sho(ck|uld)
@@ -528,7 +536,6 @@ sludge
 smart
 sober
 solo
-song
 sou(ght|nd)
 spirit
 spotify
@@ -544,7 +551,7 @@ sultry
 sun(daze|set|shine|rise)
 super
 surf
-swag
+swa(g|mp)
 sweet
 takt
 talent
@@ -574,7 +581,7 @@ twee
 typo
 ugly
 unbekannt
-uni(on|vers)
+uni(on|vers|que)
 unknown
 user
 vari(e|ous|t)
@@ -692,7 +699,7 @@ gun
 guy
 gypsy
 hall
-har(d(rum)?|sh)
+har(d|sh)
 hate
 heavy
 hip
@@ -709,12 +716,14 @@ jese
 juma
 kiwi
 klezmer
+kot
 kuschel
 labrador
 language
 lebe
 light
 listen(ers?|ing?)?
+lol
 los
 math
 mel(anchol(i[ce]|y)|odic)
@@ -767,7 +776,7 @@ slow
 smooth
 snes
 soft
-son
+song?
 soulful
 space
 speed
@@ -822,6 +831,7 @@ edgar
 fabio
 fergie
 george
+harry
 heintje
 jack
 jason
@@ -945,15 +955,15 @@ warp
 (mid(dle)? ?)?(north|east|south|west)(ern|[ -]?coast)?
 (new.?)?(hampshire|jersey|orleans|york( ?city)?)
 aboriginal
-africaa?(ns?)?
-ame?rica(in|na?)?
+afri[ck]aa?(ns?)?
+ame?ri[ck]a(in|na?)?
 arab(ic)?
 arizona
 asi[ae]n?
 athens?
 atlant(a|ic)
 augsburg
-aus(sie|tr(al)?i(an?)?)
+aus(sie|tr(al)?i([ae]n?)?)
 bakersfield
 bal(earic|kan|timore)
 bavarian?
@@ -1010,7 +1020,7 @@ houston
 hungari(an)?
 ibiza
 iceland(ic)?
-indian?
+ind(ia|onesia)n?
 ira(ck?|n(ian?)?)
 ireland
 irish
@@ -1020,6 +1030,7 @@ ital(ian|y)
 jamaican?
 japan(ese)?
 k.?ln
+kandia
 ken[iy]an?
 korean?
 land(ais|e|ic)?
@@ -1067,7 +1078,7 @@ rom[ae](nian?)?
 russ(ian?|o)
 san .*
 scandinavi?[ae]n?
-scott?ish
+scott?(ish|land)
 seattle
 senegal
 sheffield
@@ -1084,6 +1095,7 @@ sydney
 tchad
 texas
 toronto
+turkish
 uk(rain(e|ian))?
 united ?(kingdom|states)
 usa?
