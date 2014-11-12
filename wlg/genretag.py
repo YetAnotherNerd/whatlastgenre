@@ -243,7 +243,7 @@ class GenreTags(object):
                 mult = self.conf.getfloat('scores', mult)
             for tag, score in tags.items():
                 score = score * mult
-                score *= 2 if self.regex['love'].match(tag) else 1
+                score *= 2.0 if self.regex['love'].match(tag) else 1
                 score *= 0.5 if self.regex['hate'].match(tag) else 1
                 if score > 0.1:
                     genres[tag] += score

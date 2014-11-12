@@ -79,9 +79,9 @@ cloned/extracted to
 * Install it by running `python setup.py install` as root in that directory
 
 ##### Optional Dependencies
-* `rauth` is required for Discogs (disabled by default).
-If you want to use Discogs, install `rauth` like above and activate `discogs`
-in the configuration file (see below).
+* `rauth` is required for Discogs (disabled by default). If you want to use
+Discogs, install `rauth` with pip like above and activate `discogs` in the
+configuration file (see below).
 
 
 ## Configuration

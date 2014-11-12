@@ -192,12 +192,12 @@ def get_conf():
             ['scores', 'artist', '1.33', 1, [0.5, 2.0]],
             ['scores', 'various', '0.66', 1, [0.1, 1.0]],
             ['scores', 'splitup', '0.33', 1, [0, 1.0]],
-            ['scores', 'src_whatcd', '1.66', 1, [0.3, 2.0]],
-            ['scores', 'src_lastfm', '0.66', 1, [0.3, 2.0]],
-            ['scores', 'src_mbrainz', '1.00', 1, [0.3, 2.0]],
-            ['scores', 'src_discogs', '1.00', 1, [0.3, 2.0]],
-            ['scores', 'src_idiomag', '1.00', 1, [0.3, 2.0]],
-            ['scores', 'src_echonest', '1.00', 1, [0.3, 2.0]]]
+            ['scores', 'src_whatcd', '1.66', 1, [0.5, 2.0]],
+            ['scores', 'src_lastfm', '0.66', 1, [0.5, 2.0]],
+            ['scores', 'src_mbrainz', '1.00', 1, [0.5, 2.0]],
+            ['scores', 'src_discogs', '1.00', 1, [0.5, 2.0]],
+            ['scores', 'src_idiomag', '1.00', 1, [0.5, 2.0]],
+            ['scores', 'src_echonest', '1.00', 1, [0.5, 2.0]]]
     config = MySafeConfigParser()
     config.read(configfile)
     dirty = False

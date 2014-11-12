@@ -183,7 +183,6 @@ class WhatCD(DataProvider):
             'info': "%s - %s (%s) [%s]: https://what.cd/torrents.php?id=%s"
                     % (d['artist'], d['groupName'], d['groupYear'],
                        d['releaseType'], d['groupId']),
-            'title': d['artist'] + ' - ' + d['groupName'],
             'releasetype': d['releaseType'],
             'tags': [tag.replace('.', ' ') for tag in d.get('tags', [])],
             'year': d['groupYear']} for d in data.get('results', {})]
