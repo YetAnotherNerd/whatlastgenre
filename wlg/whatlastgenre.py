@@ -306,7 +306,7 @@ def handle_album(args, dps, cache, genretags, album):
         for key, val in sdata['mbids'].items():
             album.set_meta('musicbrainz_' + key, val)
     # save metadata
-    if args.dry:  # and not "Trip-Hop" in genres:
+    if args.dry:
         print("DRY-RUN! Not saving metadata.")
     else:
         album.save()

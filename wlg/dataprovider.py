@@ -282,7 +282,7 @@ class MBrainz(DataProvider):
         # search without mbid
         if not data:
             data = self._query('artist', 'artist:"' + artistname + '"')
-            if not data or 'artists' not in data:
+            if not data or not len(data.get('artists', [])):
                 return
             max_ = max(int(x['score']) for x in data['artists'])
             data = [x for x in data['artists'] if int(x['score']) > max_ - 5]
@@ -326,9 +326,9 @@ class MBrainz(DataProvider):
             data = self._query('release-group',
                                'artist:"' + artistname
                                + '" AND releasegroup:"' + albumname + '"')
-            if not data or 'release-groups' not in data:
+            if not data or not len(data.get('release-groups', [])):
                 return
-            max_ = max(int(x['score']) for x in data['artists'])
+            max_ = max(int(x['score']) for x in data['release-groups'])
             data = [x for x in data['release-groups']
                     if int(x['score']) > max_ - 5]
         return [{
