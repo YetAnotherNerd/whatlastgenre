@@ -23,7 +23,6 @@ import ConfigParser
 import argparse
 from collections import defaultdict
 import datetime
-import difflib
 import json
 import logging
 import os
@@ -417,22 +416,6 @@ def get_data(args, dps, cache, genretags, sdata):
 def filter_data(source, variant, sdata, data):
     '''Prefilters data to reduce needed interactivity.'''
     if not data or len(data) == 1:
-        return data
-    # filter by title
-    title = sdata['artist'][0][0]
-    if variant == 'album':
-        if not title:
-            title = 'various' if source == 'discogs' else 'various artists'
-        title += ' - ' + sdata['album']
-    title = searchstr(title)
-    for i in range(5):
-        tmp = [d for d in data if 'title' not in d or difflib.
-               SequenceMatcher(None, title, d['title'].lower())
-               .ratio() >= (10 - i) * 0.1]
-        if tmp:
-            data = tmp
-            break
-    if len(data) == 1:
         return data
     # filter by date
     if variant == 'album' and sdata['date']:

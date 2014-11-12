@@ -285,13 +285,12 @@ class MBrainz(DataProvider):
             data = self._query('artist', 'artist:"' + artistname + '"')
             if not data or 'artists' not in data:
                 return
-            data = [x for x in data['artists'] if int(x['score']) > 90]
+            max_ = max(int(x['score']) for x in data['artists'])
+            data = [x for x in data['artists'] if int(x['score']) > max_ - 5]
         return [{
-            'info': "%s (%s) [%s] [%s-%s]: http://musicbrainz.org/artist/%s"
-                    % (x['name'], x.get('type', ''), x.get('country', ''),
-                       x.get('life-span', {}).get('begin', ''),
-                       x.get('life-span', {}).get('ended', ''), x['id']),
-            'title': x.get('name', ''),
+            'info': "%s (%s) [%s]: http://musicbrainz.org/artist/%s"
+                    % (x['name'], x.get('disambiguation', ''),
+                       x.get('type', ''), x['id']),
             'tags': {t['name']: int(t['count']) for t in x.get('tags', [])},
             'mbid': x['id']} for x in data]
 
@@ -330,13 +329,13 @@ class MBrainz(DataProvider):
                                + '" AND releasegroup:"' + albumname + '"')
             if not data or 'release-groups' not in data:
                 return
-            data = [x for x in data['release-groups'] if int(x['score']) > 90]
+            max_ = max(int(x['score']) for x in data['artists'])
+            data = [x for x in data['release-groups']
+                    if int(x['score']) > max_ - 5]
         return [{
             'info': "%s - %s [%s]: http://musicbrainz.org/release-group/%s"
                     % (x['artist-credit'][0]['artist']['name'], x.get('title'),
                        x.get('primary-type'), x['id']),
-            'title': (x['artist-credit'][0]['artist']['name'] + ' - '
-                      + x.get('title', '')),
             'tags': {t['name']: int(t['count']) for t in x.get('tags', [])},
             'mbid': x['id']} for x in data]
 
@@ -412,8 +411,7 @@ class Discogs(DataProvider):
             'info': "%s (%s) [%s]: %s"
                     % (x.get('title'), x.get('year'),
                        ', '.join(x.get('format')), x['resource_url']),
-            'title': x.get('title', ''), 'tags': x.get('tags'),
-            'year': x.get('year')} for x in masters]
+            'tags': x.get('tags'), 'year': x.get('year')} for x in masters]
 
 
 class Idiomag(DataProvider):
