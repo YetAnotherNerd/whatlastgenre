@@ -32,7 +32,6 @@ import tempfile
 import time
 
 from wlg import __version__
-
 import wlg.dataprovider as dp
 import wlg.genretag as gt
 import wlg.mediafile as mf
@@ -366,16 +365,14 @@ def get_data(args, dps, cache, genretags, sdata):
             # merge all the hits for unimportant sources
             elif isinstance(data[0]['tags'], dict):
                 tags = defaultdict(float)
-                for dat in data:
-                    for tag in dat['tags']:
-                        tags[tag] += dat['tags'][tag]
+                for tag, score in [d['tags'] for d in data]:
+                    tags[tag] += score
                 data = [{'tags': {k: v for k, v in tags.items()}}]
             elif isinstance(data[0]['tags'], list):
                 tags = []
                 for dat in data:
-                    for tag in dat['tags']:
-                        if tag not in tags:
-                            tags.append(tag)
+                    for tag in [t for t in dat['tags'] if t not in tags]:
+                        tags.append(tag)
                 data = [{'tags': tags}]
         # save cache
         if not cached or len(cached['data']) > len(data):
@@ -400,6 +397,46 @@ def get_data(args, dps, cache, genretags, sdata):
                  dapr.name, variant, goodtags, tags, sstr, cachemsg)
         dapr.add_query_stats(results=1, tags=tags, goodtags=goodtags)
     return sdata
+
+
+def filter_data(source, variant, sdata, data):
+    '''Prefilters data to reduce needed interactivity.'''
+    if not data or len(data) == 1:
+        return data
+    # filter by date
+    if variant == 'album' and sdata['date']:
+        for i in range(4):
+            tmp = [d for d in data if not d.get('year') or
+                   abs(int(d['year']) - int(sdata['date'])) <= i]
+            if tmp:
+                data = tmp
+                break
+    # filter by releasetype for whatcd
+    if len(data) > 1:
+        if source == 'whatcd' and variant == 'album' and sdata['releasetype']:
+            data = [d for d in data if 'releasetype' not in d or
+                    d['releasetype'].lower() == sdata['releasetype'].lower()]
+    return data
+
+
+def interactive(source, variant, data):
+    '''Asks the user to choose from a list of possibilities.'''
+    print("%-8s %-6s search found    %2d results. Which is it?"
+          % (source, variant, len(data)))
+    for i in range(len(data)):
+        print("#%2d: %s" % (i + 1, data[i]['info']))
+    while True:
+        try:
+            num = int(raw_input("Please choose #[1-%d] (0 to skip): "
+                                % len(data)))
+        except ValueError:
+            num = None
+        except EOFError:
+            num = 0
+            print()
+        if num in range(len(data) + 1):
+            break
+    return [data[num - 1]] if num else data
 
 
 def searchstr(str_):
