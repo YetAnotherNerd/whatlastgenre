@@ -104,7 +104,7 @@ class Cache(object):
         for key, val in self.cache.items():
             if time.time() - val.get('time', 0) > self.timeout \
                     or re.match('discogs##artist##', key) \
-                    or re.match('(echonest|idiomag)##album##', key) \
+                    or re.match('echonest##album##', key) \
                     or re.match('.*##.*##.?$', key):
                 del self.cache[key]
         diff = size - len(self.cache)
@@ -196,7 +196,6 @@ def get_conf():
             ['scores', 'src_lastfm', '0.66', 1, [0.5, 2.0]],
             ['scores', 'src_mbrainz', '1.00', 1, [0.5, 2.0]],
             ['scores', 'src_discogs', '1.00', 1, [0.5, 2.0]],
-            ['scores', 'src_idiomag', '1.00', 1, [0.5, 2.0]],
             ['scores', 'src_echonest', '1.00', 1, [0.5, 2.0]]]
     config = MySafeConfigParser()
     config.read(configfile)
@@ -242,8 +241,7 @@ def validate(args, conf):
     # sources
     sources = conf.get_list('wlg', 'sources')
     for src in sources:
-        if src not in ['whatcd', 'lastfm', 'mbrainz', 'discogs',
-                       'idiomag', 'echonest']:
+        if src not in ['whatcd', 'lastfm', 'mbrainz', 'discogs', 'echonest']:
             msg = "%s is not a valid source" % src
         elif src == 'whatcd' and not (conf.get('wlg', 'whatcduser') and
                                       conf.get('wlg', 'whatcdpass')):

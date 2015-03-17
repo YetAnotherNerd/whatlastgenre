@@ -25,7 +25,6 @@ import os
 import time
 
 import requests
-
 from wlg import __version__
 
 
@@ -53,8 +52,6 @@ def get_daprs(conf):
         dps.append(Discogs())
     if 'echonest' in sources:
         dps.append(EchoNest())
-    if 'idiomag' in sources:
-        dps.append(Idiomag())
     if 'whatcd' in sources:
         dps.append(WhatCD((conf.get('wlg', 'whatcduser'),
                            conf.get('wlg', 'whatcdpass'))))
@@ -103,8 +100,6 @@ class DataProvider(object):
             raise DataProviderError("request error: %s" % err.message)
         self.stats['time_resp'] += time.time() - self.last_request
         if req.status_code != 200:
-            if req.status_code == 400 and isinstance(self, Idiomag):
-                return
             LOG.debug(req.content)
             raise DataProviderError("request error: status code %s"
                                     % req.status_code)
@@ -411,25 +406,6 @@ class Discogs(DataProvider):
                     % (x.get('title'), x.get('year'),
                        ', '.join(x.get('format')), x['resource_url']),
             'tags': x.get('tags'), 'year': x.get('year')} for x in masters]
-
-
-class Idiomag(DataProvider):
-    '''Idiomag DataProvider'''
-
-    def get_artist_data(self, artistname, _):
-        '''Gets artist data from Idiomag.'''
-        data = self._query_jsonapi(
-            'http://www.idiomag.com/api/artist/tags/json',
-            {'key': "77744b037d7b32a615d556aa279c26b5", 'artist': artistname})
-        if not data:
-            return
-        return [{'tags': {t['name']: int(t['value'])
-                          for t in data.get('profile', {}).get('tag', [])}}]
-
-    def get_album_data(self, artistname, albumname, _):
-        '''Gets album data from Idiomag.'''
-        # no album search support
-        raise RuntimeError()
 
 
 class EchoNest(DataProvider):

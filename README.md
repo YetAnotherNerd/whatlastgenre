@@ -3,7 +3,7 @@
 Improves genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
-* Supported music sites: What.CD, Last.FM, MusicBrainz, Discogs, EchoNest, Idiomag
+* Supported music sites: What.CD, Last.FM, MusicBrainz, Discogs, EchoNest
 * Feature Overview
   * Gets genre tags for artists and albums from music sites and finds the most
   eligible ones by merging, splitting, filtering and scoring them.
@@ -34,13 +34,13 @@ are several score multipliers to adjust the scoring to your needs and take your
 personal preferences into account. Please take a look at "Configuration options
 explained" below for more details.
 
-##### Tag scoring with count (What.CD, Last.FM, MusicBrainz, Idiomag)
+##### Tag scoring with count (What.CD, Last.FM, MusicBrainz)
 If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of `1.0`, a tag having only half of the top tag's count gets
 a score of `0.5` and so on.
 
-##### Tag scoring without count (What.CD, Discogs, EchoNest, Idiomag)
+##### Tag scoring without count (What.CD, Discogs, EchoNest)
 Tags supplied without a count will be scored `max(0.1, 0.85^(n-1))`, where `n`
 is the total number of tags supplied by this source. The more tags the lower
 the score for each tag will be. So if only one tag is supplied, it will get a
@@ -108,7 +108,6 @@ src_whatcd = 1.66
 src_lastfm = 0.66
 src_mbrainz = 1.00
 src_discogs = 1.00
-src_idiomag = 1.00
 src_echonest = 1.00
 ```
 
@@ -129,8 +128,6 @@ album only, fixed list of [genres]
 (http://discogs.com/help/submission-guidelines-release-genres-styles.html) and
 [styles](http://wiki.discogs.com/index.php/Style_Guide),
 now requires authentication (own account needed)
-* `idiomag` [[URL](http://idiomag.com)]
-artist only
 * `echonest` [[URL](http://echonest.com)]
 artist only, fixed list of
 [genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
