@@ -74,7 +74,7 @@ class Album(object):
             raise AlbumError("Could not load any tracks")
         if not self.get_meta('album'):
             raise AlbumError("Not all tracks have the same or any album-tag")
-        # album type (track extensions)
+        # type (track extensions)
         self.type = ','.join(set(t.ext for t in self.tracks)).upper()
         # put artist in empty albumartist
         if not self.get_meta('albumartist'):
@@ -186,13 +186,14 @@ class Track(object):
             return
         try:
             val = self.muta[key][0].encode('utf-8')
-            if key.lower() == 'date':
-                return int(val.split('-')[0]) if '-' in val else int(val)
-            if key.lower() == 'tracknumber':
-                return int(val.split('/')[0]) if '/' in val else int(val)
+            if key.lower() in ['date', 'tracknumber', 'discnumber']:
+                for sep in ['/', '-']:
+                    if sep in val:
+                        val = val.split(sep)[0].strip()
+                val = int(val)
             return val
         except ValueError:
-            return
+            return None
 
     def set_meta(self, key, val):
         '''Sets metadata for a given key.'''
