@@ -78,6 +78,7 @@ tech-house
 techno
 trance
 trip-hop
+trip-rock
 world
 # c/j/k-genres
 goth
@@ -137,29 +138,29 @@ speed
 [replaceme]
 # tags by affix
 ([^ .-]+)[ .-]?musi[ck] = \g<1>
-([^ .-]+)[ .-]?(hop) = \g<1>-\g<2>
+([^ .-]+)[ .-]?hop = \g<1>-hop
 ([^ .-]+)[ .-]?(jazz|metal|rock) = \g<1> \g<2>
-(^| )(nu)[ .-]?(.+) = \g<2> \g<3>
+(^| )(nu)[ .-](.+) = \g<2> \g<3>
 (^| )(neo|post)[ .-]?(.+) = \g<2>-\g<3>
 (^| )(c|k|j)[ .-]?(folk|goth|hip-hop|pop|rock|ska) = \g<2>-\g<3>
 (^| )(p|g)[ .-]?funk = \g<2>-funk
 euro[ -]?(?!p[ea]|pean)(.+) = euro-\g<1>
 (pop|jazz|hip.?hop).?(rock|rap) = \g<1>&\g<2>
 # tags with ampersands
-(?!an)d(rum)?[ -]?(and|'?n'?|&)?[ -]?b(ass)? = drum & bass
-drill[ -]?(and|'?n'?|&)?[ -]?bass = drill & bass
-hard[ -]?(and|'?n'?|&)?[ -]?heavy = hard & heavy
-r(hythm)?[ -]?(and|'?n'?|&)?[ -]?b(lues)? = rhythm & blues
-rock[ -]?(and|'?n'?|&)?[ -]?roll = rock & roll
-stage[ -]?(and|'?n'?|&)?[ -]?screen = stage & screen
+(?!an)d(rum)?[ -]?(and|'?n'?| |&)[ -]?b(ass)? = drum & bass
+drill[ -]?(and|'?n'?| |&)?[ -]?bass = drill & bass
+hard[ -]?(and|'?n'?| |&)?[ -]?heavy = hard & heavy
+r(hythm)?[ -]?(and|'?n'?| |&)[ -]?b(lues)? = rhythm & blues
+rock[ -]?(and|'?n'?| |&)?[ -]?roll = rock & roll
+stage[ -]?(and|'?n'?| |&)?[ -]?screen = stage & screen
 # year related
 ^([2-9])0'?(s|er) = 19\g<1>0s
 ^([0-1])0'?(s|er) = 20\g<1>0s
 ^([12][09])([0-9])[0-9]'?(s|er)? = \g<1>\g<2>0s
 # abbreviation related
 alt(ern)?(\.|ati[fv]e?)?[ .-]? = alternative_
-avant(\.| ?garde?)? = avantgarde
-ele[ck]tro(nic(?!a))?[ .-]? = electronic_
+avant(\.|[ -]?garde?)? = avantgarde
+ele[ck]tro(nica?)?[ .-]? = electronic_
 goth(ic)? = gothic
 progg?(ress)?(\.|ive)?[ -.]? = progressive_
 psych(\.|edelic?a?)?[ .-]? = psychedelic_
@@ -181,7 +182,7 @@ br(eaks|oken ?beat) = breakbeat
 chill?(ed|en|ing?|[ -]?out)? = chillout
 dow[nm][ -]?(beat|tempo) = downtempo
 g?old(i(es?)?|en)? = oldies
-jazz( |-)?hip( |-)?hop = jazz-hop
+jazzy?( |-)?hip( |-)?hop = jazz-hop
 kraut( |-)rock = krautrock
 latinos? = latin
 lo.?fi = lo-fi
@@ -203,7 +204,6 @@ welt = world
 
 [filter_badtags_fuzzy]
 ( ?(a(re)?|by|for|i[ns]?|not|my|o[fn]|so|the|to|up|we) )
-((^|[\D])([\d]|[\d]{3})([\D]|$)|[\d]{5})
 ((jan|febr)uary?|march|april|ma[iy]|jun[ei]|jul[iy]|august|(septem|o[ck]to|novem|de[cz]em)ber)
 ((mon|tues|wednes|thurs|fri|satur|sun)day|(mon|diens|donners|frei|sams|sonn)tag|mittwoch)
 ([ck]ompa[ck]t)
@@ -214,7 +214,7 @@ above
 after
 alb(um|en)
 amazing
-ang([el]{2}|ry)
+ang(er|[el]{2}|ry)
 anime
 ant(hology|i)
 aor
@@ -301,7 +301,7 @@ eff(ect|ig)
 emotion
 energ
 enfp
-engel
+eng(el|ine)
 entrop
 epic
 ether
@@ -409,8 +409,7 @@ library
 lick
 lieb
 like
-liquid
-listener
+list(ener)?
 little
 live
 lizard
@@ -522,6 +521,7 @@ sega
 sel(bst|ect)
 sensual
 ser(en|ie)
+session
 sex
 shi(m|t)
 sho(ck|uld)
@@ -536,7 +536,7 @@ sludge
 smart
 sober
 solo
-sou(ght|nd)
+sought
 spirit
 spotify
 spring
@@ -572,7 +572,7 @@ tongue
 totec
 touch
 toy
-tra(ck|iler|p|urig|uer)
+tra(iler|p|urig|uer)
 tri(bute|o)
 tro(ll|pic)
 trust
@@ -584,7 +584,7 @@ unbekannt
 uni(on|vers|que)
 unknown
 user
-vari(e|ous|t)
+vari(ation|e|ous|t)
 ver(miform|schieden)
 vinyl
 vir(al|tuos)
@@ -638,7 +638,7 @@ arena
 art
 aus
 ban(ds?|g)
-bas(ic(ally|s)?|s(ebebop)?)
+bas(ic(ally|s)?|s(ebebop|op)?)
 batt
 beats?
 best
@@ -722,11 +722,12 @@ labrador
 language
 lebe
 light
+liquid
 listen(ers?|ing?)?
 lol
 los
 math
-mel(anchol(i[ce]|y)|odic)
+mel(anchol(i[ace]?|y)|odic)
 meme
 merkliste
 mile
@@ -777,7 +778,7 @@ smooth
 snes
 soft
 song?
-soulful
+sou(nd|lful)
 space
 speed
 spoken
@@ -799,7 +800,7 @@ thug
 title
 top
 touhou
-tra(ditional|y)
+tra(ck|ditional|y)
 tri(bal|p)
 qn5
 underground
@@ -840,7 +841,7 @@ jones
 katie
 kim
 kirsten
-martens?
+mart(ens?|in)
 max
 mercury
 micha
