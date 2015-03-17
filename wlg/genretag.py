@@ -56,11 +56,11 @@ class GenreTags(object):
         # set up regex
         self.regex = {}
         # compile some config options and tagsfile sections
-        for sec, pats in (
-                [(s, conf.get_list('genres', s)) for s in ['love', 'hate']] +
-                [(s, self.tagsfile.options(s)) for s in
-                 ['basictags', 'uppercase', 'dontsplit', 'splitpart',
-                  'replaceme', 'filter_location']]):
+        regexpat = [(s, conf.get_list('genres', s)) for s in ['love', 'hate']]
+        regexpat += [(s, self.tagsfile.options(s)) for s in
+                     ['basictags', 'uppercase', 'dontsplit', 'splitpart',
+                      'replaceme', 'filter_location']]
+        for sec, pats in regexpat:
             self.regex[sec] = re.compile('(%s)$' % '|'.join(pats), re.I)
         # build filter
         filter_ = conf.get_list('genres', 'blacklist')
@@ -161,7 +161,7 @@ class GenreTags(object):
         filter_ = [f for f in filter_ if len(f) > 2 and
                    not self.regex['basictags'].match(f) and
                    not self.regex['dontsplit'].match(f)]
-        LOG.debug('album filter items: %s', filter_)
+        LOG.debug('album filter: %s', filter_)
         filter_ = '(%s)$' % '|'.join(filter_)
         self.regex['filter_album'] = re.compile(filter_, re.I)
 
