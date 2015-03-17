@@ -374,7 +374,7 @@ def get_data(args, dps, cache, genretags, sdata):
                 for dat in data:
                     for tag in dat['tags']:
                         if tag not in tags:
-                                tags.append(tag)
+                            tags.append(tag)
                 data = [{'tags': tags}]
         # save cache
         if not cached or len(cached['data']) > len(data):
@@ -398,6 +398,14 @@ def get_data(args, dps, cache, genretags, sdata):
         LOG.info("%-8s %-6s search found %2d of %2d tags for '%s'%s",
                  dapr.name, variant, goodtags, tags, sstr, cachemsg)
         dapr.add_query_stats(results=1, tags=tags, goodtags=goodtags)
+        if variant == 'artist' and 'mbid' in data \
+                and len(sdata['artist']) == 1:
+            sdata['mbids']['albumartistid'] = data['mbid']
+        elif variant == 'album':
+            if 'mbid' in data:
+                sdata['mbids']['releasegroupid'] = data['mbid']
+            if 'releasetype' in data:
+                sdata['releasetype'] = genretags.format(data['releasetype'])
     return sdata
 
 
