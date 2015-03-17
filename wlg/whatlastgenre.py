@@ -365,14 +365,16 @@ def get_data(args, dps, cache, genretags, sdata):
             # merge all the hits for unimportant sources
             elif isinstance(data[0]['tags'], dict):
                 tags = defaultdict(float)
-                for tag, score in [d['tags'] for d in data]:
-                    tags[tag] += score
+                for dat in data:
+                    for tag in dat['tags']:
+                        tags[tag] += dat['tags'][tag]
                 data = [{'tags': {k: v for k, v in tags.items()}}]
             elif isinstance(data[0]['tags'], list):
                 tags = []
                 for dat in data:
-                    for tag in [t for t in dat['tags'] if t not in tags]:
-                        tags.append(tag)
+                    for tag in dat['tags']:
+                        if tag not in tags:
+                                tags.append(tag)
                 data = [{'tags': tags}]
         # save cache
         if not cached or len(cached['data']) > len(data):
