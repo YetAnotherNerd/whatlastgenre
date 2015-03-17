@@ -129,6 +129,10 @@ class Cache(object):
                                              delete=False) as tmpfile:
                 tmpfile.write(json.dumps(self.cache))
                 os.fsync(tmpfile)
+            # seems atomic rename here is not possible on windows
+            # http://docs.python.org/2/library/os.html#os.rename
+            if os.name == 'nt':
+                os.remove(self.fullpath)
             os.rename(tmpfile.name, self.fullpath)
             self.time = time.time()
             self.dirty = False
