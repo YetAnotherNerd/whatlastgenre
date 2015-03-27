@@ -99,11 +99,13 @@ class GenreTags(object):
             name = re.sub('[_ ]+', ' ', name, 0, re.I).strip()
             if oldname != name:
                 LOG.debug("replace '%s' -> '%s'", oldname, name)
-        # match: don't change cutoff (use replaces instead)
-        match = difflib.get_close_matches(name, self.matchlist, 1, .8572)
-        if match and match[0] != name:
-            LOG.debug("match '%s' -> '%s'", name, match[0])
-            name = match[0]
+        # match
+        if name not in self.matchlist:  # does small performance increase
+            # don't change cutoff (use replaces instead)
+            match = difflib.get_close_matches(name, self.matchlist, 1, .8572)
+            if match:
+                LOG.debug("match '%s' -> '%s'", name, match[0])
+                name = match[0]
         # filter
         if len(name) < 3 \
                 or re.search(r'[^a-z0-9&\-_/\\,;\.\+\* ]', name, re.I) \
