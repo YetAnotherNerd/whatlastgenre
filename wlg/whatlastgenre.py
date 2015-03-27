@@ -130,7 +130,7 @@ class Cache(object):
                 os.fsync(tmpfile)
             # seems atomic rename here is not possible on windows
             # http://docs.python.org/2/library/os.html#os.rename
-            if os.name == 'nt':
+            if os.name == 'nt' and os.path.isfile(self.fullpath):
                 os.remove(self.fullpath)
             os.rename(tmpfile.name, self.fullpath)
             self.time = time.time()
