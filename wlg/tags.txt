@@ -268,7 +268,7 @@ cla(p|ssifi)
 clever
 code
 colle(ct|ge)
-com(ic|pil|pos)
+com(ic|mon|pil|pos)
 conduct
 creativ
 current
@@ -276,7 +276,7 @@ cut
 damn
 data
 dead
-defa(c(e|ing)|ult)
+defa(ce|cing|ult)
 delux
 des(ert|ign)
 dialog
@@ -409,7 +409,7 @@ library
 lick
 lieb
 like
-list(ener)?
+listener
 little
 live
 lizard
@@ -623,6 +623,7 @@ yoyo
 zombie
 
 [filter_generic]
+([0-9]+)
 (one|two|three|four|five|six|seven|eight|nine|ten)
 (i)*v?(i)*
 (re-?)?rip
@@ -964,7 +965,7 @@ asi[ae]n?
 athens?
 atlant(a|ic)
 augsburg
-aus(sie|tr(al)?i([ae]n?)?)
+aus(sie|tr(al)?i([ae]n?|cana)?)
 bakersfield
 bal(earic|kan|timore)
 bavarian?
