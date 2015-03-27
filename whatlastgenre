@@ -4,7 +4,7 @@
 # Improves genre metadata of audio files
 # based on tags from various music sites.
 #
-# Copyright (c) 2012-2014 YetAnotherNerd
+# Copyright (c) 2012-2015 YetAnotherNerd
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
