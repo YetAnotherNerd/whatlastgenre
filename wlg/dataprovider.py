@@ -25,6 +25,7 @@ import os
 import time
 
 import requests
+
 from wlg import __version__
 
 
@@ -44,7 +45,7 @@ def get_daprs(conf):
     lastfm user tags) to avoid getting malformed tags due to the tag
     matching process while adding them.
 
-    :param conf: ConfigParser object of the configuration file
+    :param conf: Config object of the configuration file
     '''
     sources = conf.get_list('wlg', 'sources')
     dps = []

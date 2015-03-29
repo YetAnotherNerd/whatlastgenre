@@ -161,7 +161,7 @@ class Track(object):
             self.stat = os.stat(self.fullpath)
             self.muta = mutagen.File(self.fullpath, easy=True)
         except (IOError, OSError) as err:
-            raise TrackError(err.strerror)
+            raise TrackError(err)
         if not self.muta:
             # will be improved with MutagenError from mutagen-1.25
             raise TrackError('unknown mutagen error')
@@ -230,5 +230,5 @@ class Track(object):
             # preserve modtime
             os.utime(self.fullpath, (self.stat.st_atime, self.stat.st_mtime))
         except IOError as err:
-            raise TrackError(err.strerror)
+            raise TrackError(err)
         return True

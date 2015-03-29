@@ -136,13 +136,12 @@ class GenreTags(object):
             return None
         if ' ' in name.strip():
             parts = name.split(' ')
-            if any(p for p in parts
-                   if self.regex['basictags'].match(p)
-                   or self.regex['splitpart'].match(p)
-                   or self.regex['filter_location'].match(p)):
+            if any(p for p in parts if self.regex['basictags'].match(p) or
+                   self.regex['splitpart'].match(p) or
+                   self.regex['filter_location'].match(p)):
                 combis = itertools.combinations(parts, len(parts) - 1)
-                LOG.debug("split '%s' -> %s", name,
-                          [' '.join(c) for c in set(combis)])
+                LOG.debug("split '%s' -> %s", name, ', '.join
+                          ("'" + ' '.join(c) + "'" for c in set(combis)))
                 for combi in set(combis):
                     self._add(group, ' '.join(combi), score)
                 return score * self.conf.getfloat('scores', 'splitup')
@@ -161,7 +160,7 @@ class GenreTags(object):
         filter_ = [re.sub(r'[^a-z0-9 ]', '', f, 0, re.I).strip().lower()
                    for f in set(filter_)]
         filter_ = [f for f in filter_ if len(f) > 2 and
-                   not self.regex['basictags'].match(f) and
+                   f not in self.matchlist and
                    not self.regex['dontsplit'].match(f)]
         LOG.debug('album filter: %s', filter_)
         filter_ = '(%s)$' % '|'.join(filter_)
@@ -273,15 +272,15 @@ class GenreTags(object):
         parser = ConfigParser.SafeConfigParser(allow_no_value=True)
         parser.readfp(StringIO.StringIO(tagsfilestr))
         # tags file validation
-        for sec in [s for s in ['basictags', 'uppercase', 'dontsplit',
-                                'splitpart', 'replaceme']
-                    if not parser.has_section(s)]:
-            print("Got no [%s] from tag.txt file." % sec)
-            exit()
-        for sec in [s for s in filters if
-                    not parser.has_section('filter_%s' % s) and
-                    not parser.has_section('filter_%s_fuzzy' % s)]:
-            print("The configured filter '%s' doesn't have a "
-                  "[filter_%s[_fuzzy]] section in the tags.txt file and will "
-                  "be ignored.\n" % (sec, sec))
+        for sec in ['basictags', 'uppercase', 'dontsplit', 'splitpart',
+                    'replaceme']:
+            if not parser.has_section(sec):
+                print("Got no [%s] from tag.txt file." % sec)
+                exit()
+        for sec in filters:
+            if not (parser.has_section('filter_%s' % sec) or
+                    parser.has_section('filter_%s_fuzzy' % sec)):
+                print("The configured filter '%s' doesn't have a "
+                      "[filter_%s[_fuzzy]] section in the tags.txt file "
+                      "and will be ignored.\n" % (sec, sec))
         return parser

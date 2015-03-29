@@ -286,8 +286,8 @@ def handle_album(args, dps, cache, genretags, album):
     }
     # search for all track artists if no albumartist
     if not album.get_meta('albumartist'):
-        for track in [t for t in album.tracks if t.get_meta('artist')
-                      and not mf.VA_PAT.match(t.get_meta('artist'))]:
+        for track in [t for t in album.tracks if t.get_meta('artist') and
+                      not mf.VA_PAT.match(t.get_meta('artist'))]:
             sdata['artist'].append((searchstr(track.get_meta('artist')),
                                     track.get_meta('musicbrainz_artistid')))
     # get data from dataproviders
@@ -453,10 +453,10 @@ def searchstr(str_):
     '''Cleans up a string for use in searching.'''
     if not str_:
         return ''
-    for pat in [
-            r'\(.*\)$', r'\[.*\]', '{.*}', "- .* -", "'.*'", '".*"',
-            ' (- )?(album|single|ep|official remix(es)?|soundtrack|ost)$',
-            r'[ \(]f(ea)?t(\.|uring)? .*', r'vol(\.|ume)? ', '[!?/:,]', ' +']:
+    for pat in [r'\(.*\)$', r'\[.*\]', '{.*}', "- .* -", "'.*'", '".*"',
+                ' (- )?(album|single|ep|official remix(es)?|soundtrack|ost)$',
+                r'[ \(]f(ea)?t(\.|uring)? .*', r'vol(\.|ume)? ',
+                '[!?/:,]', ' +']:
         str_ = re.sub(pat, ' ', str_, 0, re.I)
     return str_.strip().lower()
 
@@ -466,11 +466,12 @@ def print_stats(stats, dps):
     print("\nTime elapsed: %s"
           % datetime.timedelta(seconds=time.time() - stats['starttime']))
     # genre tag statistics
-    tags = stats['genres']
-    if tags:
-        tagout = sorted(tags.items(), key=lambda (k, v): (v, k), reverse=1)
-        tagout = gt.GenreTags.tagprintstr(tagout, "%5d %-19s")
-        print("\n%d different tags used this often:\n%s" % (len(tags), tagout))
+    if stats['genres']:
+        tags = sorted(stats['genres'].items(), key=lambda (k, v): (v, k),
+                      reverse=1)
+        tags = gt.GenreTags.tagprintstr(tags, "%5d %-19s")
+        print("\n%d different tags used this often:\n%s"
+              % (len(stats['genres']), tags))
     # data provider statistics
     if LOG.level <= logging.INFO:
         print('\n%-13s ' % 'Source stats', end='')
@@ -487,14 +488,10 @@ def print_stats(stats, dps):
                 'goodtags/tags':
                 dapr.stats['goodtags'] / max(.001, dapr.stats['tags'])})
             print("| %-8s " % dapr.name, end='')
-        print('\n--------------', end='')
-        for _ in range(len(dps)):
-            print('+----------', end='')
-        print()
-        for key in [
-                'errors', 'realqueries', 'queries', 'results', 'results/query',
-                'tags', 'tags/result', 'goodtags', 'goodtags/tags',
-                'time_resp_avg', 'time_wait_avg']:
+        print('\n', '-' * 14, '+----------' * len(dps), sep='')
+        for key in ['errors', 'realqueries', 'queries', 'results',
+                    'results/query', 'tags', 'tags/result', 'goodtags',
+                    'goodtags/tags', 'time_resp_avg', 'time_wait_avg']:
             if not any(dapr.stats[key] for dapr in dps):
                 continue
             print("%-13s " % key, end='')
@@ -505,11 +502,11 @@ def print_stats(stats, dps):
                     print("| %8d " % dapr.stats[key], end='')
             print()
     # folder errors/messages
-    stat = stats['folders']
-    if stat:
-        print("\n%d album(s) with errors/messages:" % len(stat))
-        for msg in set(stat.values()):
-            fldrs = [k for k, v in sorted(stat.items()) if v == msg]
+    if stats['folders']:
+        print("\n%d album(s) with errors/messages:" % len(stats['folders']))
+        for msg in set(stats['folders'].values()):
+            fldrs = [k for k, v in sorted(stats['folders'].items())
+                     if v == msg]
             print("%s:\n%s" % (msg, '\n'.join(fldrs)))
 
 
@@ -549,10 +546,11 @@ def main():
             if time.time() - cache.time > 600:
                 cache.save()
             # progress bar
-            print("\n(%2d/%d) [" % (i, len(folders)), end='')
-            for j in range(60):
-                print('#' if j < int(i / len(folders) * 60) else '-', end='')
-            print("] %2.0f%%\n%s" % (int(i / len(folders) * 100), path))
+            print("\n(%2d/%d) [" % (i, len(folders)),
+                  '#' * int(60 * i / len(folders)),
+                  '-' * int(60 * (1 - i / len(folders))),
+                  "] %2.0f%%" % (100 * i / len(folders)), sep='')
+            print(path)
             try:
                 album = mf.Album(path)
                 LOG.info("[%s] albumartist=%s, album=%s, date=%s",
@@ -564,8 +562,8 @@ def main():
                 for tag in genres:
                     stats['genres'][tag] += 1
             except mf.AlbumError as err:
-                print(err.message)
-                stats['folders'].update({path: err.message})
+                print(err)
+                stats['folders'].update({path: err})
         print("\n...all done!")
     except KeyboardInterrupt:
         print()
