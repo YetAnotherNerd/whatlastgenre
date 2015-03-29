@@ -40,8 +40,105 @@ import wlg.mediafile as mf
 LOG = logging.getLogger('whatlastgenre')
 
 
-class MySafeConfigParser(ConfigParser.SafeConfigParser):
-    '''Little addition to SafeConfigParser.'''
+class Config(ConfigParser.SafeConfigParser):
+    '''Reads, maintains and writes the configuration file.'''
+
+    configfile = os.path.expanduser('~/.whatlastgenre/config')
+
+    # [section, option, default, required, [min, max]]
+    conf = [['wlg', 'sources', 'whatcd, mbrainz, lastfm', 1, []],
+            ['wlg', 'cache_timeout', '30', 1, [14, 180]],
+            ['wlg', 'whatcduser', '', 0, []],
+            ['wlg', 'whatcdpass', '', 0, []],
+            ['genres', 'love', 'soundtrack', 0, []],
+            ['genres', 'hate',
+             'alternative, electronic, indie, pop, rock', 0, []],
+            ['genres', 'blacklist', 'charts, male vocalist, other', 0, []],
+            ['genres', 'filters', 'instrument, label, location, year', 0, []],
+            ['scores', 'artist', '1.33', 1, [0.5, 2.0]],
+            ['scores', 'various', '0.66', 1, [0.1, 1.0]],
+            ['scores', 'splitup', '0.33', 1, [0, 1.0]],
+            ['scores', 'src_whatcd', '1.66', 1, [0.5, 2.0]],
+            ['scores', 'src_lastfm', '0.66', 1, [0.5, 2.0]],
+            ['scores', 'src_mbrainz', '1.00', 1, [0.5, 2.0]],
+            ['scores', 'src_discogs', '1.00', 1, [0.5, 2.0]],
+            ['scores', 'src_echonest', '1.00', 1, [0.5, 2.0]]]
+
+    def __init__(self, args):
+        ConfigParser.SafeConfigParser.__init__(self)
+        self.args = args
+        self.read(self.configfile)
+        self.__maintain()
+        self.__validate()
+
+    def __maintain(self):
+        '''Maintains the config file.
+
+        Makes sure the config file only contains valid options with
+        reasonable values.
+        '''
+        dirty = False
+        # clean up
+        for sec in self.sections():
+            if sec not in set(x[0] for x in self.conf):
+                self.remove_section(sec)
+                dirty = True
+                continue
+            for opt in self.options(sec):
+                if [sec, opt] not in [x[:2] for x in self.conf]:
+                    self.remove_option(sec, opt)
+                    dirty = True
+        # add and sanitize
+        for sec, opt, default, req, rng in self.conf:
+            if not self.has_option(sec, opt) or \
+                    req and self.get(sec, opt) == '':
+                if not self.has_section(sec):
+                    self.add_section(sec)
+                self.set(sec, opt, default)
+                dirty = True
+                continue
+            if rng and self.getfloat(sec, opt) < rng[0]:
+                cor = ["small: setting to min", rng[0]]
+            elif rng and self.getfloat(sec, opt) > rng[1]:
+                cor = ["large: setting to max", rng[1]]
+            else:
+                continue
+            print("%s option too %s value of %.2f." % (opt, cor[0], cor[1]))
+            self.set(sec, opt, str(cor[1]))
+            dirty = True
+        # save
+        if dirty:
+            with open(self.configfile, 'w') as conffile:
+                self.write(conffile)
+            print("Please edit your configuration file: %s" % self.configfile)
+            exit()
+
+    def __validate(self):
+        '''Validates some configuration options.'''
+        # sources
+        sources = self.get_list('wlg', 'sources')
+        for src in sources:
+            if src not in ['whatcd', 'lastfm', 'mbrainz', 'discogs',
+                           'echonest']:
+                msg = "%s is not a valid source" % src
+            elif src == 'whatcd' and not (self.get('wlg', 'whatcduser') and
+                                          self.get('wlg', 'whatcdpass')):
+                msg = "No What.CD credentials specified"
+            else:
+                continue
+            print("%s. %s support disabled.\n" % (msg, src))
+            sources.remove(src)
+            self.set('wlg', 'sources', ', '.join(sources))
+        if not sources:
+            print("Where do you want to get your data from?\nAt least one "
+                  "source must be activated (multiple sources recommended)!")
+            exit()
+        # options
+        if self.args.tag_release and 'whatcd' not in sources:
+            print("Can't tag release with What.CD support disabled. "
+                  "Release tagging disabled.\n")
+            self.args.tag_release = False
+
     def get_list(self, sec, opt):
         '''Gets a csv-string as list.'''
         list_ = self.get(sec, opt).lower().split(',')
@@ -178,96 +275,6 @@ def get_args():
 
     LOG.debug("args: %s\n", args)
     return args
-
-
-def get_conf():
-    '''Reads, maintains and writes the configuration file.'''
-    configfile = os.path.expanduser('~/.whatlastgenre/config')
-    # [section, option, default, required, [min, max]]
-    conf = [['wlg', 'sources', 'whatcd, mbrainz, lastfm', 1, []],
-            ['wlg', 'cache_timeout', '30', 1, [14, 180]],
-            ['wlg', 'whatcduser', '', 0, []],
-            ['wlg', 'whatcdpass', '', 0, []],
-            ['genres', 'love', 'soundtrack', 0, []],
-            ['genres', 'hate',
-             'alternative, electronic, indie, pop, rock', 0, []],
-            ['genres', 'blacklist', 'charts, male vocalist, other', 0, []],
-            ['genres', 'filters', 'instrument, label, location, year', 0, []],
-            ['scores', 'artist', '1.33', 1, [0.5, 2.0]],
-            ['scores', 'various', '0.66', 1, [0.1, 1.0]],
-            ['scores', 'splitup', '0.33', 1, [0, 1.0]],
-            ['scores', 'src_whatcd', '1.66', 1, [0.5, 2.0]],
-            ['scores', 'src_lastfm', '0.66', 1, [0.5, 2.0]],
-            ['scores', 'src_mbrainz', '1.00', 1, [0.5, 2.0]],
-            ['scores', 'src_discogs', '1.00', 1, [0.5, 2.0]],
-            ['scores', 'src_echonest', '1.00', 1, [0.5, 2.0]]]
-    config = MySafeConfigParser()
-    config.read(configfile)
-    dirty = False
-    # remove old options
-    for sec in config.sections():
-        if not [x for x in conf if x[0] == sec]:
-            config.remove_section(sec)
-            dirty = True
-            continue
-        for opt in config.options(sec):
-            if not [x for x in conf if x[:2] == [sec, opt]]:
-                config.remove_option(sec, opt)
-                dirty = True
-    # add and correct options
-    for sec, opt, default, req, rng in [x for x in conf]:
-        if not config.has_option(sec, opt) or \
-                req and config.get(sec, opt) == '':
-            if not config.has_section(sec):
-                config.add_section(sec)
-            config.set(sec, opt, default)
-            dirty = True
-            continue
-        if rng and config.getfloat(sec, opt) < rng[0]:
-            cor = [rng[0], "small: setting to min"]
-        elif rng and config.getfloat(sec, opt) > rng[1]:
-            cor = [rng[1], "large: setting to max"]
-        else:
-            continue
-        print("%s option too %s value of %.2f." % (opt, cor[1], cor[0]))
-        config.set(sec, opt, str(cor[0]))
-        dirty = True
-    if not dirty:
-        return config
-    with open(configfile, 'w') as conffile:
-        config.write(conffile)
-    print("Please edit your configuration file: %s" % configfile)
-    exit()
-
-
-def validate(args, conf):
-    '''Validates args and conf.'''
-    # sources
-    sources = conf.get_list('wlg', 'sources')
-    for src in sources:
-        if src not in ['whatcd', 'lastfm', 'mbrainz', 'discogs', 'echonest']:
-            msg = "%s is not a valid source" % src
-        elif src == 'whatcd' and not (conf.get('wlg', 'whatcduser') and
-                                      conf.get('wlg', 'whatcdpass')):
-            msg = "No What.CD credentials specified"
-        else:
-            continue
-        print("%s. %s support disabled.\n" % (msg, src))
-        sources.remove(src)
-        conf.set('wlg', 'sources', ', '.join(sources))
-    if not sources:
-        print("Where do you want to get your data from?\nAt least one "
-              "source must be activated (multiple sources recommended)!")
-        exit()
-    # options
-    if args.tag_release and 'whatcd' not in sources:
-        print("Can't tag release with What.CD support disabled. "
-              "Release tagging disabled.\n")
-        args.tag_release = False
-    if args.tag_mbids and 'mbrainz' not in sources:
-        print("Can't tag MBIDs with MusicBrainz support disabled. "
-              "MBIDs tagging disabled.\n")
-        args.tag_mbids = False
 
 
 def handle_album(args, dps, cache, genretags, album):
@@ -524,8 +531,7 @@ def main():
         os.makedirs(wlgdir)
 
     args = get_args()
-    conf = get_conf()
-    validate(args, conf)
+    conf = Config(args)
 
     stats = {'starttime': time.time(),
              'genres': defaultdict(int),
