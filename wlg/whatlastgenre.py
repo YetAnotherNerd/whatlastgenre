@@ -440,8 +440,9 @@ def interactive(source, variant, data):
     '''Asks the user to choose from a list of possibilities.'''
     print("%-8s %-6s search found    %2d results. Which is it?"
           % (source, variant, len(data)))
-    for i in range(len(data)):
-        print("#%2d: %s" % (i + 1, data[i]['info']))
+    for i, dat in enumerate(data, start=1):
+        info = dat['info'].encode(sys.stdout.encoding, errors='replace')
+        print("#%2d: %s" % (i, info))
     while True:
         try:
             num = int(raw_input("Please choose #[1-%d] (0 to skip): "
