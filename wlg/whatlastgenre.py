@@ -250,10 +250,10 @@ def get_args():
                         help='verbose output (-vv for debug)')
     parser.add_argument('-n', '--dry', action='store_true',
                         help='don\'t save metadata')
+    parser.add_argument('-c', '--no-cache', action='store_true',
+                        help='don\'t read from cache (just write)')
     parser.add_argument('-i', '--interactive', action='store_true',
                         help='interactive mode')
-    parser.add_argument('-c', '--no-cache', action='store_true',
-                        help='bypass cache hits')
     parser.add_argument('-r', '--tag-release', action='store_true',
                         help='tag release type (from What.CD)')
     parser.add_argument('-m', '--tag-mbids', action='store_true',

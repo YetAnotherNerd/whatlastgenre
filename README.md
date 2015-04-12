@@ -214,8 +214,8 @@ optional arguments:
   -h, --help           show this help message and exit
   -v, --verbose        verbose output (-vv for debug) (default: 0)
   -n, --dry            don't save metadata (default: False)
+  -c, --no-cache       don't read from cache (just write) (default: False)
   -i, --interactive    interactive mode (default: False)
-  -c, --no-cache       bypass cache hits (default: False)
   -r, --tag-release    tag release type (from What.CD) (default: False)
   -m, --tag-mbids      tag musicbrainz ids (default: False)
   -l N, --tag-limit N  max. number of genre tags (default: 4)
@@ -230,7 +230,10 @@ run with interactivity enabled. This way you can answer all interactivity
 questions without much waiting time in between.
 
 Remove the cache file to reset the cache. If you only want to reset the cache
-for specific albums rerun with `-c` on this albums to ignore cache hits.
+for specific albums rerun with `-c` on these albums to ignore cache hits. (It
+will not read from cache with `-c`, but will still write results to cache for
+later runs without `-c`). You can use the cachecleaner util script to remove
+specific entries from cache.
 
 ### Examples
 
