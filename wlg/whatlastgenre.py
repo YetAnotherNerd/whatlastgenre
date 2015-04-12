@@ -39,6 +39,12 @@ import wlg.mediafile as mf
 
 LOG = logging.getLogger('whatlastgenre')
 
+# Regex pattern to recognize Various Artist strings
+VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
+
+# Musicbrainz ID of 'Various Artists'
+VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
+
 
 class Config(ConfigParser.SafeConfigParser):
     '''Reads, maintains and writes the configuration file.'''
@@ -280,23 +286,30 @@ def get_args():
 def handle_album(args, dps, cache, genretags, album):
     '''Receives tags and saves an album.'''
     genretags.reset(album)
+    albumartist = album.get_meta('albumartist') or album.get_meta('artist')
+    if albumartist and VA_PAT.match(albumartist):
+        albumartist = None
+    albumartistmbid = album.get_meta('musicbrainz_albumartistid') \
+            or album.get_meta('musicbrainz_artistid')
+    if albumartistmbid and albumartistmbid == VA_MBID:
+        albumartistmbid = None
     sdata = {
         'releasetype': None,
         'date': album.get_meta('date'),
         'album': searchstr(album.get_meta('album')),
-        'artist': [(searchstr(album.get_meta('albumartist')),
-                    album.get_meta('musicbrainz_albumartistid'))],
-        'mbids': {'albumartistid': album.get_meta('musicbrainz_albumartistid'),
-                  'releasegroupid':
-                      album.get_meta('musicbrainz_releasegroupid'),
+        'artist': [(searchstr(albumartist), albumartistmbid)],
+        'mbids': {'releasegroupid':
+                  album.get_meta('musicbrainz_releasegroupid'),
                   'albumid': album.get_meta('musicbrainz_albumid')}
     }
     # search for all track artists if no albumartist
-    if not album.get_meta('albumartist'):
-        for track in [t for t in album.tracks if t.get_meta('artist') and
-                      not mf.VA_PAT.match(t.get_meta('artist'))]:
-            sdata['artist'].append((searchstr(track.get_meta('artist')),
-                                    track.get_meta('musicbrainz_artistid')))
+    if not albumartist:
+        for track in album.tracks:
+            if track.get_meta('artist') and \
+                    not VA_PAT.match(track.get_meta('artist')):
+                sdata['artist'].append((searchstr(track.get_meta('artist')),
+                                        track.get_meta('musicbrainz_artistid')))
+
     # get data from dataproviders
     sdata = get_data(args, dps, cache, genretags, sdata)
     # set genres

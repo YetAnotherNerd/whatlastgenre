@@ -21,18 +21,13 @@ from __future__ import print_function
 
 import logging
 import os.path
-import re
 
 import mutagen
 
 
 LOG = logging.getLogger('whatlastgenre')
 
-# Regex pattern to recognize Various Artist strings
-VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
-
-# Musicbrainz ID of 'Various Artists'
-VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
+EXTENSIONS = ['.mp3', '.flac', '.ogg', '.m4a']
 
 
 def find_music_folders(paths):
@@ -41,8 +36,7 @@ def find_music_folders(paths):
     for path in paths:
         for root, _, files in os.walk(path):
             for file_ in files:
-                ext = os.path.splitext(file_)[1].lower()
-                if ext in ['.mp3', '.flac', '.ogg', '.m4a']:
+                if os.path.splitext(file_)[1].lower() in EXTENSIONS:
                     folders.append(root)
                     break
     return folders
@@ -60,38 +54,18 @@ class Album(object):
         if not os.path.exists(path):
             raise AlbumError("Folder vanished")
         self.path = path
-        # load tracks
         self.tracks = []
         for file_ in os.listdir(path):
-            if os.path.splitext(file_)[1].lower() \
-                    not in ['.mp3', '.flac', '.ogg', '.m4a']:
-                continue
-            try:
-                self.tracks.append(Track(path, file_))
-            except TrackError as err:
-                print("Error loading track '%s': %s" % (file_, err.message))
+            if os.path.splitext(file_)[1].lower() in EXTENSIONS:
+                try:
+                    self.tracks.append(Track(path, file_))
+                except TrackError as err:
+                    print("Error loading track '%s': %s" % (file_, err))
         if not self.tracks:
             raise AlbumError("Could not load any tracks")
         if not self.get_meta('album'):
             raise AlbumError("Not all tracks have the same or any album-tag")
-        # type (track extensions)
         self.type = ','.join(set(t.ext for t in self.tracks)).upper()
-        # put artist in empty albumartist
-        if not self.get_meta('albumartist'):
-            self.set_meta('albumartist', self.get_meta('artist'))
-        # put artist mbid in empty albumartist mbid
-        if not self.get_meta('musicbrainz_albumartistid'):
-            self.set_meta('musicbrainz_albumartistid',
-                          self.get_meta('musicbrainz_artistid'))
-        # various artists
-        if VA_PAT.match(self.get_meta('artist') or ''):
-            LOG.info('removing VA artist')
-            self.set_meta('artist', None)
-            self.set_meta('musicbrainz_artistid', None)
-        if VA_PAT.match(self.get_meta('albumartist') or ''):
-            LOG.info('removing VA albumartist')
-            self.set_meta('albumartist', None)
-            self.set_meta("musicbrainz_albumartistid", VA_MBID)
 
     def get_meta(self, key, use_lcs=True):
         '''Gets metadata that all tracks have in common.'''
@@ -123,8 +97,7 @@ class Album(object):
             try:
                 dirty = track.save() or dirty
             except TrackError as err:
-                print("Error saving track '%s': %s"
-                      % (track.filename, err.message))
+                print("Error saving track '%s': %s" % (track.filename, err))
         print("done!" if dirty else "(no changes)")
 
     @classmethod
@@ -163,7 +136,6 @@ class Track(object):
         except (IOError, OSError) as err:
             raise TrackError(err)
         if not self.muta:
-            # will be improved with MutagenError from mutagen-1.25
             raise TrackError('unknown mutagen error')
 
     def _translate_key(self, key):
