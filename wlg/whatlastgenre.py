@@ -526,9 +526,8 @@ def print_stats(stats, dps):
     if stats['folders']:
         print("\n%d album(s) with errors/messages:" % len(stats['folders']))
         for msg in set(stats['folders'].values()):
-            fldrs = [k for k, v in sorted(stats['folders'].items())
-                     if v == msg]
-            print("%s:\n%s" % (msg, '\n'.join(fldrs)))
+            fldrs = [k for k, v in stats['folders'].items() if v == msg]
+            print("%s:\n%s" % (msg, '\n'.join(sorted(fldrs))))
 
 
 def main():
@@ -583,7 +582,7 @@ def main():
                     stats['genres'][tag] += 1
             except mf.AlbumError as err:
                 print(err)
-                stats['folders'].update({path: err})
+                stats['folders'].update({path: str(err)})
         print("\n...all done!")
     except KeyboardInterrupt:
         print()
