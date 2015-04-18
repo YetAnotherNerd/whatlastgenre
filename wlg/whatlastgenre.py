@@ -53,7 +53,6 @@ class Config(ConfigParser.SafeConfigParser):
 
     # [section, option, default, required, [min, max]]
     conf = [['wlg', 'sources', 'whatcd, mbrainz, lastfm', 1, []],
-            ['wlg', 'cache_timeout', '30', 1, [14, 180]],
             ['wlg', 'whatcduser', '', 0, []],
             ['wlg', 'whatcdpass', '', 0, []],
             ['genres', 'love', 'soundtrack', 0, []],
@@ -156,10 +155,10 @@ class Cache(object):
     speedup.
     '''
 
-    def __init__(self, update_cache, timeout):
+    def __init__(self, update_cache):
         self.fullpath = os.path.expanduser('~/.whatlastgenre/cache')
         self.update_cache = update_cache
-        self.timeout = timeout * 60 * 60 * 24
+        self.expire_after = 180 * 24 * 60 * 60
         self.time = time.time()
         self.dirty = False
         self.cache = {}
@@ -205,7 +204,7 @@ class Cache(object):
         print("\nCleaning cache... ", end='')
         size = len(self.cache)
         for key, val in self.cache.items():
-            if time.time() - val.get('time', 0) > self.timeout \
+            if time.time() - val.get('time', 0) > self.expire_after \
                     or re.match('discogs##artist##', key) \
                     or re.match('echonest##album##', key) \
                     or re.match('.*##.*##.?$', key):
@@ -556,7 +555,7 @@ def main():
         return
 
     genretags = gt.GenreTags(conf)
-    cache = Cache(args.update_cache, conf.getint('wlg', 'cache_timeout'))
+    cache = Cache(args.update_cache)
     dps = dp.get_daprs(conf)
 
     try:  # main loop

@@ -92,7 +92,6 @@ A configuration file with default values will be created at
 ```
 [wlg]
 sources = whatcd, discogs, mbrainz, lastfm
-cache_timeout = 60
 whatcduser = whatusername
 whatcdpass = whatpassword
 [genres]
@@ -131,11 +130,6 @@ now requires authentication (own account needed)
 * `echonest` [[URL](http://echonest.com)]
 artist only, fixed list of
 [genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
-
-##### cache_timout option
-Time in days after which cache hits get invalid.
-
-Default `30`, Range `14 - 180`
 
 #### genres section
 
