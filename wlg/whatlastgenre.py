@@ -560,7 +560,7 @@ def main():
     dps = dp.get_daprs(conf)
 
     try:  # main loop
-        for i, path in enumerate(folders, start=1):
+        for i, path in enumerate(sorted(folders), start=1):
             # save cache periodically
             if time.time() - cache.time > 600:
                 cache.save()
