@@ -156,9 +156,9 @@ class Cache(object):
     speedup.
     '''
 
-    def __init__(self, bypass, timeout):
+    def __init__(self, update_cache, timeout):
         self.fullpath = os.path.expanduser('~/.whatlastgenre/cache')
-        self.bypass = bypass
+        self.update_cache = update_cache
         self.timeout = timeout * 60 * 60 * 24
         self.time = time.time()
         self.dirty = False
@@ -180,7 +180,7 @@ class Cache(object):
         Since this method does't check the timestamp of the cache
         entries self.clean() is to be called on instantiation.
         '''
-        if self.bypass:
+        if self.update_cache:
             return
         return self.cache.get(key)
 
@@ -194,7 +194,7 @@ class Cache(object):
                 for k in [k for k in dat.keys() if k not in keep]:
                     del dat[k]
         # just update the data if key exists
-        if not self.bypass and self.cache.get(key):
+        if not self.update_cache and self.cache.get(key):
             self.cache[key]['data'] = data
         else:
             self.cache[key] = {'time': time.time(), 'data': data}
@@ -256,8 +256,8 @@ def get_args():
                         help='verbose output (-vv for debug)')
     parser.add_argument('-n', '--dry', action='store_true',
                         help='don\'t save metadata')
-    parser.add_argument('-c', '--no-cache', action='store_true',
-                        help='don\'t read from cache (just write)')
+    parser.add_argument('-u', '--update-cache', action='store_true',
+                        help='force cache update')
     parser.add_argument('-i', '--interactive', action='store_true',
                         help='interactive mode')
     parser.add_argument('-r', '--tag-release', action='store_true',
@@ -556,7 +556,7 @@ def main():
         return
 
     genretags = gt.GenreTags(conf)
-    cache = Cache(args.no_cache, conf.getint('wlg', 'cache_timeout'))
+    cache = Cache(args.update_cache, conf.getint('wlg', 'cache_timeout'))
     dps = dp.get_daprs(conf)
 
     try:  # main loop

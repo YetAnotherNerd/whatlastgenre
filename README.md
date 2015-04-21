@@ -205,7 +205,7 @@ Default `1.0`, Range `0.5 - 2.0`. See `sources` option above.
 
 ## Usage
 ```
-usage: whatlastgenre [-h] [-v] [-n] [-i] [-c] [-r] [-m] [-l N] path [path ...]
+usage: whatlastgenre [-h] [-v] [-n] [-u] [-i] [-r] [-m] [-l N] path [path ...]
 
 positional arguments:
   path                 folder(s) to scan for albums
@@ -214,7 +214,7 @@ optional arguments:
   -h, --help           show this help message and exit
   -v, --verbose        verbose output (-vv for debug) (default: 0)
   -n, --dry            don't save metadata (default: False)
-  -c, --no-cache       don't read from cache (just write) (default: False)
+  -u, --update-cache   force cache update (default: False)
   -i, --interactive    interactive mode (default: False)
   -r, --tag-release    tag release type (from What.CD) (default: False)
   -m, --tag-mbids      tag musicbrainz ids (default: False)
@@ -228,12 +228,8 @@ using mbrainz, you searched for them, why not save them? ;)
 I recommend first doing a dry-run to fill the cache and then doing a normal
 run with interactivity enabled. This way you can answer all interactivity
 questions without much waiting time in between.
+Remove the cache file to reset the cache or use `-u` to force cache updates.
 
-Remove the cache file to reset the cache. If you only want to reset the cache
-for specific albums rerun with `-c` on these albums to ignore cache hits. (It
-will not read from cache with `-c`, but will still write results to cache for
-later runs without `-c`). You can use the cachecleaner util script to remove
-specific entries from cache.
 
 ### Examples
 
