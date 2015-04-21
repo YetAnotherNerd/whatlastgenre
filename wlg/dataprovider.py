@@ -19,6 +19,7 @@
 
 from __future__ import print_function
 
+from collections import defaultdict
 import json
 import logging
 import os
@@ -401,23 +402,16 @@ class Discogs(DataProvider):
             params.update({'artist': artistname})
         data = self._query_jsonapi('http://api.discogs.com/database/search',
                                    params)
-        data = (data or {}).get('results', [])
-        masters = [x for x in data if x.get('type') == 'master']
-        releases = [x for x in data if x.get('type') == 'release']
-        # merge release tags with master tags
-        for master in masters:
-            tags = master.get('genre', [])
-            tags += master.get('style', [])
-            for release in releases:
-                if release.get('title') == master.get('title'):
-                    tags += release.get('genre', [])
-                    tags += release.get('style', [])
-            master['tags'] = list(set(tags))
-        return [{
-            'info': "%s (%s) [%s]: %s"
-                    % (x.get('title'), x.get('year'),
-                       ', '.join(x.get('format')), x['resource_url']),
-            'tags': x.get('tags'), 'year': x.get('year')} for x in masters]
+        if not data or 'results' not in data or not data['results']:
+            return None
+        # merge releases and masters
+        results = defaultdict(set)
+        for res in data['results']:
+            if res['type'] in ['master', 'release']:
+                for key in ['genre', 'style']:
+                    if key in res:
+                        results[res['title']].update(res[key])
+        return [{'tags': {t: 0 for t in r}} for r in results.values()]
 
 
 class EchoNest(DataProvider):
