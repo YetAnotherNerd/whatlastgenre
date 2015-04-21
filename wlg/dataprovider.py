@@ -184,7 +184,8 @@ class WhatCD(DataProvider):
     def get_album_data(self, artistname, albumname, _):
         '''Gets album data from What.CD.'''
         data = self._query({'action': 'browse', 'filter_cat[1]': 1,
-                            'searchstr': artistname + ' ' + albumname})
+                            'artistname': artistname,
+                            'albumname': albumname})
         return [{
             'info': "%s - %s (%s) [%s]: https://what.cd/torrents.php?id=%s"
                     % (d['artist'], d['groupName'], d['groupYear'],
