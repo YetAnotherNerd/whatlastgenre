@@ -261,8 +261,6 @@ def get_args():
                         help='interactive mode')
     parser.add_argument('-r', '--tag-release', action='store_true',
                         help='tag release type (from What.CD)')
-    parser.add_argument('-m', '--tag-mbids', action='store_true',
-                        help='tag musicbrainz ids')
     parser.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
                         help='max. number of genre tags')
     args = parser.parse_args()
@@ -320,12 +318,6 @@ def handle_album(args, dps, cache, genretags, album):
     if args.tag_release and sdata.get('releasetype'):
         print("RelTyp: %s" % sdata['releasetype'])
         album.set_meta('releasetype', sdata['releasetype'])
-    # set mbrainz ids
-    if args.tag_mbids and 'mbids' in sdata:
-        LOG.info("MB-IDs: %s", ', '.join(["%s=%s" % (k, v) for k, v
-                                          in sdata['mbids'].items()]))
-        for key, val in sdata['mbids'].items():
-            album.set_meta('musicbrainz_' + key, val)
     # save metadata
     if args.dry:
         print("DRY-RUN! Not saving metadata.")
@@ -417,14 +409,8 @@ def get_data(args, dps, cache, genretags, sdata):
         LOG.info("%-8s %-6s search found %2d of %2d tags for '%s'%s",
                  dapr.name, variant, goodtags, tags, sstr, cachemsg)
         dapr.add_query_stats(results=1, tags=tags, goodtags=goodtags)
-        if variant == 'artist' and 'mbid' in data \
-                and len(sdata['artist']) == 1:
-            sdata['mbids']['albumartistid'] = data['mbid']
-        elif variant == 'album':
-            if 'mbid' in data:
-                sdata['mbids']['releasegroupid'] = data['mbid']
-            if 'releasetype' in data:
-                sdata['releasetype'] = genretags.format(data['releasetype'])
+        if variant == 'album' and 'releasetype' in data:
+            sdata['releasetype'] = genretags.format(data['releasetype'])
     return sdata
 
 

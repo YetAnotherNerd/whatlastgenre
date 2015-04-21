@@ -47,13 +47,11 @@ HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 def get_daprs(conf):
     '''Returns a list of DataProviders activated in the conf file.
 
-    The DataProviders will later be called in the order they get added
-    here.  Since lastfm supports search by MBIDs, mbrainz should get
-    added before lastfm.  DataProviders that provide good spelled tags
-    (eg. sources with a fixed set of possible genres) should generally
-    be added before DataProviders that provide misspelled tags (eg.
-    lastfm user tags) to avoid getting malformed tags due to the tag
-    matching process while adding them.
+    Since DataProvider will be called in the order they are added here,
+    DataProviders that provide good spelled tags (eg. sources with a
+    fixed set of possible genres) should generally be added before
+    DataProviders that provide user added tags to avoid getting malformed
+    tags due to the tag matching process while adding them.
 
     :param conf: Config object of the configuration file
     '''
@@ -298,8 +296,8 @@ class MBrainz(DataProvider):
             'info': "%s (%s) [%s]: http://musicbrainz.org/artist/%s"
                     % (x['name'], x.get('disambiguation', ''),
                        x.get('type', ''), x['id']),
-            'tags': {t['name']: int(t['count']) for t in x.get('tags', [])},
-            'mbid': x['id']} for x in data]
+            'tags': {t['name']: int(t['count']) for t in x.get('tags', [])}}
+            for x in data]
 
     def get_album_data(self, artistname, albumname, mbids):
         '''Gets album data from MusicBrainz.'''
@@ -343,8 +341,8 @@ class MBrainz(DataProvider):
             'info': "%s - %s [%s]: http://musicbrainz.org/release-group/%s"
                     % (x['artist-credit'][0]['artist']['name'], x.get('title'),
                        x.get('primary-type'), x['id']),
-            'tags': {t['name']: int(t['count']) for t in x.get('tags', [])},
-            'mbid': x['id']} for x in data]
+            'tags': {t['name']: int(t['count']) for t in x.get('tags', [])}}
+            for x in data]
 
 
 class Discogs(DataProvider):

@@ -15,10 +15,9 @@ Improves genre metadata of audio files based on tags from various music sites.
     * Filters crappy tags without using a whitelist
     * Scores tags while taking personal preferences into account
   * Caches all data received from music sites to make reruns super fast
-  * Makes use of MusicBrainz IDs when possible
+  * Uses MusicBrainz IDs for searching when available
   * Optional: gets release type (Album, EP, Anthology, ...) from What.CD
-  * Optional: gets MusicBrainz IDs
-  * Interactive mode to select right MBID and releasetype for ambiguous results
+  (with interactivity mode for ambiguous results)
   * Dry-mode for safe testing
 
 
@@ -201,7 +200,7 @@ Default `1.0`, Range `0.5 - 2.0`. See `sources` option above.
 
 ## Usage
 ```
-usage: whatlastgenre [-h] [-v] [-n] [-u] [-i] [-r] [-m] [-l N] path [path ...]
+usage: whatlastgenre [-h] [-v] [-n] [-u] [-i] [-r] [-l N] path [path ...]
 
 positional arguments:
   path                 folder(s) to scan for albums
@@ -213,17 +212,14 @@ optional arguments:
   -u, --update-cache   force cache update (default: False)
   -i, --interactive    interactive mode (default: False)
   -r, --tag-release    tag release type (from What.CD) (default: False)
-  -m, --tag-mbids      tag musicbrainz ids (default: False)
   -l N, --tag-limit N  max. number of genre tags (default: 4)
 ```
 
-If you seriously want to tag release-types `-r` or musicbrainz-ids `-m` you
-should also enable interactive mode `-i`. Consider to save the MBIDs `-m` when
-using mbrainz, you searched for them, why not save them? ;)
+If you seriously want to tag release-types `-r` you should also enable
+interactive mode `-i`. I recommend first doing a dry-run to fill the cache and
+then doing a normal run with `-ir` enabled. This way you can choose the right
+results without much waiting time in between.
 
-I recommend first doing a dry-run to fill the cache and then doing a normal
-run with interactivity enabled. This way you can answer all interactivity
-questions without much waiting time in between.
 Remove the cache file to reset the cache or use `-u` to force cache updates.
 
 
@@ -239,7 +235,7 @@ Tag max. 3 genre tags for all albums in /home/user/music:
 
 To get the most of it for all albums in /home/user/music and /media/music:
 
-	whatlastgenre -irml 5 /home/user/music /media/music
+	whatlastgenre -irl 5 /home/user/music /media/music
 
 
 whatlastgenre doesn't correct any other tags. If your music files are badly or
