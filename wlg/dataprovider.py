@@ -29,6 +29,16 @@ import requests
 from wlg import __version__
 
 
+try:  # use optional requests_cache if available
+    import requests_cache
+    requests_cache.install_cache(
+        os.path.expanduser('~/.whatlastgenre/reqcache'),
+        expire_after=180 * 24 * 60 * 60,
+        old_data_on_error=True)
+except ImportError:
+    pass
+
+
 LOG = logging.getLogger('whatlastgenre')
 
 HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
@@ -94,12 +104,14 @@ class DataProvider(object):
             0, self.rate_limit - time.time() + self.last_request)
         while time.time() - self.last_request < self.rate_limit:
             time.sleep(.1)
-        self.last_request = time.time()
+        time_ = time.time()
         try:
             req = self.session.get(url, params=params)
         except requests.exceptions.RequestException as err:
             raise DataProviderError("request error: %s" % err.message)
-        self.stats['time_resp'] += time.time() - self.last_request
+        self.stats['time_resp'] += time.time() - time_
+        if not hasattr(req, 'from_cache') or not req.from_cache:
+            self.last_request = time_
         if req.status_code != 200:
             LOG.debug(req.content)
             raise DataProviderError("request error: status code %s"

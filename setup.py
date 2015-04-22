@@ -48,6 +48,7 @@ setup(
     install_requires=['mutagen', 'requests'],
     extras_require={
         'discogs': ['rauth'],
+        'reqcache': ['requests-cache'],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
