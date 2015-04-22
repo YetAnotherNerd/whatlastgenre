@@ -31,14 +31,13 @@ EXTENSIONS = ['.mp3', '.flac', '.ogg', '.m4a']
 
 
 def find_music_folders(paths):
-    '''Scans paths for folders containing music files.'''
+    '''Scan paths for folders containing music files.'''
     folders = []
     for path in paths:
         for root, _, files in os.walk(path):
-            for file_ in files:
-                if os.path.splitext(file_)[1].lower() in EXTENSIONS:
-                    folders.append(root)
-                    break
+            if any(os.path.splitext(f)[1].lower() in EXTENSIONS
+                   for f in files):
+                folders.append(root)
     return folders
 
 
