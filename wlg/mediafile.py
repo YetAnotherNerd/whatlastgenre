@@ -67,20 +67,22 @@ class Album(object):
             raise AlbumError("Not all tracks have the same or any album-tag")
         self.type = ','.join(set(t.ext for t in self.tracks)).upper()
 
-    def get_meta(self, key, use_lcs=True):
-        '''Gets metadata that all tracks have in common.'''
-        val = []
-        for track in self.tracks:
-            val.append(track.get_meta(key))
+    def get_meta(self, key, lcp=True):
+        '''Gets metadata that all tracks have in common.
+
+        :param key: metadata key
+        :param lcp: use longest common prefix for some keys
+        '''
+        vals = set(t.get_meta(key) for t in self.tracks)
         # common for all tracks
-        if len(set(val)) == 1:
-            return val[0]
-        # use longest common substring
-        if use_lcs and key in ['artist', 'albumartist']:
-            val = [x for x in set(val) if x]
-            lcs = self._longest_common_substr(val)
-            if lcs and len(lcs) > 2 and lcs == val[0][:len(lcs)]:
-                return lcs
+        if len(vals) == 1:
+            return vals.pop()
+        # use longest common prefix
+        if lcp and key in ['artist', 'albumartist', 'album']:
+            vals.discard(None)
+            val = os.path.commonprefix(vals)
+            if len(val) > 2:
+                return val
         # no common value for this key
         return None
 
@@ -99,21 +101,6 @@ class Album(object):
             except TrackError as err:
                 print("Error saving track '%s': %s" % (track.filename, err))
         print("done!" if dirty else "(no changes)")
-
-    @classmethod
-    def _longest_common_substr(cls, strs):
-        '''Returns the longest common substr for a list of strings.
-
-        :param strs: list of strings to get the lcs for
-        '''
-        substr = ''
-        if len(strs) > 1 and strs[0]:
-            for i in range(len(strs[0])):
-                for j in range(len(strs[0]) - i + 1):
-                    if j > len(substr) and all(strs[0][i:i + j] in x
-                                               for x in strs):
-                        substr = strs[0][i:i + j]
-        return substr
 
 
 class TrackError(Exception):
