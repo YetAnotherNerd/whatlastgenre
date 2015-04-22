@@ -6,13 +6,15 @@ Improves genre metadata of audio files based on tags from various music sites.
 * Supported music sites: What.CD, Last.FM, MusicBrainz, Discogs, EchoNest
 * Feature Overview
   * Gets genre tags for artists and albums from music sites and finds the most
-  eligible ones by merging, splitting, filtering and scoring them.
-    * Merges similar tags in different writings to ensure consistent names, eg.
-    DnB, D&B, Drum and Bass -> Drum & Bass;
+  eligible ones.
+    * Merges similar tags in different writings with aliases and regex
+    replacements to ensure consistent naming,
+    eg. DnB, D&B, Drum and Bass -> Drum & Bass;
     Alt., Altern, Alterneitif -> Alternative
     * Splits tags in various applicable ways, eg.
-    Jazz/Funk&Rock -> Jazz, Funk, Rock; Alternative Rock -> Alternative, Rock
-    * Filters crappy tags without using a whitelist
+    Jazz/Funk&Rock -> Jazz, Funk, Rock;
+    Alternative Rock -> Alternative, Rock
+    * Uses a whitelist to avoid crappy tags (see genres.txt)
     * Scores tags while taking personal preferences into account
   * Caches all data received from music sites to make reruns super fast
   * Uses MusicBrainz IDs for searching when available
@@ -23,14 +25,14 @@ Improves genre metadata of audio files based on tags from various music sites.
 
 ## How it works
 It scans through folders for albums and receives genre tags for them and their
-artists from different music sites. Equal tags in different writings will be
-split and/or merged to ensure consistent names and proper scoring. The tags
-get filtered and scored. Artist and album tags get handled separately and then
-merged using configurable score modifiers. The best scored tags will be saved
-as genre metadata in the corresponding album tracks. All data received from
-music sites gets cached so that rerunning the script will be super fast. There
-are several score multipliers to adjust the scoring to your needs and take your
-personal preferences into account. Please take a look at "Configuration options
+artists from selected music sites. Equal tags in different writings will be
+split and/or merged to ensure consistent names and proper scoring. Artist and
+album tags get handled separately and then merged using configurable score
+modifiers. The best scored tags will be saved as genre metadata in the
+corresponding album tracks. All data received from music sites gets cached so
+that rerunning the script will be super fast. There are several score
+multipliers to adjust the scoring to your needs and take your personal
+preferences into account. Please take a look at "Configuration options
 explained" below for more details.
 
 ##### Tag scoring with count (What.CD, Last.FM, MusicBrainz)
@@ -44,7 +46,7 @@ Tags supplied without a count will be scored `max(0.1, 0.85^(n-1))`, where `n`
 is the total number of tags supplied by this source. The more tags the lower
 the score for each tag will be. So if only one tag is supplied, it will get a
 score of `1.0`, two tags will get a score of `0.85` each and so on. The minimum
-score is `0.1`, which applies if there are more then 15 tags supplied.
+score is `0.1`, which applies if there are more than 15 tags supplied.
 
 ##### Tag merging of artist and album tags
 After all tags have been gathered the scores of album and artist tags will be
@@ -73,21 +75,21 @@ option explained below.
 ## Installation
 You'll need Python 2.7.
 
-Install dependencies with your package manager, on Debian based distros run
+Install the dependencies with your package manager, on Debian based distros run
 this as root:
 
     apt-get install python-mutagen python-requests
 
-* Alternatively, install dependencies by using python-pip:
+* Alternatively, install the dependencies using python-pip:
 `pip install mutagen requests`
-* Clone the git or download and unzip the [source package]
+* Clone the repository or download and unzip the [source package]
 (http://github.com/YetAnotherNerd/whatlastgenre/archive/master.zip)
 * Run it without install by using `./whatlastgenre` from the directory you
 cloned/extracted to
 * Install it by running `python setup.py install` as root in that directory
 
 ##### Optional Dependencies
-* `rauth` is required for Discogs (disabled by default). If you want to use
+* `rauth` is required for Discogs support. If you want to use
 Discogs, install `rauth` with pip like above and activate `discogs` in the
 configuration file (see below).
 * `requests-cache` can additionally cache the raw queries from requests if
@@ -110,8 +112,6 @@ id3v23_sep =
 [genres]
 love = trip-rock
 hate = alternative, electronic, indie, pop, rock
-blacklist = charts, male vocalist, other
-filters = instrument, label, location, year
 [scores]
 artist = 1.33
 various = 0.66
@@ -132,17 +132,16 @@ The music sites where to get the genre tags from.
 * `whatcd` [[URL](https://what.cd)]
 well-kept tags from community
 * `lastfm` [[URL](http://last.fm)]
-mbid search possible, many personal tags from users
+many personal tags from users
 * `mbrainz` [[URL](http://musicbrainz.org)]
 home of mbids
 * `discogs` [[URL](http://discogs.com)]
-album only, fixed list of [genres]
-(http://discogs.com/help/submission-guidelines-release-genres-styles.html) and
-[styles](http://wiki.discogs.com/index.php/Style_Guide),
-now requires authentication (own account needed)
+album only, fixed list of [genres and styles]
+(http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles),
+requires authentication (own account needed)
 * `echonest` [[URL](http://echonest.com)]
 artist only, fixed list of
-[genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
+[genres](http://developer.echonest.com/docs/v4/genre.html#list)
 
 ##### whitelist option
 Path to your custom whitelist. Defaults to shipped whitelist if empty.
@@ -174,15 +173,7 @@ Default `` (recommended)
 List of tags that get a multiplier bonus of `2.0` and `0.5` respectively.
 Should be considered as "soft white-/blacklist" where you can in-/decrease the
 occurrence of specific tags that you don't like or that are too inaccurate for
-you without fully banning them like with the blacklist option.
-
-##### filters option
-Use this to activate genre tag filters for specific groups of tags. The filter
-names relate to the filter sections in the tags.txt file.
-* `instrument` instrument related names, like piano or guitarist
-* `label` label names
-* `location` country, city and nationality names
-* `year` year tags, like 2010, 80s
+you without fully banning them.
 
 #### scores section
 
@@ -260,23 +251,35 @@ results without much waiting time in between.
 
 Remove the cache file to reset the cache or use `-u` to force cache updates.
 
-
-### Examples
-
-Do a verbose dry-run on your albums in /home/user/music changing nothing:
-
-	whatlastgenre -vn /home/user/music
-
-Tag max. 3 genre tags for all albums in /home/user/music:
-
-	whatlastgenre -l 3 /home/user/music
-
-To get the most of it for all albums in /home/user/music and /media/music:
-
-	whatlastgenre -irl 5 /home/user/music /media/music
-
+Don't waste your time running -n and -i together.
 
 whatlastgenre doesn't correct any other tags. If your music files are badly or
 not tagged it won't work well at all.
+
+### Examples
+
+Do a verbose dry-run on your albums in /media/music changing nothing:
+
+	whatlastgenre -vn /media/music
+
+Tag up to 3 genre tags for all albums in /media/music and /home/user/music:
+
+	whatlastgenre -l 3 /media/music /home/user/music
+
+Tag releasetypes and up to 4 genre tags for all albums in /media/music:
+
+	whatlastgenre -ir /media/music
+
+
+## Help / Improving tagsfile and whitelist
+
+How to debug tag handling:
+* Do a debug dry run and save output to log:
+    whatlastgenre -nvv /media/music > /tmp/wlg.log 2>&1
+* Search the log for specific lines and see if they are valid:
+    grep -E "^(tag |Error)" /tmp/wlg.log | sort -u | less
+
+Feel free to send me your log file so i can use it for debugging myself.
+
 
 Please report any bugs and errors you encounter, i would like to fix them :)
