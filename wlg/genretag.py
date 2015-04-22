@@ -212,8 +212,8 @@ class GenreTags(object):
                     (tags.items(), key=lambda (k, v): (v, k), reverse=1)
                     if v > 0.1]
             tagout = tags if LOG.level == logging.DEBUG else tags[:12]
-            tagout = self.tagprintstr(tagout, "%5.2f %-19s")
-            LOG.info("Best %6s genres (%d):\n%s", group, len(tags), tagout)
+            LOG.info("Best %-6s genres (%d):", group, len(tags))
+            LOG.info(tag_display(tagout, "%4.2f %-20s"))
         # merge artist and album genres
         genres = defaultdict(float)
         for group, tags in self.tags.items():
@@ -246,23 +246,6 @@ class GenreTags(object):
         return ' '.join(words)
 
     @classmethod
-    def tagprintstr(cls, tags, pattern):
-        '''Returns a string of tags formated with pattern in 3 columns.
-
-        :param tags: dict of tag name with scores
-        :param pattern: should not exceed (80-2)/3 = 26 chars length.
-        '''
-        lines = []
-        num = int(math.ceil(len(tags) / 3))
-        for i in range(num):
-            row = []
-            for j in [j for j in range(3) if i + num * j < len(tags)]:
-                col = pattern % (tags[i + num * j][1], tags[i + num * j][0])
-                row.append(col)
-            lines.append(' '.join(row))
-        return '\n'.join(lines)
-
-    @classmethod
     def parse_tagsfile(cls, filters):
         '''Returns a ConfigParser object for the tagsfile.
 
@@ -284,3 +267,16 @@ class GenreTags(object):
                       "[filter_%s[_fuzzy]] section in the tags.txt file "
                       "and will be ignored.\n" % (sec, sec))
         return parser
+
+
+def tag_display(tags, pattern):
+    '''Return a string of tags formatted with pattern in 3 columns.
+
+    :param tags: list of tuples containing tags name and count/score
+    :param pattern: should not exceed (80-2)/3 = 26 chars length.
+    '''
+    len_ = int(math.ceil(len(tags) / 3))
+    lines = [' '.join([pattern % tuple(reversed(tags[i]))
+                       for i in [l + len_ * j for j in range(3)]
+                       if i < len(tags)]) for l in range(len_)]
+    return '\n'.join(lines)

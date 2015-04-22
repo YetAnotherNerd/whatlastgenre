@@ -475,9 +475,8 @@ def print_stats(stats, dps):
     if stats['genres']:
         tags = sorted(stats['genres'].items(), key=lambda (k, v): (v, k),
                       reverse=1)
-        tags = gt.GenreTags.tagprintstr(tags, "%5d %-19s")
-        print("\n%d different tags used this often:\n%s"
-              % (len(stats['genres']), tags))
+        print("\n%d different tags used this often:" % len(tags))
+        print(gt.tag_display(tags, "%4d %-20s"))
     # data provider statistics
     if LOG.level <= logging.INFO:
         print('\n%-13s ' % 'Source stats', end='')
