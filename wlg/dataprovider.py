@@ -174,7 +174,7 @@ class WhatCD(DataProvider):
                     % (d['artist'], d['groupName'], d['groupYear'],
                        d['releaseType'], d['groupId']),
             'releasetype': d['releaseType'],
-            'tags': [tag.replace('.', ' ') for tag in d.get('tags', [])],
+            'tags': {tag.replace('.', ' '): 0 for tag in d['tags']},
             'year': d['groupYear']} for d in data.get('results', {})]
 
 
@@ -410,7 +410,7 @@ class EchoNest(DataProvider):
             'http://developer.echonest.com/api/v4/artist/search',
             {'api_key': "ZS0LNJH7V6ML8AHW3", 'format': 'json',
              'bucket': 'genre', 'results': 1, 'name': artistname})
-        return [{'tags': [t['name'] for t in x.get('genres', [])]}
+        return [{'tags': {t['name']: 0 for t in x.get('genres', [])}}
                 for x in (data or {}).get('response', {}).get('artists', {})]
 
     def get_album_data(self, artistname, albumname, _):

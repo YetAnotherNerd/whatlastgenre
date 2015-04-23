@@ -26,6 +26,7 @@ import difflib
 import itertools
 import logging
 import math
+import operator
 import pkgutil
 import re
 
@@ -181,22 +182,17 @@ class GenreTags(object):
         '''
         if not tags:
             return 0
-        added = 0
+        tags = sorted(tags.items(), key=operator.itemgetter(1), reverse=1)[:99]
+        any_ = any(v for _, v in tags)
+        max_ = max(v for _, v in tags)
         multi = self.conf.getfloat('scores', 'src_%s' % source)
-        if isinstance(tags, dict):
-            max_ = max(tags.values())
-            if not max_ or (x for x in tags.values() if not x):
-                # handle without counts anyway
-                return self.add(source, group, tags.keys())
-            for key, val in sorted(tags.items(), key=tags.get, reverse=1)[:99]:
-                if self._add(group, key, val / max_ * multi):
-                    added += 1
-        elif isinstance(tags, list):
-            score = max(0.1, .85 ** (len(tags) - 1))
-            for name in tags[:99]:
-                if self._add(group, name, score * multi):
-                    added += 1
-        return added
+        # tags with counts
+        if any_:
+            score = max_ ** -1 * multi
+            return sum(self._add(group, k, v * score) for k, v in tags)
+        # tags without counts
+        score = max(0.1, .85 ** (len(tags) - 1)) * multi
+        return sum(self._add(group, k, score) for k, _ in tags)
 
     def get(self, various=False):
         '''Merges all tag groups and returns the sorted and formated
