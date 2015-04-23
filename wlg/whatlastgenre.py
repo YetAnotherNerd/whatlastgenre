@@ -49,8 +49,6 @@ VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 class Config(ConfigParser.SafeConfigParser):
     '''Reads, maintains and writes the configuration file.'''
 
-    configfile = os.path.expanduser('~/.whatlastgenre/config')
-
     # [section, option, default, required, [min, max]]
     conf = [['wlg', 'sources', 'whatcd, mbrainz, lastfm', 1, []],
             ['wlg', 'whatcduser', '', 0, []],
@@ -69,10 +67,11 @@ class Config(ConfigParser.SafeConfigParser):
             ['scores', 'src_discogs', '1.00', 1, [0.5, 2.0]],
             ['scores', 'src_echonest', '1.00', 1, [0.5, 2.0]]]
 
-    def __init__(self, args):
+    def __init__(self, wlgdir, args):
         ConfigParser.SafeConfigParser.__init__(self)
+        self.fullpath = os.path.join(wlgdir, 'config')
         self.args = args
-        self.read(self.configfile)
+        self.read(self.fullpath)
         self.__maintain()
         self.__validate()
 
@@ -113,9 +112,9 @@ class Config(ConfigParser.SafeConfigParser):
             dirty = True
         # save
         if dirty:
-            with open(self.configfile, 'w') as conffile:
-                self.write(conffile)
-            print("Please edit your configuration file: %s" % self.configfile)
+            with open(self.fullpath, 'w') as file_:
+                self.write(file_)
+            print("Please edit your configuration file: %s" % self.fullpath)
             exit()
 
     def __validate(self):
@@ -155,8 +154,8 @@ class Cache(object):
     speedup.
     '''
 
-    def __init__(self, update_cache):
-        self.fullpath = os.path.expanduser('~/.whatlastgenre/cache')
+    def __init__(self, wlgdir, update_cache):
+        self.fullpath = os.path.join(wlgdir, 'cache')
         self.update_cache = update_cache
         self.expire_after = 180 * 24 * 60 * 60
         self.time = time.time()
@@ -528,7 +527,7 @@ def main():
         os.makedirs(wlgdir)
 
     args = get_args()
-    conf = Config(args)
+    conf = Config(wlgdir, args)
 
     stats = {'starttime': time.time(),
              'genres': defaultdict(int),
@@ -539,8 +538,8 @@ def main():
     if not folders:
         return
 
+    cache = Cache(wlgdir, args.update_cache)
     genretags = gt.GenreTags(conf)
-    cache = Cache(args.update_cache)
     dps = dp.get_daprs(conf)
 
     try:  # main loop
