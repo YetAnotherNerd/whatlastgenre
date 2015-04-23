@@ -21,8 +21,8 @@ from __future__ import division, print_function
 
 import ConfigParser
 import argparse
-from collections import defaultdict
-import datetime
+from collections import defaultdict, Counter, namedtuple
+from datetime import timedelta
 import json
 import logging
 import os
@@ -44,6 +44,8 @@ VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
 
 # Musicbrainz ID of 'Various Artists'
 VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
+
+Stats = namedtuple('Stats', ['time', 'genres', 'errors'])
 
 
 class Config(ConfigParser.SafeConfigParser):
@@ -343,6 +345,7 @@ def get_data(args, dps, cache, genretags, sdata):
         if cached:
             cachemsg = ' (cached)'
             data = cached['data']
+            dapr.stats['queries_cache'] += 1
         else:
             cachemsg = ''
             try:
@@ -356,12 +359,12 @@ def get_data(args, dps, cache, genretags, sdata):
                 continue
             except dp.DataProviderError as err:
                 print("%-8s %s" % (dapr.name, err.message))
-                dapr.add_query_stats(error=True)
+                dapr.stats['errors'] += 1
                 continue
+            dapr.stats['queries_web'] += 1
         if not data:
             LOG.info("%-8s %-6s search found    no results for '%s'%s",
                      dapr.name, variant, sstr, cachemsg)
-            dapr.add_query_stats()
             cache.set(cachekey, None)
             continue
         # filter
@@ -393,21 +396,21 @@ def get_data(args, dps, cache, genretags, sdata):
         if len(data) > 1:
             print("%-8s %-6s search found    %2d results for '%s'%s (use -i)"
                   % (dapr.name, variant, len(data), sstr, cachemsg))
-            dapr.add_query_stats(results=len(data))
             continue
         # unique data
         data = data[0]
+        dapr.stats['results'] += 1
         if not data.get('tags'):
             LOG.info("%-8s %-6s search found    no    tags for '%s'%s",
                      dapr.name, variant, sstr, cachemsg)
-            dapr.add_query_stats(results=1)
             continue
         LOG.debug(data['tags'])
         tags = min(99, len(data['tags']))
         goodtags = genretags.add(dapr.name.lower(), variant, data['tags'])
         LOG.info("%-8s %-6s search found %2d of %2d tags for '%s'%s",
                  dapr.name, variant, goodtags, tags, sstr, cachemsg)
-        dapr.add_query_stats(results=1, tags=tags, goodtags=goodtags)
+        dapr.stats['tags'] += tags
+        dapr.stats['goodtags'] += goodtags
         if variant == 'album' and 'releasetype' in data:
             sdata['releasetype'] = genretags.format(data['releasetype'])
     return sdata
@@ -466,51 +469,68 @@ def searchstr(str_):
     return str_.strip().lower()
 
 
-def print_stats(stats, dps):
-    '''Prints out some statistics.'''
-    print("\nTime elapsed: %s"
-          % datetime.timedelta(seconds=time.time() - stats['starttime']))
+def print_stats(stats, daprs, num_folders):
+    '''Print some statistics.
+
+    :param stats: dictionary with some stats
+    :param daprs: list of DataProivder objects
+    :param num_folders: number of processed album folders
+    '''
     # genre tag statistics
-    if stats['genres']:
-        tags = sorted(stats['genres'].items(), key=lambda (k, v): (v, k),
-                      reverse=1)
+    if stats.genres:
+        tags = stats.genres.most_common()
         print("\n%d different tags used this often:" % len(tags))
         print(gt.tag_display(tags, "%4d %-20s"))
-    # data provider statistics
-    if LOG.level <= logging.INFO:
-        print('\n%-13s ' % 'Source stats', end='')
-        for dapr in dps:
-            dapr.stats.update({
-                'time_resp_avg':
-                dapr.stats['time_resp'] / max(.001, dapr.stats['realqueries']),
-                'time_wait_avg':
-                dapr.stats['time_wait'] / max(.001, dapr.stats['realqueries']),
-                'results/query':
-                dapr.stats['results'] / max(.001, dapr.stats['queries']),
-                'tags/result':
-                dapr.stats['tags'] / max(.001, dapr.stats['results']),
-                'goodtags/tags':
-                dapr.stats['goodtags'] / max(.001, dapr.stats['tags'])})
-            print("| %-8s " % dapr.name, end='')
-        print('\n', '-' * 14, '+----------' * len(dps), sep='')
-        for key in ['errors', 'realqueries', 'queries', 'results',
-                    'results/query', 'tags', 'tags/result', 'goodtags',
-                    'goodtags/tags', 'time_resp_avg', 'time_wait_avg']:
-            if not any(dapr.stats[key] for dapr in dps):
-                continue
-            print("%-13s " % key, end='')
-            for dapr in dps:
-                if isinstance(dapr.stats[key], float):
-                    print("| %8.2f " % dapr.stats[key], end='')
-                else:
-                    print("| %8d " % dapr.stats[key], end='')
-            print()
     # folder errors/messages
-    if stats['folders']:
-        print("\n%d album(s) with errors/messages:" % len(stats['folders']))
-        for msg in set(stats['folders'].values()):
-            fldrs = [k for k, v in stats['folders'].items() if v == msg]
-            print("%s:\n%s" % (msg, '\n'.join(sorted(fldrs))))
+    if stats.errors:
+        print("\n%d album(s) with errors:"
+              % sum(len(x) for x in stats.errors.values()))
+        for error, folders in stats.errors.items():
+            print("%s:\n%s" % (error, '\n'.join(sorted(folders))))
+    # dataprovider stats
+    if LOG.level <= logging.INFO:
+        print_dapr_stats(daprs)
+    # time
+    diff = time.time() - stats.time
+    print("\nTime elapsed: %s (%s per folder)"
+          % (timedelta(seconds=diff), timedelta(seconds=diff / num_folders)))
+
+
+def print_dapr_stats(daprs):
+    '''Print some DataProvider statistics.
+
+    :param daprs: list of DataProvider objects
+    '''
+    print("\nSource stats  ", ''.join("| %-8s " % d.name for d in daprs),
+          "\n", "-" * 14, "+----------" * len(daprs), sep='')
+    for key in ['errors', 'queries_web', 'queries_cache', 'results',
+                'results/query', 'tags', 'tags/result', 'goodtags',
+                'goodtags/tag', 'time_resp_avg', 'time_wait_avg']:
+        vals = []
+        for dapr in daprs:
+            if key == 'results/query' and (dapr.stats['queries_web']
+                                           or dapr.stats['queries_cache']):
+                vals.append(dapr.stats['results']
+                            / (dapr.stats['queries_web']
+                               + dapr.stats['queries_cache']))
+            elif key == 'time_resp_avg' and dapr.stats['queries_web']:
+                vals.append(dapr.stats['time_resp']
+                            / dapr.stats['queries_web'])
+            elif key == 'time_wait_avg' and dapr.stats['queries_web']:
+                vals.append(dapr.stats['time_wait']
+                            / dapr.stats['queries_web'])
+            elif key == 'tags/result' and dapr.stats['results']:
+                vals.append(dapr.stats['tags'] / dapr.stats['results'])
+            elif key == 'goodtags/tag' and dapr.stats['tags']:
+                vals.append(dapr.stats['goodtags'] / dapr.stats['tags'])
+            elif key in dapr.stats:
+                vals.append(dapr.stats[key])
+            else:
+                vals.append(0.0)
+        if any(v for v in vals):
+            pat = "| %8d " if all(v.is_integer() for v in vals) \
+                else "| %8.2f "
+            print("%-13s " % key, ''.join(pat % v for v in vals), sep='')
 
 
 def main():
@@ -529,19 +549,17 @@ def main():
     args = get_args()
     conf = Config(wlgdir, args)
 
-    stats = {'starttime': time.time(),
-             'genres': defaultdict(int),
-             'folders': {}}
-
     folders = mf.find_music_folders(args.path)
     print("Found %d music folders!" % len(folders))
     if not folders:
         return
 
+    stats = Stats(time.time(), Counter(), defaultdict(list))
     cache = Cache(wlgdir, args.update_cache)
     genretags = gt.GenreTags(conf)
     dps = dp.get_daprs(conf)
 
+    i = 0
     try:  # main loop
         for i, path in enumerate(sorted(folders), start=1):
             # save cache periodically
@@ -561,12 +579,11 @@ def main():
                 genres = handle_album(args, dps, cache, genretags, album)
                 if not genres:
                     raise mf.AlbumError("No genres found")
-                for tag in genres:
-                    stats['genres'][tag] += 1
+                stats.genres.update(genres)
             except mf.AlbumError as err:
                 print(err)
-                stats['folders'].update({path: str(err)})
+                stats.errors[str(err)].append(path)
         print("\n...all done!")
     except KeyboardInterrupt:
         print()
-    print_stats(stats, dps)
+    print_stats(stats, dps, i)

@@ -86,19 +86,10 @@ class DataProvider(object):
         self.session.headers.update(HEADERS)
         self.last_request = time.time()
         self.rate_limit = 1.0  # min. seconds between requests
-        self.stats = {
-            'time_resp': 0.0,
-            'time_wait': 0.0,
-            'queries': 0,
-            'realqueries': 0,
-            'results': 0,
-            'errors': 0,
-            'tags': 0,
-            'goodtags': 0}
+        self.stats = defaultdict(float)
 
     def _query_jsonapi(self, url, params):
         '''Queries an api and returns the json results.'''
-        self.stats['realqueries'] += 1
         self.stats['time_wait'] += max(
             0, self.rate_limit - time.time() + self.last_request)
         while time.time() - self.last_request < self.rate_limit:
@@ -120,15 +111,6 @@ class DataProvider(object):
         except ValueError as err:
             LOG.debug(req.content)
             raise DataProviderError("request error: %s" % err.message)
-
-    def add_query_stats(self, error=False, results=0, tags=0, goodtags=0):
-        '''Adds some stats to the internal stat counter.'''
-        if error:
-            self.stats['errors'] += 1
-        self.stats['queries'] += 1
-        self.stats['results'] += results
-        self.stats['tags'] += tags
-        self.stats['goodtags'] += goodtags
 
     def get_artist_data(self, artistname, mbid):
         '''Gets artist data from a DataProvider.'''
