@@ -52,10 +52,10 @@ class Config(ConfigParser.SafeConfigParser):
     '''Reads, maintains and writes the configuration file.'''
 
     # [section, option, default, required, [min, max]]
-    conf = [['wlg', 'sources', 'whatcd, mbrainz, lastfm', 1, []],
+    conf = [['wlg', 'sources', 'whatcd, lastfm, mbrainz', 1, []],
             ['wlg', 'whatcduser', '', 0, []],
             ['wlg', 'whatcdpass', '', 0, []],
-            ['genres', 'love', 'soundtrack', 0, []],
+            ['genres', 'love', '', 0, []],
             ['genres', 'hate',
              'alternative, electronic, indie, pop, rock', 0, []],
             ['genres', 'blacklist', 'charts, male vocalist, other', 0, []],
@@ -63,9 +63,9 @@ class Config(ConfigParser.SafeConfigParser):
             ['scores', 'artist', '1.33', 1, [0.5, 2.0]],
             ['scores', 'various', '0.66', 1, [0.1, 1.0]],
             ['scores', 'splitup', '0.33', 1, [0, 1.0]],
-            ['scores', 'src_whatcd', '1.66', 1, [0.5, 2.0]],
+            ['scores', 'src_whatcd', '1.50', 1, [0.5, 2.0]],
             ['scores', 'src_lastfm', '0.66', 1, [0.5, 2.0]],
-            ['scores', 'src_mbrainz', '1.00', 1, [0.5, 2.0]],
+            ['scores', 'src_mbrainz', '0.66', 1, [0.5, 2.0]],
             ['scores', 'src_discogs', '1.00', 1, [0.5, 2.0]],
             ['scores', 'src_echonest', '1.00', 1, [0.5, 2.0]]]
 

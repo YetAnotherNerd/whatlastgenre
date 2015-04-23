@@ -92,11 +92,11 @@ A configuration file with default values will be created at
 ### Example configuration file
 ```
 [wlg]
-sources = whatcd, discogs, mbrainz, lastfm
+sources = whatcd, lastfm, discogs, mbrainz
 whatcduser = whatusername
 whatcdpass = whatpassword
 [genres]
-love = soundtrack
+love = trip-rock
 hate = alternative, electronic, indie, pop, rock
 blacklist = charts, male vocalist, other
 filters = instrument, label, location, year
@@ -104,9 +104,9 @@ filters = instrument, label, location, year
 artist = 1.33
 various = 0.66
 splitup = 0.33
-src_whatcd = 1.66
+src_whatcd = 1.50
 src_lastfm = 0.66
-src_mbrainz = 1.00
+src_mbrainz = 0.66
 src_discogs = 1.00
 src_echonest = 1.00
 ```
