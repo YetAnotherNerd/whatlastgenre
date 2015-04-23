@@ -28,7 +28,7 @@ import logging
 import os
 import re
 import sys
-import tempfile
+from tempfile import NamedTemporaryFile
 import time
 
 from wlg import __version__
@@ -152,7 +152,7 @@ class Config(ConfigParser.SafeConfigParser):
 
 
 class Cache(object):
-    '''Loads and saves a dict as json from/into a file for some
+    '''Load and save a dict as json from/into a file for some
     speedup.
     '''
 
@@ -163,72 +163,78 @@ class Cache(object):
         self.time = time.time()
         self.dirty = False
         self.cache = {}
+        self.new = set()
         try:
-            with open(self.fullpath) as infile:
-                self.cache = json.load(infile)
+            with open(self.fullpath) as file_:
+                self.cache = json.load(file_)
         except (IOError, ValueError):
             pass
-        self.clean()
+
+        # backward compatibility code
+        for key, val in [(k, v) for k, v in self.cache.items() if '##' in k]:
+            if val['data']:
+                # only keep some keys
+                keep = ['info', 'year'] if len(val['data']) > 1 else []
+                val['data'] = [{k: v for k, v in d.items()
+                                if k in ['tags', 'releasetype'] + keep}
+                               for d in val['data'] if d]
+                # all tag data are dicts now
+                for dat in val['data']:
+                    if dat and 'tags' in dat and isinstance(dat['tags'], list):
+                        dat['tags'] = {t: 0 for t in dat['tags']}
+            del self.cache[key]
+            key = str(tuple(key.encode("utf-8").split('##')))
+            val['data'] = val['data'] if val['data'] else []
+            self.cache[key] = (val['time'], val['data'])
+            self.dirty = True
 
     def __del__(self):
         self.save()
         print()
 
     def get(self, key):
-        '''Returns data for a given key.
+        '''Return a (time, value) data tuple for a given key.'''
+        if str(key) in self.cache \
+                and time.time() < self.cache[str(key)][0] + self.expire_after \
+                and (str(key) in self.new or not self.update_cache):
+            return self.cache[str(key)]
+        return None
 
-        Since this method does't check the timestamp of the cache
-        entries self.clean() is to be called on instantiation.
-        '''
+    def set(self, key, value):
+        '''Set value for a given key.'''
+        if value:
+            keep = ['info', 'year'] if len(value) > 1 else []
+            value = [{k: v for k, v in val.items()
+                      if k in ['tags', 'releasetype'] + keep}
+                     for val in value if val]
+        self.cache[str(key)] = (time.time(), value)
         if self.update_cache:
-            return
-        return self.cache.get(key)
-
-    def set(self, key, data):
-        '''Sets data for a given key.'''
-        if data:
-            keep = ['tags', 'mbid', 'releasetype']
-            if len(data) > 1:
-                keep += ['info', 'title', 'year']
-            for dat in data:
-                for k in [k for k in dat.keys() if k not in keep]:
-                    del dat[k]
-        # just update the data if key exists
-        if not self.update_cache and self.cache.get(key):
-            self.cache[key]['data'] = data
-        else:
-            self.cache[key] = {'time': time.time(), 'data': data}
+            self.new.add(str(key))
         self.dirty = True
 
     def clean(self):
-        '''Cleans up expired or invalid entries.'''
-        print("\nCleaning cache... ", end='')
+        '''Clean up expired entries.'''
+        print("Cleaning cache... ", end='')
         size = len(self.cache)
         for key, val in self.cache.items():
-            if time.time() - val.get('time', 0) > self.expire_after \
-                    or re.match('discogs##artist##', key) \
-                    or re.match('echonest##album##', key) \
-                    or re.match('.*##.*##.?$', key):
+            if time.time() > val[0] + self.expire_after:
                 del self.cache[key]
-        diff = size - len(self.cache)
-        print("done! (%d removed)" % diff)
-        if diff:
-            self.dirty = True
-            self.save()
+                self.dirty = True
+        print("done! (%d entries removed)" % (size - len(self.cache)))
 
     def save(self):
-        '''Saves the cache dict as json string to a file.
-
-        A tempfile is used to avoid data loss on interruption.
+        '''Save the cache dict as json string to a file.
+        Clean expired entries before saving and use a tempfile to
+        avoid data loss on interruption.
         '''
         if not self.dirty:
             return
-        print("\nSaving cache... ", end='')
+        self.clean()
+        print("Saving cache... ", end='')
         dirname, basename = os.path.split(self.fullpath)
         try:
-            with tempfile.NamedTemporaryFile(prefix=basename + '.tmp_',
-                                             dir=dirname,
-                                             delete=False) as tmpfile:
+            with NamedTemporaryFile(prefix=basename + '.tmp_',
+                                    dir=dirname, delete=False) as tmpfile:
                 tmpfile.write(json.dumps(self.cache))
                 os.fsync(tmpfile)
             # seems atomic rename here is not possible on windows
@@ -239,9 +245,10 @@ class Cache(object):
             self.time = time.time()
             self.dirty = False
             size_mb = os.path.getsize(self.fullpath) / 2 ** 20
-            print("done! (%d entries, %.2f MB)" % (len(self.cache), size_mb))
+            print("  done! (%d entries, %.2f MB)" % (len(self.cache), size_mb))
         except KeyboardInterrupt:
-            os.remove(tmpfile.name)
+            if os.path.isfile(tmpfile.name):
+                os.remove(tmpfile.name)
 
 
 def get_args():
@@ -339,12 +346,11 @@ def get_data(args, dps, cache, genretags, sdata):
         sstr = ' '.join(sstr).strip()
         if not sstr or len(sstr) < 2:
             continue
-        cachekey = '##'.join([dapr.name, variant, sstr]).lower()
-        cachekey = re.sub(r'([^\w#]| +)', '', cachekey).strip()
+        cachekey = (dapr.name.lower(), variant, sstr.replace(' ', ''))
         cached = cache.get(cachekey)
         if cached:
             cachemsg = ' (cached)'
-            data = cached['data']
+            data = cached[1]
             dapr.stats['queries_cache'] += 1
         else:
             cachemsg = ''
@@ -390,7 +396,7 @@ def get_data(args, dps, cache, genretags, sdata):
                             tags.append(tag)
                 data = [{'tags': tags}]
         # save cache
-        if not cached or len(cached['data']) > len(data):
+        if not cached or len(cached[1]) > len(data):
             cache.set(cachekey, data)
         # still multiple results?
         if len(data) > 1:
