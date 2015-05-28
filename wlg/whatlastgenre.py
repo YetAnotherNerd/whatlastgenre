@@ -272,6 +272,8 @@ def get_args():
                         help='tag release type (from What.CD)')
     parser.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
                         help='max. number of genre tags')
+    parser.add_argument('-d', '--difflib', action='store_true',
+                        help='enable difflib matching (slow)')
     args = parser.parse_args()
 
     if args.verbose == 0:

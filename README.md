@@ -237,7 +237,7 @@ Default `1.0`, Range `0.5 - 2.0`. See `sources` option above.
 
 ## Usage
 ```
-usage: whatlastgenre [-h] [-v] [-n] [-u] [-i] [-r] [-l N] path [path ...]
+usage: whatlastgenre [-h] [-v] [-n] [-u] [-i] [-r] [-l N] [-d] path [path ...]
 
 positional arguments:
   path                 folder(s) to scan for albums
@@ -250,6 +250,7 @@ optional arguments:
   -i, --interactive    interactive mode (default: False)
   -r, --tag-release    tag release type (from What.CD) (default: False)
   -l N, --tag-limit N  max. number of genre tags (default: 4)
+  -d, --difflib        enable difflib matching (slow) (default: False)
 ```
 
 If you seriously want to tag release-types `-r` you should also enable
