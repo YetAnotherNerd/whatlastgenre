@@ -1,0 +1,145 @@
+# whatlastgenre tags file
+#
+# [upper]   tags with length>2 which should be uppercase
+# [alias]   tag aliases: alias = tag
+# [regex]   tag regex substitutions: pattern = replacement
+#
+# all lines should be lowercase
+# empty lines and lines starting with # are ignored
+
+[upper]
+ebm
+edm
+idm
+mpb
+ndw
+nwa
+nwobhm
+nyc
+nyhc
+usa
+
+[alias]
+2step = 2-step
+2 step = 2-step
+a capella = acapella
+a cappella = acapella
+beat box = beatbox
+blues rock = blues-rock
+bossanova = bossa nova
+brit pop = britpop
+canons = canon
+carols = carol
+chill out = chillout
+chill-out = chillout
+chrismas = christmas
+clasic rock = classic rock
+dance hall = dancehall
+dance pop = dance-pop
+dance punk = dance-punk
+dance rock = dance-rock
+dark wave = darkwave
+deephouse = deep house
+downbeat = downtempo
+down beat = downtempo
+down-beat = downtempo
+down temp = downtempo
+down-tempo = downtempo
+elecronic = electronic
+electronic blues = electric blues
+electronic folk = electric folk
+electronic swing = electro-swing
+electroswing = electro-swing
+eletronic = electronic
+euro-dance = eurodance
+euro-disco = eurodisco
+euro-pop = europop
+euro-trance = eurotrance
+exotic = exotica
+freak folk = freak-folk
+gangstarap = gangsta rap
+gangster rap = gangsta rap
+glamrock = glam rock
+hardbop = hard bop
+hardhouse = hard house
+hardrock = hard rock
+hardtrance = hard trance
+indierock = indie rock
+instrumentals = instrumental
+instumental = instrumental
+j hip-hop = j-hip-hop
+liedermacher = singer-songwriter
+lliquid funk = liquid funk
+mittelalter = medieval
+neo-psychedelia = neo-psychedelic
+new progressive = neo-progressive
+newage = new age
+oldie = oldies
+powerpop = power pop
+proto punk = protopunk
+pscyhedelic = psychedelic
+psychadelic = psychedelic
+psychadelic rock = psychedelic rock
+psytrance = psy-trance
+rock steady = rocksteady
+skate punk = skatepunk
+slow core = slowcore
+soundtracks = soundtrack
+synth pop = synthpop
+tech house = tech-house
+tech trance = tech-trance
+trash metal = thrash metal
+trip rock = trip-rock
+weihnachten = christmas
+welt = world
+
+[regex]
+# ampersands
+d(rum)?[ n/]*b(ass)? = drum & bass
+drill[ n/]*bass = drill & bass
+hard[ n/]*heavy = hard & heavy
+r(hythm)?[ n/]*b(lues)? = rhythm & blues
+rock[ n/]*roll = rock & roll
+stage[ n/]*screen = stage & screen
+# consistent delimiters
+(neo|post)[ /]*(.+) = \g<1>-\g<2>
+(c|k|j)[ /]*(folk|goth|hip-hop|pop|rock|ska) = \g<1>-\g<2>
+(glitch|hip|jazz|trip)[ /]*hop = \g<1>-hop
+euro(?!p[ae]|pean)[ /]*(.+) = euro-\g<1>
+(p|g)[ /]*funk = \g<1>-funk
+nu[ /]*(disco|jazz|metal|soul) = nu \g<1>
+# abbreviation related
+alt(\.|er+n(\.|ati[fv]))? = alternative
+avant([ ./]*garde?)? = avantgarde
+ele[ck]tr(i[ck]|o(ni[ck]a)?) = electronic
+goth(?!ic) = gothic
+prog{1,2}(\.|res{1,2}(\.|i[fv]e)?)? = progressive
+psy(\.|ch(\.|edelica?)?)? = psychedelic
+sci(ence)?[ /]?fi(ction)? = science fiction
+trad(.\|ition(.\nal)?)? = traditional
+# other
+#(?<!be)bop = bebop
+#(cabaret|comedi(an|e)|humou?r|kabarett|parod(ie|y)) = comedy
+#^(film|games?|movies?|t(ele)?v(ision)?|video(s| )?games?) ?(scores?|music)? = soundtrack
+#g?old(i(es?)?|en)? = oldies
+#latinos? = latin
+#minimal ?ele[ck]tro(nica?)? = minimal
+#rapper = rap
+#regueton = reggaeton
+#relax(ed|i(ng|on))? = chillout
+#scratch = turntablism
+#unplug(ged)? = acoustic
+(8[ /]*bit|bitpop|chip(.?tunes?)?) = chiptune
+(fem|m)ale[ /]*(artist|front|mc|singer|vocal(ist)?|voice)[eds]{0,2} = \g<1>ale vocalist
+(g?lo).?fi = \g<1>-fi
+(ost|vgm|scores?|video[ /]*game[ /]*music) = soundtrack
+(singer([ /]*songwriter)?|songwrit.*) = singer-songwriter
+(world)[ /]*musi[ck] = \g<1>
+.*top.*[0-9]+.* = charts
+beatboxing = beatbox
+best.* of (.+) = \g<1>
+br(eaks?|oken)([ /]*beats?)? = breakbeat
+shoegaze(r|ing?) = shoegaze
+x.?mas = christmas
+# translations
+deutscher/*( ?.*) = german\g<1>
