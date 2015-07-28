@@ -49,38 +49,38 @@ Stats = namedtuple('Stats', ['time', 'genres', 'errors'])
 
 
 class Config(ConfigParser.SafeConfigParser):
-    '''Reads, maintains and writes the configuration file.'''
+    '''Read, maintain and write the configuration file.'''
 
     # [section, option, default, required, [min, max]]
-    conf = [['wlg', 'sources', 'whatcd, lastfm, mbrainz', 1, []],
-            ['wlg', 'whatcduser', '', 0, []],
-            ['wlg', 'whatcdpass', '', 0, []],
-            ['genres', 'love', '', 0, []],
-            ['genres', 'hate',
-             'alternative, electronic, indie, pop, rock', 0, []],
-            ['genres', 'blacklist', 'charts, male vocalist, other', 0, []],
-            ['genres', 'filters', 'instrument, label, location, year', 0, []],
-            ['scores', 'artist', '1.33', 1, [0.5, 2.0]],
-            ['scores', 'various', '0.66', 1, [0.1, 1.0]],
-            ['scores', 'splitup', '0.33', 1, [0, 1.0]],
-            ['scores', 'src_whatcd', '1.50', 1, [0.5, 2.0]],
-            ['scores', 'src_lastfm', '0.66', 1, [0.5, 2.0]],
-            ['scores', 'src_mbrainz', '0.66', 1, [0.5, 2.0]],
-            ['scores', 'src_discogs', '1.00', 1, [0.5, 2.0]],
-            ['scores', 'src_echonest', '1.00', 1, [0.5, 2.0]]]
+    conf = [('wlg', 'sources', 'whatcd, lastfm, mbrainz', 1, ()),
+            ('wlg', 'whatcduser', '', 0, ()),
+            ('wlg', 'whatcdpass', '', 0, ()),
+            ('genres', 'love', '', 0, ()),
+            ('genres', 'hate',
+             'alternative, electronic, indie, pop, rock', 0, ()),
+            ('genres', 'blacklist', 'charts, male vocalist, other', 0, ()),
+            ('genres', 'filters', 'instrument, label, location, year', 0, ()),
+            ('scores', 'artist', '1.33', 1, (0.5, 2.0)),
+            ('scores', 'various', '0.66', 1, (0.1, 1.0)),
+            ('scores', 'splitup', '0.33', 1, (0, 1.0)),
+            ('scores', 'src_whatcd', '1.50', 1, (0.5, 2.0)),
+            ('scores', 'src_lastfm', '0.66', 1, (0.5, 2.0)),
+            ('scores', 'src_mbrainz', '0.66', 1, (0.5, 2.0)),
+            ('scores', 'src_discogs', '1.00', 1, (0.5, 2.0)),
+            ('scores', 'src_echonest', '1.00', 1, (0.5, 2.0))]
 
     def __init__(self, wlgdir, args):
         ConfigParser.SafeConfigParser.__init__(self)
         self.fullpath = os.path.join(wlgdir, 'config')
-        self.args = args
         self.read(self.fullpath)
-        self.__maintain()
-        self.__validate()
+        self.args = args
+        self.maintain()
+        self.validate()
 
-    def __maintain(self):
-        '''Maintains the config file.
+    def maintain(self):
+        '''Maintain the config file.
 
-        Makes sure the config file only contains valid options with
+        Make sure the config file only contains valid options with
         reasonable values.
         '''
         dirty = False
@@ -91,7 +91,7 @@ class Config(ConfigParser.SafeConfigParser):
                 dirty = True
                 continue
             for opt in self.options(sec):
-                if [sec, opt] not in [x[:2] for x in self.conf]:
+                if (sec, opt) not in [(x[0], x[1]) for x in self.conf]:
                     self.remove_option(sec, opt)
                     dirty = True
         # add and sanitize
@@ -100,7 +100,7 @@ class Config(ConfigParser.SafeConfigParser):
                     req and self.get(sec, opt) == '':
                 if not self.has_section(sec):
                     self.add_section(sec)
-                self.set(sec, opt, default)
+                self.set(sec, opt, str(default))
                 dirty = True
                 continue
             if rng and self.getfloat(sec, opt) < rng[0]:
@@ -119,8 +119,8 @@ class Config(ConfigParser.SafeConfigParser):
             print("Please edit your configuration file: %s" % self.fullpath)
             exit()
 
-    def __validate(self):
-        '''Validates some configuration options.'''
+    def validate(self):
+        '''Validate some configuration options.'''
         # sources
         sources = self.get_list('wlg', 'sources')
         for src in sources:
