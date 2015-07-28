@@ -23,6 +23,7 @@ import logging
 import os.path
 
 import mutagen
+from mutagen.id3 import ID3
 
 
 LOG = logging.getLogger('whatlastgenre')
@@ -50,7 +51,7 @@ class AlbumError(Exception):
 class Album(object):
     '''Class for managing albums.'''
 
-    def __init__(self, path):
+    def __init__(self, path, v23sep):
         if not os.path.exists(path):
             raise AlbumError("Folder vanished")
         self.path = path
@@ -58,7 +59,7 @@ class Album(object):
         for file_ in os.listdir(path):
             if os.path.splitext(file_)[1].lower() in EXTENSIONS:
                 try:
-                    self.tracks.append(Track(path, file_))
+                    self.tracks.append(Track(path, file_, v23sep))
                 except TrackError as err:
                     print("Error loading track '%s': %s" % (file_, err))
         if not self.tracks:
@@ -113,10 +114,11 @@ class TrackError(Exception):
 class Track(object):
     '''Class for managing tracks.'''
 
-    def __init__(self, path, filename):
-        self.filename = filename
-        self.ext = os.path.splitext(filename)[1].lower()[1:]
+    def __init__(self, path, filename, v23sep):
         self.fullpath = os.path.join(path, filename)
+        self.filename = filename
+        self.v23sep = v23sep
+        self.ext = os.path.splitext(filename)[1].lower()[1:]
         self.dirty = False
         try:
             self.stat = os.stat(self.fullpath)
@@ -170,12 +172,12 @@ class Track(object):
                 del self.muta[key]
                 self.dirty = True
             return
-        # get a decoded list from plain values
         val = val if isinstance(val, list) else [val]
-        val = [v.decode('utf-8') for v in val]
         # check for change
         old = [o if isinstance(o, unicode) else o.decode('utf-8')
                for o in self.muta.get(key, [])]
+        if self.ext == 'mp3' and self.v23sep and len(old) == 1:
+            old = [o.strip() for o in old[0].split(self.v23sep)]
         if not old or set(old) != set(val):
             self.muta[key] = val
             self.dirty = True
@@ -191,6 +193,10 @@ class Track(object):
             return False
         try:
             self.muta.save()
+            # downgrade v2.4 id3 tags to v2.3 if separator
+            if self.ext == 'mp3' and self.v23sep:
+                audio = ID3(self.fullpath, v2_version=3)
+                audio.save(v2_version=3, v23_sep=self.v23sep + ' ')
             # preserve modtime
             os.utime(self.fullpath, (self.stat.st_atime, self.stat.st_mtime))
         except IOError as err:

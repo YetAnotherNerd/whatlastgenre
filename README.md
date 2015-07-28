@@ -60,6 +60,15 @@ artist gets used for searching. Tags for artists that appear multiple times in
 that album get counted multiple times.
 See `various` score option below.
 
+##### Multiple value metadata and old ID3 versions
+Mutagen's ID3 API is primary targeted at id3v2.4, so by default any id3 tags
+will be upgraded to 2.4 and saving a file will make it 2.4 as well.
+See [[mutagen doc here]
+(https://mutagen.readthedocs.org/en/latest/tutorial.html#id3-versions)]
+for details.
+However, if you don't want to use v2.4 tags you can use the `id3v23sep` config
+option explained below.
+
 
 ## Installation
 You'll need Python 2.7.
@@ -95,6 +104,7 @@ A configuration file with default values will be created at
 sources = whatcd, lastfm, discogs, mbrainz
 whatcduser = whatusername
 whatcdpass = whatpassword
+id3v23_sep =
 [genres]
 love = trip-rock
 hate = alternative, electronic, indie, pop, rock
@@ -131,6 +141,17 @@ now requires authentication (own account needed)
 * `echonest` [[URL](http://echonest.com)]
 artist only, fixed list of
 [genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
+
+##### id3v23sep option
+By (mutagen) default all id3 v2.3 tags will be upgraded to v2.4. Since v2.3
+can't store multiple value metadata you need to set a seperator if you intend
+to use old v2.3 tags (not recommended).
+Setting this to a non-empty value (for example `,`) will downgrade all id3 tags
+to v2.3 and store all genres in one tag seperated by `id3v23sep` instead of
+using v2.4 tags that can have multiple values.
+You should upgrade your other software to support id3v24 instead of using this.
+
+Default `` (recommended)
 
 #### genres section
 

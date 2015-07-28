@@ -55,6 +55,7 @@ class Config(ConfigParser.SafeConfigParser):
     conf = [('wlg', 'sources', 'whatcd, lastfm, mbrainz', 1, ()),
             ('wlg', 'whatcduser', '', 0, ()),
             ('wlg', 'whatcdpass', '', 0, ()),
+            ('wlg', 'id3v23sep', '', 0, ()),
             ('genres', 'love', '', 0, ()),
             ('genres', 'hate',
              'alternative, electronic, indie, pop, rock', 0, ()),
@@ -576,7 +577,7 @@ def main():
                   "] %2.0f%%" % (100 * i / len(folders)), sep='')
             print(path)
             try:
-                album = mf.Album(path)
+                album = mf.Album(path, conf.get('wlg', 'id3v23sep'))
                 LOG.info("[%s] albumartist=%s, album=%s, date=%s",
                          album.type, album.get_meta('albumartist'),
                          album.get_meta('album'), album.get_meta('date'))
