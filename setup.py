@@ -39,7 +39,7 @@ setup(
                  'based on tags from various music sites.'),
     long_description=read('README.md'),
     packages=['wlg'],
-    package_data={'wlg': ['tags.txt']},
+    package_data={'wlg': ['data/genres.txt', 'data/tags.txt']},
     entry_points={
         'console_scripts': [
             'whatlastgenre = wlg.whatlastgenre:main'
