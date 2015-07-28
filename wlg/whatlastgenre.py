@@ -55,6 +55,7 @@ class Config(ConfigParser.SafeConfigParser):
     conf = [('wlg', 'sources', 'whatcd, lastfm, mbrainz', 1, ()),
             ('wlg', 'whatcduser', '', 0, ()),
             ('wlg', 'whatcdpass', '', 0, ()),
+            ('wlg', 'vaqueries', True, 1, ()),
             ('wlg', 'id3v23sep', '', 0, ()),
             ('genres', 'love', '', 0, ()),
             ('genres', 'hate',

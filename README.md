@@ -56,9 +56,9 @@ See `artist` score option below.
 
 ##### Tag scoring for various artist albums without any specific album artist
 If there is no specific album artist for a various artist album every track
-artist gets used for searching. Tags for artists that appear multiple times in
-that album get counted multiple times.
-See `various` score option below.
+artist can get used for searching. Tags for artists that appear multiple times
+in that album get counted multiple times.
+See `vaqueries` and `various` options below.
 
 ##### Multiple value metadata and old ID3 versions
 Mutagen's ID3 API is primary targeted at id3v2.4, so by default any id3 tags
@@ -104,6 +104,7 @@ A configuration file with default values will be created at
 sources = whatcd, lastfm, discogs, mbrainz
 whatcduser = whatusername
 whatcdpass = whatpassword
+vaqueries = True
 id3v23_sep =
 [genres]
 love = trip-rock
@@ -141,6 +142,14 @@ now requires authentication (own account needed)
 * `echonest` [[URL](http://echonest.com)]
 artist only, fixed list of
 [genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
+
+##### vaqueries option
+Search for all artists if there is no albumartist on albums with various
+artists. This will make queries for va-albums without albumartist take
+significantly longer, but yields more results.
+See `various` score option below.
+
+Default `True`
 
 ##### id3v23sep option
 By (mutagen) default all id3 v2.3 tags will be upgraded to v2.4. Since v2.3
@@ -187,8 +196,9 @@ Default `1.33`, Range `0.5 - 2.0`
 ##### various option
 Score multiplier similar to artist option, but this one applies to various
 artists releases if there is no albumartist and all the track artists get used
-for searching. For example: a 5 track va-album with 3 tracks from artist A and
-2 tracks from artist B will get tags like this:
+for searching, which can be en/disabled with the `vaqueries` option (see above).
+For example: a 5 track va-album with 3 tracks from artist A and 2 tracks from
+artist B will get tags like this:
 
 `(3 * <artist A tags> + 2 * <artist B tags>) * <various score> + <album tags>`
 
