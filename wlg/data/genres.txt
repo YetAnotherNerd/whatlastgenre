@@ -1,0 +1,363 @@
+2-step
+abstract hip-hop
+acapella
+acid breakbeat
+acid house
+acid jazz
+acid rock
+acoustic
+alternative
+abstract
+abstract rock
+abstract electronic
+alternative metal
+alternative rock
+ambient
+art rock
+avantgarde
+avantgarde jazz
+avantgarde metal
+baroque
+beatbox
+vocal trance
+bebop
+big band
+big beat
+bitcore
+bitpop
+black metal
+blackened death metal
+bluegrass
+blues
+blues-rock
+boogie
+boogie-woogie
+bossa nova
+brass band
+breakbeat
+breakcore
+britpop
+broken beat
+bumba-meu-boi
+c-gothic
+c-hip-hop
+c-jazz
+c-pop
+c-rock
+c-ska
+cabaret
+calypso
+calypso jazz
+canon
+cantata
+capoeira
+carol
+celtic
+celtic fusion
+celtic metal
+celtic punk
+celtic reggae
+celtic rock
+cha-cha-cha
+chamber
+chamber jazz
+chamber pop
+chanson
+chant
+chicha
+chillout
+chillwave
+christian
+christmas
+classic
+classic rock
+classical
+club
+comedy
+contemporary classical
+contonbley
+cool jazz
+country
+country blues
+country gospel
+country pop
+country r&b
+country rock
+country-rap
+crossover
+crunk
+crunkcore
+crust punk
+dance
+dance-pop
+dance-punk
+dance-rock
+dancehall
+dark ambient
+dark pop
+darkcore
+darkstep
+darkwave
+death metal
+punk
+deathcore
+deathgrind
+deep funk
+future jazz
+deep house
+deep soul
+disco
+disco house
+dixieland jazz
+stage & screen
+chiptune
+doo wop
+doom metal
+doomcore
+downtempo
+dream pop
+drone
+drone metal
+drum & bass
+dub
+dub house
+dubstep
+dubtronica
+easy listening
+electric blues
+electric folk
+electro-swing
+electroclash
+electrofunk
+electronic
+electronic dance
+emo
+emo pop
+emo rap
+emocore
+emotronic
+eurobeat
+eurodance
+eurodisco
+europop
+eurotrance
+eurourban
+experimental
+experimental noise
+experimental pop
+experimental rock
+female vocalist
+fingerstyle
+flamenco
+folk
+folk hop
+folk metal
+folk pop
+folk punk
+folk rock
+folktronica
+freak-folk
+funk
+funk rock
+funkcore
+fusion jazz
+g-funk
+gabber
+gangsta rap
+garage rock
+glam metal
+glam punk
+glam rock
+glitch
+glo-fi
+goa
+gospel
+gothic
+gothic metal
+gothic rock
+grime
+grindcore
+grunge
+gypsy jazz
+gypsy punk
+hard bop
+hard house
+hard rock
+hard trance
+hardstyle
+heavy metal
+hip-hop
+horror punk
+horrorcore
+horrorcore
+idm
+illbient
+impressionist
+incidental
+indie
+indie folk
+indie pop
+indie rock
+indietronica
+indo jazz
+indo rock
+industrial
+industrial hip-hop
+industrial metal
+industrial rock
+instrumental
+instrumental rock
+j-fusion
+j-gothic
+j-hip-hop
+j-jazz
+j-pop
+j-rock
+j-ska
+jam rock
+jazz
+jazz fusion
+jazz-hop
+jungle
+k-gothic
+k-hip-hop
+k-jazz
+k-pop
+k-rock
+k-ska
+krautrock
+liquid drum&bass
+liquid funk
+lo-fi
+lounge
+mambo
+marimba
+math rock
+mathcore
+medieval
+medieval metal
+medieval rock
+house
+melodic metal
+melodic metalcore
+melodic trance
+merengue
+metal
+metalcore
+microhouse
+minimal
+modal jazz
+modern rock
+mpb
+mushroom jazz
+neo-classical
+neo-classical
+neo-folk
+neo-medieval
+neo-progressive
+neo-psychedelic
+neo-soul
+nerdcore
+neue deutsche härte
+new age
+new wave
+newgrass
+noise pop
+noise rock
+nu jazz
+nu metal
+nu soul
+oldies
+oriental
+p-funk
+polka
+pop
+post-britpop
+post-disco
+post-grunge
+post-hardcore
+post-industrial
+post-metal
+post-punk
+post-rock
+power metal
+power noise
+power pop
+progressive bluegrass
+progressive country
+progressive house
+progressive metal
+progressive rock
+progressive trance
+protopunk
+psy-trance
+psychedelic
+psychedelic pop
+psychedelic rock
+punk rock
+ragga
+rap
+rapcore
+reggae
+reggae fusion
+reggaeton
+renaissance
+rhythm & blues
+rock
+rock & roll
+rockabilly
+rocksteady
+roots reggae
+roots rock
+roots rock
+salsa
+samba
+schlager
+schranz
+screamo
+shoegaze
+singer-songwriter
+ska
+ska punk
+skacore
+skatepunk
+skiffle
+slowcore
+smooth jazz
+soft rock
+soul
+soul
+soul
+soundtrack
+space rock
+speed garage
+speed metal
+speedcore
+stoner metal
+stoner rock
+swamp blues
+swamp pop
+swamp rock
+swing
+symphonic metal
+symphonic rock
+synthpop
+synthpunk
+tango
+tech-house
+tech-trance
+technical metal
+techno
+techstep
+thrash metal
+traditional bluegrass
+traditional jazz
+trance
+tribal house
+trip-hop
+trip-rock
+turntablism
+vocal house
+vocal jazz
+world
+world fusion
