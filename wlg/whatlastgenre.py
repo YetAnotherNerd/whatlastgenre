@@ -20,32 +20,490 @@
 from __future__ import division, print_function
 
 import ConfigParser
+import StringIO
 import argparse
 from collections import defaultdict, Counter, namedtuple
 from datetime import timedelta
+import difflib
+import itertools
 import json
 import logging
+import math
+import operator
 import os
+import pkgutil
 import re
 import sys
 from tempfile import NamedTemporaryFile
 import time
 
-from wlg import __version__
-import wlg.dataprovider as dp
-import wlg.genretag as gt
-import wlg.mediafile as mf
+from wlg import __version__, dataprovider, mediafile
 
 
-LOG = logging.getLogger('whatlastgenre')
+Metadata = namedtuple(
+    'Metadata', ['path', 'type', 'artists', 'albumartist', 'album',
+                 'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])
 
-# Regex pattern to recognize Various Artist strings
+Query = namedtuple(
+    'Query', ['dapr', 'type', 'str', 'score', 'artist', 'mbid_artist',
+              'album', 'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])
+
+Stats = namedtuple('Stats', ['time', 'errors', 'genres', 'difflib'])
+
+# regex pattern for 'Various Artist'
 VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
 
-# Musicbrainz ID of 'Various Artists'
+# musicbrainz artist id of 'Various Artists'
 VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
-Stats = namedtuple('Stats', ['time', 'genres', 'errors'])
+
+class WhatLastGenre(object):
+    '''Main class featuring a docstring that needs to be written.'''
+
+    def __init__(self, args):
+        wlgdir = os.path.expanduser('~/.whatlastgenre')
+        if not os.path.exists(wlgdir):
+            os.makedirs(wlgdir)
+        self.args = args
+        self.setup_logging(args.verbose)
+        self.log.debug("args: %s\n", args)
+        self.stats = Stats(time=time.time(), errors=defaultdict(list),
+                           genres=Counter(), difflib={})
+        self.conf = Config(wlgdir, args)
+        self.cache = Cache(wlgdir, args.update_cache)
+        self.daprs = dataprovider.get_daprs(self.conf)
+        self.read_whitelist(self.conf.get('wlg', 'whitelist'))
+        self.read_tagsfile()
+
+    def setup_logging(self, verbose):
+        '''Setup up the logging.'''
+        self.log = logging.getLogger('whatlastgenre')
+        if verbose == 0:
+            loglvl = logging.WARN
+        elif verbose == 1:
+            loglvl = logging.INFO
+        else:
+            loglvl = logging.DEBUG
+        self.log.setLevel(loglvl)
+        hdlr = logging.StreamHandler(sys.stdout)
+        hdlr.setLevel(loglvl)
+        self.log.addHandler(hdlr)
+
+        # add null handler
+        class NullHandler(logging.Handler):
+            '''Do nothing handler.'''
+            def emit(self, record):
+                pass
+        self.log.addHandler(NullHandler())
+
+    def read_whitelist(self, path=None):
+        '''Read whitelist file and store its contents as set.'''
+        if not path or path == 'wlg':
+            wlstr = pkgutil.get_data('wlg', 'data/genres.txt').decode('utf8')
+        else:
+            with open(path, b'r') as file_:
+                wlstr = u'\n'.join([l.decode('utf8') for l in file_])
+        self.whitelist = set()
+        for line in wlstr.split(u'\n'):
+            line = line.strip().lower()
+            if line and not line.startswith(u'#'):
+                self.whitelist.add(line)
+        if not self.whitelist:
+            self.log.error("error: empty whitelist: %s", path)
+            exit()
+
+    def read_tagsfile(self):
+        '''Read tagsfile and return a dict of prepared data.'''
+        tagsfile = ConfigParser.SafeConfigParser(allow_no_value=True)
+        tfstr = pkgutil.get_data('wlg', 'data/tags.txt')
+        tagsfile.readfp(StringIO.StringIO(tfstr))
+        for sec in ['upper', 'alias', 'regex']:
+            if not tagsfile.has_section(sec):
+                print("Got no [%s] from tags.txt file." % sec)
+                exit()
+        # regex replacements
+        regex = []  # list of tuples instead of dict because order matters
+        for pat, repl in [(r'( ?[,;\\/&]+ ?| and )', '/'),
+                          (r'[\'"]+', ''), (r'  +', ' ')]:
+            regex.append((re.compile(pat, re.I), repl))
+        for pat, repl in tagsfile.items('regex', True):
+            regex.append((re.compile(r'\b%s\b' % pat, re.I), repl))
+        self.tagsfile = {
+            'upper': tagsfile.items('upper', True),
+            'aliases': dict(tagsfile.items('alias', True)),
+            'love': self.conf.get_list('genres', 'love'),
+            'hate': self.conf.get_list('genres', 'hate'),
+            'regex': regex}
+
+    def query_album(self, metadata):
+        '''Query for top genres of an album identified by metadata
+        and return them and the releasetype.'''
+        num_artists = len(set(metadata.artists))
+        self.log.info("[%s] artist=%s, album=%s, date=%s%s",
+                      metadata.type, metadata.albumartist[0], metadata.album,
+                      metadata.year, (" (%d artists)" % num_artists
+                                      if num_artists > 1 else ''))
+        taglib = TagLib(self, num_artists > 1)
+        for query in self.create_queries(metadata):
+            if not query.str:
+                continue
+            try:
+                results, cached = self.cached_query(query)
+            except NotImplementedError:
+                continue
+            except dataprovider.DataProviderError as err:
+                query.dapr.stats['errors'] += 1
+                err = query.dapr.name + ' ' + str(err)
+                self.stats.errors[err].append(metadata.path)
+                print("%-8s %s" % (query.dapr.name, err))
+                continue
+            if not results:
+                self.verbose_status(query, cached, "no results")
+                continue
+            # ask user if appropriated
+            if len(results) > 1 \
+                    and self.args.tag_release and self.args.interactive \
+                    and query.dapr.name.lower() == 'whatcd' \
+                    and query.type == 'album' \
+                    and not query.releasetype:
+                reltyps = [r['releasetype'] for r in results
+                           if 'releasetype' in r]
+                if len(set(reltyps)) != 1:  # all the same anyway
+                    results = ask_user(query, results)
+            # merge_results all tags from multiple results
+            if len(results) in range(2, 6):
+                results = self.merge_results(results)
+            # too many results
+            if len(results) > 1:
+                self.verbose_status(query, cached,
+                                    "%2d results" % len(results))
+                continue
+            # unique result
+            res = results[0]
+            query.dapr.stats['results'] += 1
+            if 'releasetype' in res and res['releasetype']:
+                taglib.releasetype = res['releasetype']
+            if 'tags' in res and res['tags']:
+                found, added = taglib.add(query, res['tags'])
+                query.dapr.stats['tags'] += found
+                query.dapr.stats['goodtags'] += added
+                status = "%2d of %2d tags" % (added, found)
+            else:
+                status = "no    tags"
+            self.verbose_status(query, cached, status)
+
+        genres = taglib.top_genres(self.args.tag_limit)
+        self.stats.genres.update(genres)
+        return genres, taglib.releasetype
+
+    def create_queries(self, metadata):
+        '''Create queries for all DataProviders based on metadata.'''
+        artists = metadata.artists
+        num_artists = len(set(artists))
+        if num_artists > 42:
+            print("Too many artists for va-artist search")
+            artists = []
+        albumartist = searchstr(metadata.albumartist[0])
+        album = searchstr(metadata.album)
+        queries = []
+        # album queries
+        for dapr in self.daprs:
+            score = self.conf.getfloat('scores', 'src_%s' % dapr.name.lower())
+            queries.append(Query(
+                dapr=dapr, type='album', score=score,
+                str=(albumartist + ' ' + album).strip(),
+                artist=albumartist, mbid_artist=metadata.albumartist[1],
+                album=album, mbid_album=metadata.mbid_album,
+                mbid_relgrp=metadata.mbid_relgrp,
+                year=metadata.year, releasetype=metadata.releasetype))
+        # albumartist queries
+        if metadata.albumartist[0]:
+            for dapr in self.daprs:
+                score = self.conf.getfloat('scores',
+                                           'src_%s' % dapr.name.lower())
+                queries.append(Query(
+                    dapr=dapr, type='artist', score=score,
+                    str=albumartist.strip(),
+                    artist=albumartist, mbid_artist=metadata.albumartist[1],
+                    album='', mbid_album='', mbid_relgrp='',
+                    year='', releasetype=''))
+        # all artists if no albumartist and vaqueries enabled
+        elif self.conf.getboolean('wlg', 'vaqueries'):
+            for key, val in set(artists):
+                artist = searchstr(key)
+                for dapr in self.daprs:
+                    score = self.conf.getfloat('scores',
+                                               'src_%s' % dapr.name.lower())
+                    queries.append(Query(
+                        dapr=dapr, type='artist', str=artist.strip(),
+                        score=artists.count((key, val)) * score,
+                        artist=artist, mbid_artist=val,
+                        album='', mbid_album='', mbid_relgrp='',
+                        year='', releasetype=''))
+        return queries
+
+    def cached_query(self, query):
+        '''Query Cache before querying real DataProviders.'''
+        cachekey = query.artist
+        if query.type == 'album':
+            cachekey += query.album
+        cachekey = (query.dapr.name.lower(), query.type,
+                    cachekey.replace(' ', ''))
+        results = self.cache.get(cachekey)
+        if results:
+            query.dapr.stats['queries_cache'] += 1
+            return results[1], True
+        results = query.dapr.query(query)
+        query.dapr.stats['queries_web'] += 1
+        self.cache.set(cachekey, results)
+        # save cache periodically
+        if time.time() - self.cache.time > 600:
+            self.cache.save()
+        return results, False
+
+    @classmethod
+    def merge_results(cls, results):
+        '''Merge the tags of multiple results.'''
+        tags = defaultdict(float)
+        for res in results:
+            if 'tags' in res and res['tags']:
+                for key, val in res['tags'].items():
+                    tags[key] += val / len(results)
+        result = {'tags': tags}
+        reltyps = [r['releasetype'] for r in results if 'releasetype' in r]
+        if len(set(reltyps)) == 1:
+            result.update({'releasetype': reltyps[0]})
+        return [result]
+
+    def verbose_status(self, query, cached, status):
+        '''Return a string for status printing.'''
+        qry = query.artist
+        if query.type == 'album':
+            qry += ' ' + query.album
+        self.log.info("%-8s %-6s got %13s for '%s'%s", query.dapr.name,
+                      query.type, status, qry.strip(),
+                      " (cached)" if cached else '')
+
+    def print_stats(self, num_folders):
+        '''Print some statistics.'''
+        # genre tag statistics
+        if self.stats.genres:
+            tags = self.stats.genres.most_common()
+            print("\n%d different tags used this often:" % len(tags))
+            print(tag_display(tags, "%4d %-20s"))
+        # errors/messages
+        if self.stats.errors:
+            print("\n%d album(s) with errors:"
+                  % sum(len(x) for x in self.stats.errors.values()))
+            for error, folders in self.stats.errors.items():
+                print("  %s:\n    %s"
+                      % (error, '\n    '.join(sorted(folders))))
+        # dataprovider stats
+        if self.log.level <= logging.INFO:
+            self.print_dapr_stats()
+        # difflib stats
+        if self.stats.difflib:
+            print("\ndifflib found %d tags:" % len(self.stats.difflib))
+            for key, val in self.stats.difflib:
+                print("%s = %s" % (key, val))
+            print("Add them as aliases to tags.txt to speed things up.")
+        # time
+        diff = time.time() - self.stats.time
+        print("\nTime elapsed: %s (%s per folder)\n"
+              % (timedelta(seconds=diff),
+                 timedelta(seconds=diff / num_folders)))
+
+    def print_dapr_stats(self):
+        '''Print some DataProvider statistics.'''
+        print("\nSource stats  ",
+              ''.join("| %-8s " % d.name for d in self.daprs),
+              "\n", "-" * 14, "+----------" * len(self.daprs), sep='')
+        for key in ['errors', 'queries_web', 'queries_cache', 'results',
+                    'results/query', 'tags', 'tags/result', 'goodtags',
+                    'goodtags/tag', 'time_resp_avg', 'time_wait_avg']:
+            vals = []
+            for dapr in self.daprs:
+                if key == 'results/query' and (dapr.stats['queries_web']
+                                               or dapr.stats['queries_cache']):
+                    vals.append(dapr.stats['results']
+                                / (dapr.stats['queries_web']
+                                   + dapr.stats['queries_cache']))
+                elif key == 'time_resp_avg' and dapr.stats['queries_web']:
+                    vals.append(dapr.stats['time_resp']
+                                / dapr.stats['queries_web'])
+                elif key == 'time_wait_avg' and dapr.stats['queries_web']:
+                    vals.append(dapr.stats['time_wait']
+                                / dapr.stats['queries_web'])
+                elif key == 'tags/result' and dapr.stats['results']:
+                    vals.append(dapr.stats['tags'] / dapr.stats['results'])
+                elif key == 'goodtags/tag' and dapr.stats['tags']:
+                    vals.append(dapr.stats['goodtags'] / dapr.stats['tags'])
+                elif key in dapr.stats:
+                    vals.append(dapr.stats[key])
+                else:
+                    vals.append(0.0)
+            if any(v for v in vals):
+                pat = "| %8d " if all(v.is_integer() for v in vals) \
+                    else "| %8.2f "
+                print("%-13s " % key, ''.join(pat % v for v in vals), sep='')
+
+
+class TagLib(object):
+    '''Class to keep tag information (tags with name and score from
+    different types).
+    '''
+
+    def __init__(self, wlg, various):
+        self.wlg = wlg
+        self.log = wlg.log
+        self.various = various
+        self.taggrps = {}
+        self.releasetype = None
+
+    def add(self, query, tags, split=False):
+        '''Add scored tags to a group of tags.
+
+        Return the number of tags processed and added.
+
+        :param query: query object
+        :param tags: dict of tag names and tag counts
+        :param split: was split already
+        '''
+        tags = self.score(tags, query.score)
+        tags = sorted(tags.items(), key=operator.itemgetter(1), reverse=1)
+        tags = tags[:99]
+        added = 0
+        for key, val in tags:
+            key = key.lower().strip()
+            if len(key) < 3:
+                continue
+            # resolve if not whitelisted
+            if key not in self.wlg.whitelist:
+                key = self.resolve(key)
+            # split if wasn't yet
+            if not split:
+                parts = self.split(key)
+                if parts and len(parts) < 6:
+                    _, add = self.add(query, {p: val for p in parts}, True)
+                    if add:
+                        added += add
+                        self.log.debug("tag split   %s -> %s",
+                                       key, ', '.join(parts))
+            # filter
+            if key not in self.wlg.whitelist:
+                self.log.debug("tag filter  %s", key)
+                continue
+            # add
+            if query.type not in self.taggrps:
+                self.taggrps[query.type] = defaultdict(float)
+            self.taggrps[query.type][key] += val
+            added += 1
+            self.log.debug("tag add     %s", key)
+        return len(tags), added
+
+    def score(self, tags, scoremod):
+        '''Adjusts the score of a dict of tags using a scoremod.'''
+        any_ = any(tags.values())
+        max_ = max(tags.values())
+        for key, val in tags.items():
+            if any_:  # tags with counts
+                tags[key] = val * max_ ** -1 * scoremod
+            else:  # tags without counts
+                tags[key] = max(0.1, .85 ** (len(tags) - 1) * scoremod)
+            # apply user bonus
+            if key in self.wlg.tagsfile['love']:
+                tags[key] *= 2.0
+            elif key in self.wlg.tagsfile['hate']:
+                tags[key] *= 0.5
+        return tags
+
+    def resolve(self, key):
+        '''Try to resolve a tag to a valid whitelisted tag by using
+        aliases, regex replacements and optional difflib matching.
+        '''
+        if key in self.wlg.tagsfile['aliases']:
+            if self.wlg.tagsfile['aliases'][key] not in self.wlg.whitelist:
+                self.log.info("warning: aliased %s is not whitelisted.", key)
+                return key
+            self.log.debug("tag alias   %s -> %s", key,
+                           self.wlg.tagsfile['aliases'][key])
+            return self.wlg.tagsfile['aliases'][key]
+        # regex
+        if any(r[0].search(key) for r in self.wlg.tagsfile['regex']):
+            for pat, repl in self.wlg.tagsfile['regex']:
+                if pat.search(key):
+                    key_ = key
+                    key = pat.sub(repl, key)
+                    self.log.debug("tag replace %s -> %s (%s)",
+                                   key_, key, pat.pattern)
+            return key
+        # match
+        if self.wlg.args.difflib:
+            match = difflib.get_close_matches(key, self.wlg.whitelist, 1, .92)
+            if match:
+                self.log.debug("tag match   %s -> %s", key, match[0])
+                return match[0]
+        return key
+
+    @classmethod
+    def split(cls, key):
+        '''Split a tag into all possible subtags.'''
+        if len(key) < 7:
+            return None
+        keys = []
+        if '/' in key:  # all delimiters got replaced with / earlier
+            keys = key.split('/')
+        elif ' ' in key:
+            parts = key.split(' ')
+            for i in range(1, len(parts) - 1):
+                for combi in itertools.combinations(parts, len(parts) - i):
+                    keys.append(' '.join(combi))
+        return [k for k in keys if len(k) > 2]
+
+    def format(self, key):
+        '''Format a tag to correct case.'''
+        words = key.split(' ')
+        for i, word in enumerate(words):
+            if len(word) < 3 and word != 'nu' or \
+                    word in self.wlg.tagsfile['upper']:
+                words[i] = word.upper()
+            else:
+                words[i] = word.title()
+        return ' '.join(words)
+
+    def merge(self):
+        '''Merge all tag groups using different score modifiers.'''
+        tags = defaultdict(float)
+        for key, val in self.taggrps.items():
+            scoremod = 1
+            if key == 'artist':
+                if self.various:
+                    key = 'various'
+                scoremod = self.wlg.conf.getfloat('scores', key)
+            max_ = max(val.values())
+            for key, val_ in val.items():
+                tags[key] += val_ / max_ * scoremod
+        return tags
+
+    def top_genres(self, limit=4):
+        '''Return the formated names of the top genre tags by score,
+        limited to a set number of genres.
+        '''
+        self.verboseinfo()
+        tags = self.merge()
+        tags = sorted(tags.items(), key=operator.itemgetter(1), reverse=1)
+        return [self.format(k) for k, _ in tags[:limit]]
+
+    def verboseinfo(self):
+        '''Prints out some verbose info about the TagLib.'''
+        if self.log.level > logging.INFO:
+            return None
+        for key, val in self.taggrps.items():
+            val = {self.format(k): v for k, v in val.items() if v > 0.1}
+            val = sorted(val.items(), key=operator.itemgetter(1), reverse=1)
+            val = val[:12 if self.log.level > logging.DEBUG else 24]
+            self.log.info("Best %-6s genres (%d):", key, len(val))
+            self.log.info(tag_display(val, "%4.2f %-20s"))
 
 
 class Config(ConfigParser.SafeConfigParser):
@@ -61,8 +519,6 @@ class Config(ConfigParser.SafeConfigParser):
             ('genres', 'love', '', 0, ()),
             ('genres', 'hate',
              'alternative, electronic, indie, pop, rock', 0, ()),
-            ('genres', 'blacklist', 'charts, male vocalist, other', 0, ()),
-            ('genres', 'filters', 'instrument, label, location, year', 0, ()),
             ('scores', 'artist', '1.33', 1, (0.5, 2.0)),
             ('scores', 'various', '0.66', 1, (0.1, 1.0)),
             ('scores', 'splitup', '0.33', 1, (0, 1.0)),
@@ -252,8 +708,112 @@ class Cache(object):
                 os.remove(tmpfile.name)
 
 
+def searchstr(str_):
+    '''Clean up a string for use in searching.'''
+    if not str_:
+        return ''
+    str_ = str_.lower()
+    for pat in [r'\(.*\)$', r'\[.*\]', '{.*}', "- .* -", "'.*'", '".*"',
+                ' (- )?(album|single|ep|official remix(es)?|soundtrack|ost)$',
+                r'[ \(]f(ea)?t(\.|uring)? .*', r'vol(\.|ume)? ',
+                '[!?/:,]', ' +']:
+        sub = re.sub(pat, ' ', str_).strip()
+        if sub:  # don't remove everything
+            str_ = sub
+    return str_
+
+
+def tag_display(tags, pattern):
+    '''Return a string of tags formatted with pattern in 3 columns.
+
+    :param tags: list of tuples containing tags name and count/score
+    :param pattern: should not exceed (80-2)/3 = 26 chars length.
+    '''
+    len_ = int(math.ceil(len(tags) / 3))
+    lines = [' '.join([pattern % tuple(reversed(tags[i]))
+                       for i in [l + len_ * j for j in range(3)]
+                       if i < len(tags)]) for l in range(len_)]
+    return '\n'.join(lines).encode('utf-8')
+
+
+def ask_user(query, results):
+    '''Ask the user to choose from a list of results.'''
+    print("%-8s %-6s got    %2d results. Which is it?"
+          % (query.dapr.name, query.type, len(results)))
+    for i, dat in enumerate(results, start=1):
+        info = dat['info'].encode(sys.stdout.encoding, errors='replace')
+        print("#%2d: %s" % (i, info))
+    while True:
+        try:
+            num = int(raw_input("Please choose #[1-%d] (0 to skip): "
+                                % len(results)))
+        except ValueError:
+            num = None
+        except EOFError:
+            num = 0
+            print()
+        if num in range(len(results) + 1):
+            break
+    return [results[num - 1]] if num else results
+
+
+def work_folder(wlg, path):
+    '''Create an Album object for a folder given by path to read and
+    write metadata from/to. Query top genre tags by album metadata,
+    update metadata with results and save the album and its tracks.'''
+    # create album object to read and write metadata
+    try:
+        album = mediafile.Album(path, wlg.conf.get('wlg', 'id3v23sep'))
+    except mediafile.AlbumError as err:
+        print(err)
+        wlg.stats.errors[str(err)].append(path)
+        return
+    # read album metadata
+    artists = []
+    for track in album.tracks:
+        artist = (track.get_meta('artist'),
+                  track.get_meta('musicbrainz_artistid'))
+        if artist[0] and not VA_PAT.match(artist[0]):
+            if artist[1] == VA_MBID:
+                artists.append((artist[0], None))
+            else:
+                artists.append(artist)
+    albumartist = (album.get_meta('albumartist'),
+                   album.get_meta('musicbrainz_albumartistid'))
+    if not albumartist[0]:
+        albumartist = (album.get_meta('artist', lcp=True),
+                       album.get_meta('musicbrainz_artistid'))
+    if albumartist[0] and VA_PAT.match(albumartist[0]) \
+            or albumartist[1] == VA_MBID:
+        albumartist = (None, VA_MBID)
+    metadata = Metadata(
+        path=album.path, type=album.type,
+        artists=artists, albumartist=albumartist,
+        album=album.get_meta('album'),
+        mbid_album=album.get_meta('musicbrainz_albumid'),
+        mbid_relgrp=album.get_meta('musicbrainz_releasegroupid'),
+        year=album.get_meta('date'), releasetype=album.get_meta('releasetype'))
+    # query genres (and releasetype) for album metadata
+    genres, releasetype = wlg.query_album(metadata)
+    # update album metadata
+    if genres:
+        print("Genres: %s" % ', '.join(genres).encode('utf-8'))
+        album.set_meta('genre', genres)
+    else:
+        print("No genres found")
+        wlg.stats.errors["No genres found"].append(path)
+    if wlg.args.tag_release and releasetype:
+        print("RelTyp: %s" % releasetype)
+        album.set_meta('releasetype', releasetype)
+    # save metadata to all tracks
+    if wlg.args.dry:
+        print("DRY-RUN! Not saving metadata.")
+    else:
+        album.save()
+
+
 def get_args():
-    '''Gets the cmdline arguments from ArgumentParser.'''
+    '''Get the cmdline arguments from ArgumentParser.'''
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Improves genre metadata of audio files '
@@ -274,325 +834,36 @@ def get_args():
                         help='max. number of genre tags')
     parser.add_argument('-d', '--difflib', action='store_true',
                         help='enable difflib matching (slow)')
-    args = parser.parse_args()
-
-    if args.verbose == 0:
-        loglvl = logging.WARN
-    elif args.verbose == 1:
-        loglvl = logging.INFO
-    else:
-        loglvl = logging.DEBUG
-    hdlr = logging.StreamHandler(sys.stdout)
-    hdlr.setLevel(loglvl)
-    LOG.setLevel(loglvl)
-    LOG.addHandler(hdlr)
-
-    LOG.debug("args: %s\n", args)
-    return args
-
-
-def handle_album(args, dps, cache, genretags, album):
-    '''Receives tags and saves an album.'''
-    genretags.reset(album)
-    albumartist = album.get_meta('albumartist') or album.get_meta('artist')
-    if albumartist and VA_PAT.match(albumartist):
-        albumartist = None
-    albumartistmbid = album.get_meta('musicbrainz_albumartistid') \
-            or album.get_meta('musicbrainz_artistid')
-    if albumartistmbid and albumartistmbid == VA_MBID:
-        albumartistmbid = None
-    sdata = {
-        'releasetype': None,
-        'date': album.get_meta('date'),
-        'album': searchstr(album.get_meta('album')),
-        'artist': [(searchstr(albumartist), albumartistmbid)],
-        'mbids': {'releasegroupid':
-                  album.get_meta('musicbrainz_releasegroupid'),
-                  'albumid': album.get_meta('musicbrainz_albumid')}
-    }
-    # search for all track artists if no albumartist
-    if not albumartist:
-        for track in album.tracks:
-            if track.get_meta('artist') and \
-                    not VA_PAT.match(track.get_meta('artist')):
-                sdata['artist'].append((searchstr(track.get_meta('artist')),
-                                        track.get_meta('musicbrainz_artistid')))
-
-    # get data from dataproviders
-    sdata = get_data(args, dps, cache, genretags, sdata)
-    # set genres
-    genres = genretags.get(len(sdata['artist']) > 1)[:args.tag_limit]
-    if genres:
-        print("Genres: %s" % ', '.join(genres))
-        album.set_meta('genre', genres)
-    # set releasetype
-    if args.tag_release and sdata.get('releasetype'):
-        print("RelTyp: %s" % sdata['releasetype'])
-        album.set_meta('releasetype', sdata['releasetype'])
-    # save metadata
-    if args.dry:
-        print("DRY-RUN! Not saving metadata.")
-    else:
-        album.save()
-    return genres
-
-
-def get_data(args, dps, cache, genretags, sdata):
-    '''Gets all the data from all dps or from cache.'''
-    tuples = [(0, 'album')]
-    tuples += [(i, 'artist') for i in range(len(sdata['artist']))]
-    tuples = [(i, v, d) for (i, v) in tuples for d in dps]
-    for i, variant, dapr in tuples:
-        sstr = [sdata['artist'][i][0]]
-        if variant == 'album':
-            sstr.append(sdata['album'])
-        sstr = ' '.join(sstr).strip()
-        if not sstr or len(sstr) < 2:
-            continue
-        cachekey = (dapr.name.lower(), variant, sstr.replace(' ', ''))
-        cached = cache.get(cachekey)
-        if cached:
-            cachemsg = ' (cached)'
-            data = cached[1]
-            dapr.stats['queries_cache'] += 1
-        else:
-            cachemsg = ''
-            try:
-                if variant == 'artist':
-                    data = dapr.get_artist_data(sdata['artist'][i][0],
-                                                sdata['artist'][i][1])
-                elif variant == 'album':
-                    data = dapr.get_album_data(sdata['artist'][i][0],
-                                               sdata['album'], sdata['mbids'])
-            except RuntimeError:
-                continue
-            except dp.DataProviderError as err:
-                print("%-8s %s" % (dapr.name, err.message))
-                dapr.stats['errors'] += 1
-                continue
-            dapr.stats['queries_web'] += 1
-        if not data:
-            LOG.info("%-8s %-6s search found    no results for '%s'%s",
-                     dapr.name, variant, sstr, cachemsg)
-            cache.set(cachekey, None)
-            continue
-        # filter
-        data = filter_data(dapr.name.lower(), variant, sdata, data)
-        # still multiple results?
-        if len(data) > 1:
-            # ask user interactivly for important sources
-            if dapr.name.lower() in ['whatcd', 'mbrainz']:
-                if args.interactive:
-                    data = interactive(dapr.name, variant, data)
-            # merge all the hits for unimportant sources
-            elif isinstance(data[0]['tags'], dict):
-                tags = defaultdict(float)
-                for dat in data:
-                    for tag in dat['tags']:
-                        tags[tag] += dat['tags'][tag]
-                data = [{'tags': {k: v for k, v in tags.items()}}]
-            elif isinstance(data[0]['tags'], list):
-                tags = []
-                for dat in data:
-                    for tag in dat['tags']:
-                        if tag not in tags:
-                            tags.append(tag)
-                data = [{'tags': tags}]
-        # save cache
-        if not cached or len(cached[1]) > len(data):
-            cache.set(cachekey, data)
-        # still multiple results?
-        if len(data) > 1:
-            print("%-8s %-6s search found    %2d results for '%s'%s (use -i)"
-                  % (dapr.name, variant, len(data), sstr, cachemsg))
-            continue
-        # unique data
-        data = data[0]
-        dapr.stats['results'] += 1
-        if not data.get('tags'):
-            LOG.info("%-8s %-6s search found    no    tags for '%s'%s",
-                     dapr.name, variant, sstr, cachemsg)
-            continue
-        LOG.debug(data['tags'])
-        tags = min(99, len(data['tags']))
-        goodtags = genretags.add(dapr.name.lower(), variant, data['tags'])
-        LOG.info("%-8s %-6s search found %2d of %2d tags for '%s'%s",
-                 dapr.name, variant, goodtags, tags, sstr, cachemsg)
-        dapr.stats['tags'] += tags
-        dapr.stats['goodtags'] += goodtags
-        if variant == 'album' and 'releasetype' in data:
-            sdata['releasetype'] = genretags.format(data['releasetype'])
-    return sdata
-
-
-def filter_data(source, variant, sdata, data):
-    '''Prefilters data to reduce needed interactivity.'''
-    if not data or len(data) == 1:
-        return data
-    # filter by date
-    if variant == 'album' and sdata['date']:
-        for i in range(4):
-            tmp = [d for d in data if not d.get('year') or
-                   abs(int(d['year']) - int(sdata['date'])) <= i]
-            if tmp:
-                data = tmp
-                break
-    # filter by releasetype for whatcd
-    if len(data) > 1:
-        if source == 'whatcd' and variant == 'album' and sdata['releasetype']:
-            data = [d for d in data if 'releasetype' not in d or
-                    d['releasetype'].lower() == sdata['releasetype'].lower()]
-    return data
-
-
-def interactive(source, variant, data):
-    '''Asks the user to choose from a list of possibilities.'''
-    print("%-8s %-6s search found    %2d results. Which is it?"
-          % (source, variant, len(data)))
-    for i, dat in enumerate(data, start=1):
-        info = dat['info'].encode(sys.stdout.encoding, errors='replace')
-        print("#%2d: %s" % (i, info))
-    while True:
-        try:
-            num = int(raw_input("Please choose #[1-%d] (0 to skip): "
-                                % len(data)))
-        except ValueError:
-            num = None
-        except EOFError:
-            num = 0
-            print()
-        if num in range(len(data) + 1):
-            break
-    return [data[num - 1]] if num else data
-
-
-def searchstr(str_):
-    '''Cleans up a string for use in searching.'''
-    if not str_:
-        return ''
-    for pat in [r'\(.*\)$', r'\[.*\]', '{.*}', "- .* -", "'.*'", '".*"',
-                ' (- )?(album|single|ep|official remix(es)?|soundtrack|ost)$',
-                r'[ \(]f(ea)?t(\.|uring)? .*', r'vol(\.|ume)? ',
-                '[!?/:,]', ' +']:
-        str_ = re.sub(pat, ' ', str_, 0, re.I)
-    return str_.strip().lower()
-
-
-def print_stats(stats, daprs, num_folders):
-    '''Print some statistics.
-
-    :param stats: dictionary with some stats
-    :param daprs: list of DataProivder objects
-    :param num_folders: number of processed album folders
-    '''
-    # genre tag statistics
-    if stats.genres:
-        tags = stats.genres.most_common()
-        print("\n%d different tags used this often:" % len(tags))
-        print(gt.tag_display(tags, "%4d %-20s"))
-    # folder errors/messages
-    if stats.errors:
-        print("\n%d album(s) with errors:"
-              % sum(len(x) for x in stats.errors.values()))
-        for error, folders in stats.errors.items():
-            print("%s:\n%s" % (error, '\n'.join(sorted(folders))))
-    # dataprovider stats
-    if LOG.level <= logging.INFO:
-        print_dapr_stats(daprs)
-    # time
-    diff = time.time() - stats.time
-    print("\nTime elapsed: %s (%s per folder)"
-          % (timedelta(seconds=diff), timedelta(seconds=diff / num_folders)))
-
-
-def print_dapr_stats(daprs):
-    '''Print some DataProvider statistics.
-
-    :param daprs: list of DataProvider objects
-    '''
-    print("\nSource stats  ", ''.join("| %-8s " % d.name for d in daprs),
-          "\n", "-" * 14, "+----------" * len(daprs), sep='')
-    for key in ['errors', 'queries_web', 'queries_cache', 'results',
-                'results/query', 'tags', 'tags/result', 'goodtags',
-                'goodtags/tag', 'time_resp_avg', 'time_wait_avg']:
-        vals = []
-        for dapr in daprs:
-            if key == 'results/query' and (dapr.stats['queries_web']
-                                           or dapr.stats['queries_cache']):
-                vals.append(dapr.stats['results']
-                            / (dapr.stats['queries_web']
-                               + dapr.stats['queries_cache']))
-            elif key == 'time_resp_avg' and dapr.stats['queries_web']:
-                vals.append(dapr.stats['time_resp']
-                            / dapr.stats['queries_web'])
-            elif key == 'time_wait_avg' and dapr.stats['queries_web']:
-                vals.append(dapr.stats['time_wait']
-                            / dapr.stats['queries_web'])
-            elif key == 'tags/result' and dapr.stats['results']:
-                vals.append(dapr.stats['tags'] / dapr.stats['results'])
-            elif key == 'goodtags/tag' and dapr.stats['tags']:
-                vals.append(dapr.stats['goodtags'] / dapr.stats['tags'])
-            elif key in dapr.stats:
-                vals.append(dapr.stats[key])
-            else:
-                vals.append(0.0)
-        if any(v for v in vals):
-            pat = "| %8d " if all(v.is_integer() for v in vals) \
-                else "| %8.2f "
-            print("%-13s " % key, ''.join(pat % v for v in vals), sep='')
+    return parser.parse_args()
 
 
 def main():
     '''main function of whatlastgenre.
 
-    Reads and validates arguments and configuration,
-    set up the needed objects and run the main loop.
-    Prints out some statistics at the end.
+    Get arguments, set up WhatLastGenre object, search for music
+    folders, run the main loop on them and prints out some statistics.
     '''
     print("whatlastgenre v%s\n" % __version__)
 
-    wlgdir = os.path.expanduser('~/.whatlastgenre')
-    if not os.path.exists(wlgdir):
-        os.makedirs(wlgdir)
-
     args = get_args()
-    conf = Config(wlgdir, args)
+    wlg = WhatLastGenre(args)
+    folders = mediafile.find_music_folders(args.path)
 
-    folders = mf.find_music_folders(args.path)
     print("Found %d music folders!" % len(folders))
     if not folders:
         return
 
-    stats = Stats(time.time(), Counter(), defaultdict(list))
-    cache = Cache(wlgdir, args.update_cache)
-    genretags = gt.GenreTags(conf)
-    dps = dp.get_daprs(conf)
-
     i = 0
     try:  # main loop
         for i, path in enumerate(sorted(folders), start=1):
-            # save cache periodically
-            if time.time() - cache.time > 600:
-                cache.save()
             # progress bar
             print("\n(%2d/%d) [" % (i, len(folders)),
                   '#' * int(60 * i / len(folders)),
                   '-' * int(60 * (1 - i / len(folders))),
-                  "] %2.0f%%" % (100 * i / len(folders)), sep='')
-            print(path)
-            try:
-                album = mf.Album(path, conf.get('wlg', 'id3v23sep'))
-                LOG.info("[%s] albumartist=%s, album=%s, date=%s",
-                         album.type, album.get_meta('albumartist'),
-                         album.get_meta('album'), album.get_meta('date'))
-                genres = handle_album(args, dps, cache, genretags, album)
-                if not genres:
-                    raise mf.AlbumError("No genres found")
-                stats.genres.update(genres)
-            except mf.AlbumError as err:
-                print(err)
-                stats.errors[str(err)].append(path)
+                  "] %2.0f%%" % (100 * i / len(folders)),
+                  "\n%s" % path, sep='')
+            work_folder(wlg, path)
         print("\n...all done!")
     except KeyboardInterrupt:
         print()
-    print_stats(stats, dps, i)
+    wlg.print_stats(i)

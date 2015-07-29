@@ -19,14 +19,11 @@
 
 from __future__ import print_function
 
-import logging
 import os.path
 
 import mutagen
 from mutagen.id3 import ID3
 
-
-LOG = logging.getLogger('whatlastgenre')
 
 # supported extensions
 EXTENSIONS = ['.mp3', '.flac', '.ogg', '.m4a']
