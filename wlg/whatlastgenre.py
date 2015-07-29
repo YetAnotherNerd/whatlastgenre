@@ -116,8 +116,6 @@ class Config(ConfigParser.SafeConfigParser):
         if dirty:
             with open(self.fullpath, 'w') as file_:
                 self.write(file_)
-            print("Please edit your configuration file: %s" % self.fullpath)
-            exit()
 
     def validate(self):
         '''Validate some configuration options.'''
