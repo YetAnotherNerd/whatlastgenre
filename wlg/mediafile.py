@@ -124,8 +124,8 @@ class Track(object):
         if not self.muta:
             raise TrackError('unknown mutagen error')
 
-    def _translate_key(self, key):
-        '''Translate the metadata key based on ext, etc.'''
+    def map_key(self, key):
+        '''Map a general metadata key to a ext-specific metadata key.'''
         if self.ext in ['flac', 'ogg']:
             return key.upper()
         if self.ext in ['mp3', 'm4a']:
@@ -139,7 +139,7 @@ class Track(object):
 
     def get_meta(self, key):
         '''Gets metadata for a given key.'''
-        key = self._translate_key(key)
+        key = self.map_key(key)
         if not key or key not in self.muta:
             return
         try:
@@ -155,7 +155,7 @@ class Track(object):
 
     def set_meta(self, key, val):
         '''Sets metadata for a given key.'''
-        key = self._translate_key(key)
+        key = self.map_key(key)
         if not key:
             return
         # no val, delete key if exists
