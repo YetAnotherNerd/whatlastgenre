@@ -1,14 +1,16 @@
 # whatlastgenre plugin for beets
 
-Plug whatlastgenre into [[beets](http://github.com/sampsyo/beets)].
+Plug whatlastgenre into [beets](http://github.com/sampsyo/beets).
 
 
 ## Installation
 
-* Install and configure beets and whatlastgenre according to its docs.
-* Run wlg standalone to see if its working (see [[wlg doc]
-(http://github.com/YetAnotherNerd/whatlastgenre/blob/master/README.md)])
-* Configure beets to use wlg plugin, for example (adjust path):
+Install and configure beets and whatlastgenre according to its docs.
+
+Run wlg standalone to see if its working (see [wlg doc]
+(http://github.com/YetAnotherNerd/whatlastgenre/blob/master/README.md))
+
+Configure beets to use wlg plugin, for example (adjust path):
 
     pluginpath:
         ~/git/whatlastgenre/plugin/beets/beetsplug
@@ -16,12 +18,12 @@ Plug whatlastgenre into [[beets](http://github.com/sampsyo/beets)].
     wlg:
         auto: yes
 
-* If you didn't install wlg, make sure to have it in PYTHONPATH, for example
+If you didn't install wlg, make sure to have it in PYTHONPATH, for example
 
     export PYTHONPATH="~/git/whatlastgenre/:${PYTHONPATH}"
 
-See also: [[beets doc about plugins]
-(http://beets.readthedocs.org/en/latest/plugins/index.html)]
+See also: [beets doc about plugins]
+(http://beets.readthedocs.org/en/latest/plugins/index.html)
 
 
 ## Configuration

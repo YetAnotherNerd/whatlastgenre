@@ -66,8 +66,8 @@ See `vaqueries` and `various` options below.
 ##### Multiple value metadata and old ID3 versions
 Mutagen's ID3 API is primary targeted at id3v2.4, so by default any id3 tags
 will be upgraded to 2.4 and saving a file will make it 2.4 as well.
-See [[mutagen doc here]
-(https://mutagen.readthedocs.org/en/latest/tutorial.html#id3-versions)]
+See [mutagen doc here]
+(https://mutagen.readthedocs.org/en/latest/tutorial.html#id3-versions)
 for details.
 However, if you don't want to use v2.4 tags you can use the `id3v23sep` config
 option explained below.
@@ -147,7 +147,7 @@ artist only, fixed list of
 ##### whitelist option
 Path to your custom whitelist. Defaults to shipped whitelist if empty.
 
-Default ``
+Default ` `
 
 ##### vaqueries option
 Search for all artists if there is no albumartist on albums with various
@@ -166,7 +166,7 @@ to v2.3 and store all genres in one tag seperated by `id3v23sep` instead of
 using v2.4 tags that can have multiple values.
 You should upgrade your other software to support id3v24 instead of using this.
 
-Default `` (recommended)
+Default ` ` (recommended)
 
 #### genres section
 
@@ -274,18 +274,25 @@ Tag releasetypes and up to 4 genre tags for all albums in /media/music:
 
 ## Plugins
 
-whatlastgenre can be used in other software via plugins. At the moment there
-is only a plugin for beets.
+whatlastgenre can be used in other software via plugins.
+
+At the moment there is only a plugin for beets.
+
 See README files in plugin folder for details.
 
 
 ## Help / Improving tagsfile and whitelist
 
 How to debug tag handling:
-* Do a debug dry run and save output to log:
+
+Do a debug dry run and save output to log:
+
     whatlastgenre -nvv /media/music > /tmp/wlg.log 2>&1
-* Search the log for specific lines and see if they are valid:
+
+Search the log for specific lines and see if they are valid:
+
     grep -E "^(tag |Error)" /tmp/wlg.log | sort -u | less
+
 
 Feel free to send me your log file so i can use it for debugging myself.
 
