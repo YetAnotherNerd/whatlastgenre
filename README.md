@@ -104,6 +104,7 @@ A configuration file with default values will be created at
 sources = whatcd, lastfm, discogs, mbrainz
 whatcduser = whatusername
 whatcdpass = whatpassword
+whitelist =
 vaqueries = True
 id3v23_sep =
 [genres]
@@ -142,6 +143,11 @@ now requires authentication (own account needed)
 * `echonest` [[URL](http://echonest.com)]
 artist only, fixed list of
 [genres](http://developer.echonest.com/docs/v4/artist.html#list-genres)
+
+##### whitelist option
+Path to your custom whitelist. Defaults to shipped whitelist if empty.
+
+Default ``
 
 ##### vaqueries option
 Search for all artists if there is no albumartist on albums with various
