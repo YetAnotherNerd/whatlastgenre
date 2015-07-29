@@ -27,6 +27,7 @@ import mutagen
 
 LOG = logging.getLogger('whatlastgenre')
 
+# supported extensions
 EXTENSIONS = ['.mp3', '.flac', '.ogg', '.m4a']
 
 
@@ -67,7 +68,9 @@ class Album(object):
         self.type = ','.join(set(t.ext for t in self.tracks)).upper()
 
     def get_meta(self, key, lcp=True):
-        '''Gets metadata that all tracks have in common.
+        '''Get metadata that all tracks have in common.
+
+        Return the common value (if any) for the given metadata key.
 
         :param key: metadata key
         :param lcp: use longest common prefix for some keys
@@ -86,12 +89,12 @@ class Album(object):
         return None
 
     def set_meta(self, key, val):
-        '''Sets metadata for all tracks.'''
+        '''Set metadata for all tracks.'''
         for track in self.tracks:
             track.set_meta(key, val)
 
     def save(self):
-        '''Saves the metadata for all tracks.'''
+        '''Save all tracks.'''
         print("Saving metadata... ", end='')
         dirty = False
         for track in self.tracks:
@@ -124,7 +127,10 @@ class Track(object):
             raise TrackError('unknown mutagen error')
 
     def map_key(self, key):
-        '''Map a general metadata key to a ext-specific metadata key.'''
+        '''Map a general metadata key to an ext-specific metadata key.
+
+        :param key: metadata key name string
+        '''
         if self.ext in ['flac', 'ogg']:
             return key.upper()
         if self.ext in ['mp3', 'm4a']:
@@ -137,7 +143,7 @@ class Track(object):
         return key
 
     def get_meta(self, key):
-        '''Gets metadata for a given key.'''
+        '''Get metadata for a given key.'''
         key = self.map_key(key)
         if not key or key not in self.muta:
             return None
@@ -154,7 +160,7 @@ class Track(object):
         return None
 
     def set_meta(self, key, val):
-        '''Sets metadata for a given key.'''
+        '''Set metadata of a given key to a given val.'''
         key = self.map_key(key)
         if not key:
             return
@@ -175,11 +181,11 @@ class Track(object):
             self.dirty = True
 
     def save(self):
-        '''Saves the metadata of the track.
+        '''Save the track.
 
-        Preserves the file modification time,
-        returns True if changes have been saved,
-        returns False if no changes were made.
+        Preserve the file modification time,
+        return True if changes have been saved,
+        return False if no changes were made.
         '''
         if not self.dirty:
             return False
