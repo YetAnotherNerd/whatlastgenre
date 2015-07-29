@@ -20,6 +20,7 @@ Improves genre metadata of audio files based on tags from various music sites.
   * Uses MusicBrainz IDs for searching when available
   * Optional: gets release type (Album, EP, Anthology, ...) from What.CD
   (with interactivity mode for ambiguous results)
+  * Can be used as plugin in 3rd party software, currently: beets
   * Dry-mode for safe testing
 
 
@@ -269,6 +270,13 @@ Tag up to 3 genre tags for all albums in /media/music and /home/user/music:
 Tag releasetypes and up to 4 genre tags for all albums in /media/music:
 
 	whatlastgenre -ir /media/music
+
+
+## Plugins
+
+whatlastgenre can be used in other software via plugins. At the moment there
+is only a plugin for beets.
+See README files in plugin folder for details.
 
 
 ## Help / Improving tagsfile and whitelist
