@@ -115,7 +115,6 @@ class Track(object):
         self.ext = os.path.splitext(filename)[1].lower()[1:]
         self.fullpath = os.path.join(path, filename)
         self.dirty = False
-        self.muta = None
         try:
             self.stat = os.stat(self.fullpath)
             self.muta = mutagen.File(self.fullpath, easy=True)
@@ -141,7 +140,7 @@ class Track(object):
         '''Gets metadata for a given key.'''
         key = self.map_key(key)
         if not key or key not in self.muta:
-            return
+            return None
         try:
             val = self.muta[key][0].encode('utf-8')
             if key.lower() in ['date', 'tracknumber', 'discnumber']:
@@ -151,7 +150,8 @@ class Track(object):
                 val = int(val)
             return val
         except ValueError:
-            return None
+            pass
+        return None
 
     def set_meta(self, key, val):
         '''Sets metadata for a given key.'''
