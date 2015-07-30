@@ -226,7 +226,7 @@ class WhatCD(DataProvider):
                 self.log.debug("prefiltered results '%d' -> '%d' (by reltype)",
                                len(results), len(tmp))
                 results = tmp
-        super(WhatCD, self).filter_results(query, results)
+        return super(WhatCD, self).filter_results(query, results)
 
 
 class LastFM(DataProvider):
