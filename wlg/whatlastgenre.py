@@ -295,7 +295,8 @@ class WhatLastGenre(object):
         if self.stats.errors:
             print("\n%d album(s) with errors:"
                   % sum(len(x) for x in self.stats.errors.values()))
-            for error, folders in self.stats.errors.items():
+            for error, folders in sorted(self.stats.errors.items(),
+                                         key=lambda x: len(x[1]), reverse=1):
                 print("  %s:\n    %s"
                       % (error, '\n    '.join(sorted(folders))))
         # dataprovider stats
