@@ -77,16 +77,11 @@ class WhatLastGenre(object):
 
     def setup_logging(self, verbose):
         '''Setup up the logging.'''
+        level = 30 - verbose * 10
         self.log = logging.getLogger('whatlastgenre')
-        if verbose == 0:
-            loglvl = logging.WARN
-        elif verbose == 1:
-            loglvl = logging.INFO
-        else:
-            loglvl = logging.DEBUG
-        self.log.setLevel(loglvl)
+        self.log.setLevel(level)
         hdlr = logging.StreamHandler(sys.stdout)
-        hdlr.setLevel(loglvl)
+        hdlr.setLevel(level)
         self.log.addHandler(hdlr)
 
         # add null handler
