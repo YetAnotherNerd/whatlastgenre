@@ -24,7 +24,7 @@ from argparse import Namespace
 from beets import config
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, decargs
-from beetsplug import lastgenre
+from beetsplug.lastgenre import WHITELIST as BEET_LG_WHITELIST
 
 from wlg import whatlastgenre
 from wlg.whatlastgenre import print_progressbar
@@ -40,9 +40,7 @@ class WhatLastGenre(BeetsPlugin):
             'force': False,
             'count': 4,
             'separator': u', ',
-            'whitelist': u'wlg',  # wlg = whatlastgenre whitelist
-                                  # beets = beets lastgenre plugin whitelist
-                                  # or a custom path (fallback to wlg)
+            'whitelist': u'wlg',  # wlg, beets or custom path
         })
         if self.config['auto'].get(bool):
             self.import_stages = [self.imported]
@@ -59,7 +57,7 @@ class WhatLastGenre(BeetsPlugin):
             whitelist = 'wlg'
         if whitelist != 'wlg':
             if whitelist == 'beets':
-                whitelist = lastgenre.WHITELIST
+                whitelist = BEET_LG_WHITELIST
             self.wlg.read_whitelist(whitelist)
         self._log.debug(u'use {0} whitelist with {1} entries.',
                         whitelist, len(self.wlg.whitelist))
