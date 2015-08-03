@@ -17,7 +17,7 @@
 
 '''whatlastgenre beets plugin'''
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, division, print_function
 
 from argparse import Namespace
 
@@ -46,12 +46,11 @@ class WhatLastGenre(BeetsPlugin):
             self.import_stages = [self.imported]
         self.wlg = None
 
-    def lazy_setup(self, cache=False):
+    def lazy_setup(self, cache=False, verbose=0):
         self.wlg = whatlastgenre.WhatLastGenre(Namespace(
             tag_limit=self.config['count'].get(int),
-            update_cache=cache,
-            interactive=False, dry=False, difflib=False,
-            tag_release=False, verbose=0))
+            update_cache=cache, verbose=verbose,
+            interactive=False, dry=False, difflib=False, tag_release=False))
         whitelist = self.config['whitelist'].get()
         if not whitelist:
             whitelist = 'wlg'
@@ -64,6 +63,9 @@ class WhatLastGenre(BeetsPlugin):
 
     def commands(self):
         cmds = Subcommand('wlg', help='get genres with whatlastgenre')
+        cmds.parser.add_option('-v', '--verbose', dest='verbose',
+                               action='count', default=0,
+                               help='verbose output (-vv for debug)')
         cmds.parser.add_option('-f', '--force', dest='force',
                                action='store_true', default=False,
                                help='force overwrite existing genres')
@@ -75,19 +77,26 @@ class WhatLastGenre(BeetsPlugin):
 
     def commanded(self, lib, opts, args):
         if not self.wlg:
-            self.lazy_setup(opts.cache)
+            self.lazy_setup(opts.cache, opts.verbose)
         if opts.force:
             self.config['force'] = True
         write = config['import']['write'].get(bool)
         self.config.set_args(opts)
-        for album in lib.albums(decargs(args)):
-            album.genre = self.genres(album, opts.force)
-            album.store()
-            for item in album.items():
-                item.genre = album.genre
-                item.store()
-                if write:
-                    item.try_write()
+        albums = lib.albums(decargs(args))
+        i = len(albums)
+        try:
+            for i, album in enumerate(albums, start=1):
+                print_progressbar(i, len(albums))
+                album.genre = self.genres(album)
+                album.store()
+                for item in album.items():
+                    item.genre = album.genre
+                    item.store()
+                    if write:
+                        item.try_write()
+        except KeyboardInterrupt:
+            print()
+        self.wlg.print_stats(i)
 
     def imported(self, session, task):
         if not self.wlg:
