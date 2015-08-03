@@ -27,6 +27,7 @@ from beets.ui import Subcommand, decargs
 from beetsplug import lastgenre
 
 from wlg import whatlastgenre
+from wlg.whatlastgenre import print_progressbar
 
 
 class WhatLastGenre(BeetsPlugin):

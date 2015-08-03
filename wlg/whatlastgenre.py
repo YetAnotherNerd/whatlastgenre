@@ -813,6 +813,14 @@ def work_folder(wlg, path):
         album.save()
 
 
+def print_progressbar(current, total):
+    '''Print the progressbar.'''
+    print("\n(%2d/%d) [" % (current, total),
+          '#' * int(60 * current / total),
+          '-' * int(60 * (1 - current / total)),
+          "] %2.0f%%" % (100 * current / total), sep='')
+
+
 def get_args():
     '''Get the cmdline arguments from ArgumentParser.'''
     parser = argparse.ArgumentParser(
@@ -857,12 +865,8 @@ def main():
     i = 0
     try:  # main loop
         for i, path in enumerate(sorted(folders), start=1):
-            # progress bar
-            print("\n(%2d/%d) [" % (i, len(folders)),
-                  '#' * int(60 * i / len(folders)),
-                  '-' * int(60 * (1 - i / len(folders))),
-                  "] %2.0f%%" % (100 * i / len(folders)),
-                  "\n%s" % path, sep='')
+            print_progressbar(i, len(folders))
+            print(path)
             work_folder(wlg, path)
         print("\n...all done!")
     except KeyboardInterrupt:
