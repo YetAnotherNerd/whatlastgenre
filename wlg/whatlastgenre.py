@@ -833,12 +833,12 @@ def get_args():
                         help='don\'t save metadata')
     parser.add_argument('-u', '--update-cache', action='store_true',
                         help='force cache update')
-    parser.add_argument('-i', '--interactive', action='store_true',
-                        help='interactive mode')
-    parser.add_argument('-r', '--tag-release', action='store_true',
-                        help='tag release type (from What.CD)')
     parser.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
                         help='max. number of genre tags')
+    parser.add_argument('-r', '--tag-release', action='store_true',
+                        help='tag release type (from What.CD)')
+    parser.add_argument('-i', '--interactive', action='store_true',
+                        help='interactive mode')
     parser.add_argument('-d', '--difflib', action='store_true',
                         help='enable difflib matching (slow)')
     return parser.parse_args()

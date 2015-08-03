@@ -229,7 +229,7 @@ Default `1.0`, Range `0.5 - 2.0`. See `sources` option above.
 
 ## Usage
 ```
-usage: whatlastgenre [-h] [-v] [-n] [-u] [-i] [-r] [-l N] [-d] path [path ...]
+usage: whatlastgenre [-h] [-v] [-n] [-u] [-l N] [-r] [-i] [-d] path [path ...]
 
 positional arguments:
   path                 folder(s) to scan for albums
@@ -239,9 +239,9 @@ optional arguments:
   -v, --verbose        verbose output (-vv for debug) (default: 0)
   -n, --dry            don't save metadata (default: False)
   -u, --update-cache   force cache update (default: False)
-  -i, --interactive    interactive mode (default: False)
-  -r, --tag-release    tag release type (from What.CD) (default: False)
   -l N, --tag-limit N  max. number of genre tags (default: 4)
+  -r, --tag-release    tag release type (from What.CD) (default: False)
+  -i, --interactive    interactive mode (default: False)
   -d, --difflib        enable difflib matching (slow) (default: False)
 ```
 
