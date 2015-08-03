@@ -69,11 +69,17 @@ class WhatLastGenre(object):
         self.log.debug("args: %s\n", args)
         self.stats = Stats(time=time.time(), errors=defaultdict(list),
                            genres=Counter(), difflib=defaultdict())
-        self.conf = Config(wlgdir, args)
+        self.conf = Config(wlgdir)
         self.cache = Cache(wlgdir, args.update_cache)
         self.daprs = dataprovider.get_daprs(self.conf)
         self.read_whitelist(self.conf.get('wlg', 'whitelist'))
         self.read_tagsfile()
+        # validate settings
+        if self.args.tag_release \
+                and 'whatcd' not in self.conf.get_list('wlg', 'sources'):
+            print("Can't tag release with What.CD support disabled. "
+                  "Release tagging disabled.\n")
+            self.args.tag_release = False
 
     def setup_logging(self, verbose):
         '''Setup up the logging.'''
@@ -526,11 +532,10 @@ class Config(ConfigParser.SafeConfigParser):
             ('scores', 'src_discogs', '1.00', 1, (0.5, 2.0)),
             ('scores', 'src_echonest', '1.00', 1, (0.5, 2.0))]
 
-    def __init__(self, wlgdir, args):
+    def __init__(self, wlgdir):
         ConfigParser.SafeConfigParser.__init__(self)
         self.fullpath = os.path.join(wlgdir, 'config')
         self.read(self.fullpath)
-        self.args = args
         self.maintain()
         self.validate()
 
@@ -594,11 +599,6 @@ class Config(ConfigParser.SafeConfigParser):
             print("Where do you want to get your data from?\nAt least one "
                   "source must be activated (multiple sources recommended)!")
             exit()
-        # options
-        if self.args.tag_release and 'whatcd' not in sources:
-            print("Can't tag release with What.CD support disabled. "
-                  "Release tagging disabled.\n")
-            self.args.tag_release = False
 
     def get_list(self, sec, opt):
         '''Gets a csv-string as list.'''
