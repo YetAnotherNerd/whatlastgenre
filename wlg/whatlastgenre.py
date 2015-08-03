@@ -68,7 +68,7 @@ class WhatLastGenre(object):
         self.setup_logging(args.verbose)
         self.log.debug("args: %s\n", args)
         self.stats = Stats(time=time.time(), errors=defaultdict(list),
-                           genres=Counter(), difflib={})
+                           genres=Counter(), difflib=defaultdict())
         self.conf = Config(wlgdir, args)
         self.cache = Cache(wlgdir, args.update_cache)
         self.daprs = dataprovider.get_daprs(self.conf)
@@ -299,15 +299,15 @@ class WhatLastGenre(object):
                                          key=lambda x: len(x[1]), reverse=1):
                 print("  %s:\n    %s"
                       % (error, '\n    '.join(sorted(folders))))
-        # dataprovider stats
-        if self.log.level <= logging.INFO:
-            self.print_dapr_stats()
         # difflib stats
         if self.stats.difflib:
             print("\ndifflib found %d tags:" % len(self.stats.difflib))
-            for key, val in self.stats.difflib:
+            for key, val in self.stats.difflib.items():
                 print("%s = %s" % (key, val))
-            print("Add them as aliases to tags.txt to speed things up.")
+            print("You should add them as aliases (if correct) to tags.txt.")
+        # dataprovider stats
+        if self.log.level <= logging.INFO:
+            self.print_dapr_stats()
         # time
         diff = time.time() - self.stats.time
         print("\nTime elapsed: %s (%s per folder)\n"
@@ -444,6 +444,7 @@ class TagLib(object):
             match = difflib.get_close_matches(key, self.wlg.whitelist, 1, .92)
             if match:
                 self.log.debug("tag match   %s -> %s", key, match[0])
+                self.wlg.stats.difflib[key] = match[0]
                 return match[0]
         return key
 
