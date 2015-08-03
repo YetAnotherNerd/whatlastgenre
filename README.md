@@ -72,6 +72,21 @@ for details.
 However, if you don't want to use v2.4 tags you can use the `id3v23sep` config
 option explained below.
 
+##### Interactivity
+Sometimes a dataprovider returns more then one result of tags. To know the
+right set user input might be required, but several steps are taken to
+reduce needed interactivity:
+* Prefilter album results by year (if given)
+* Prefilter whatcd album results by releasetype (if given)
+* Automatically merges the tags from few results
+    * only merge if all have the same releasetype if --tag-release is enabled
+* If there are still too many results, there are two options
+    * --tag-release and src is whatcd: ask user if -i enabled
+    * don't take results into account
+
+So, interactivity is only needed for setting proper releasetypes
+in some ambiguous cases.
+
 
 ## Installation
 You'll need Python 2.7.
@@ -145,17 +160,13 @@ artist only, fixed list of
 [genres](http://developer.echonest.com/docs/v4/genre.html#list)
 
 ##### whitelist option
-Path to your custom whitelist. Defaults to shipped whitelist if empty.
-
-Default ` `
+Path to your custom whitelist. Use shipped whitelist if empty (default).
 
 ##### vaqueries option
 Search for all artists if there is no albumartist on albums with various
 artists. This will make queries for va-albums without albumartist take
-significantly longer, but yields more results.
+significantly longer, but yields more results. (Default: `True`)
 See `various` score option below.
-
-Default `True`
 
 ##### id3v23sep option
 By (mutagen) default all id3 v2.3 tags will be upgraded to v2.4. Since v2.3
@@ -163,10 +174,8 @@ can't store multiple value metadata you need to set a seperator if you intend
 to use old v2.3 tags (not recommended).
 Setting this to a non-empty value (for example `,`) will downgrade all id3 tags
 to v2.3 and store all genres in one tag seperated by `id3v23sep` instead of
-using v2.4 tags that can have multiple values.
+using v2.4 tags that can have multiple values. Empty by defaut.
 You should upgrade your other software to support id3v24 instead of using this.
-
-Default ` ` (recommended)
 
 #### genres section
 
@@ -245,10 +254,11 @@ optional arguments:
   -d, --difflib        enable difflib matching (slow) (default: False)
 ```
 
-If you seriously want to tag release-types `-r` you should also enable
+If you seriously want to tag releasetypes `-r` you should also enable
 interactive mode `-i`. I recommend first doing a dry-run to fill the cache and
-then doing a normal run with `-ir` enabled. This way you can choose the right
-results without much waiting time in between.
+then doing a normal run with `-ri` enabled. This way you can choose the right
+results without much waiting time in between. You can use `-r` without `-i` but
+might get less releasetypes.
 
 Remove the cache file to reset the cache or use `-u` to force cache updates.
 
@@ -269,32 +279,35 @@ Tag up to 3 genre tags for all albums in /media/music and /home/user/music:
 
 Tag releasetypes and up to 4 genre tags for all albums in /media/music:
 
-	whatlastgenre -ir /media/music
+	whatlastgenre -ri /media/music
 
 
 ## Plugins
 
 whatlastgenre can be used in other software via plugins.
 
-At the moment there is only a plugin for beets.
+At the moment there is a plugin for beets.
 
 See README files in plugin folder for details.
 
 
-## Help / Improving tagsfile and whitelist
+## Help / Debug
 
-How to debug tag handling:
+In order to debug tag handling to improve the whitelist, aliases and replaces,
+you can do the following:
 
 Do a debug dry run and save output to log:
 
     whatlastgenre -nvv /media/music > /tmp/wlg.log 2>&1
 
-Search the log for specific lines and see if they are valid:
+Search the log for specific lines:
 
-    grep -E "^(tag |Error)" /tmp/wlg.log | sort -u | less
+    grep ^Error /tmp/wlg.log | sort -u | less
+    grep ^tag /tmp/wlg.log | sort | uniq -c | sort -r | less
 
+Use the results to add missing whitelist entries, aliases or replaces.
+Share your improvements to the data/*.txt files if you like.
 
 Feel free to send me your log file so i can use it for debugging myself.
-
 
 Please report any bugs and errors you encounter, i would like to fix them :)

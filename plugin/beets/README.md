@@ -18,7 +18,7 @@ Configure beets to use wlg plugin, for example (adjust path):
     wlg:
         auto: yes
 
-If you didn't install wlg, make sure to have it in PYTHONPATH, for example
+If you didn't install wlg, make sure to have it in PYTHONPATH:
 
     export PYTHONPATH="~/git/whatlastgenre/:${PYTHONPATH}"
 
@@ -56,17 +56,18 @@ Additionally, there are some configuration options in the beets configuration:
 Make sure `auto: yes` is set in the `wlg` part of the beets configuration.
 
 ### Run manually
-    beet wlg [QUERY]
+
+    Usage: beet wlg [options]
+
+    Options:
+      -h, --help          show this help message and exit
+      -v, --verbose       verbose output (-vv for debug)
+      -f, --force         force overwrite existing genres
+      -u, --update-cache  force update cach
 
 
-## Known issues / Differences to stand-alone
+## Known issues / Differences to standalone
 
-* plug: always `separator` separated tag; solo: only when using id3v23
-(See [[beets#505](http://github.com/sampsyo/beets/issues/505)])
-* needs testing
+* genres always one tag with separation / only when using id3v23
+(See [beets#505](http://github.com/sampsyo/beets/issues/505))
 
-
-## Help
-
-I did some basic testing, but since i don't use beets on a regular basis myself,
-i can't be sure that everything works flawlessly. Feedback welcome.
