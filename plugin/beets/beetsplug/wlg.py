@@ -46,10 +46,10 @@ class WhatLastGenre(BeetsPlugin):
             self.import_stages = [self.imported]
         self.wlg = None
 
-    def lazy_setup(self):
+    def lazy_setup(self, cache=False):
         self.wlg = whatlastgenre.WhatLastGenre(Namespace(
             tag_limit=self.config['count'].get(int),
-            update_cache=self.config['force'].get(bool),
+            update_cache=cache,
             interactive=False, dry=False, difflib=False,
             tag_release=False, verbose=0))
         whitelist = self.config['whitelist'].get()
@@ -66,11 +66,18 @@ class WhatLastGenre(BeetsPlugin):
         cmds = Subcommand('wlg', help='get genres with whatlastgenre')
         cmds.parser.add_option('-f', '--force', dest='force',
                                action='store_true', default=False,
-                               help='force cache update')
+                               help='force overwrite existing genres')
+        cmds.parser.add_option('-u', '--update-cache', dest='cache',
+                               action='store_true', default=False,
+                               help='force update cache')
         cmds.func = self.commanded
         return [cmds]
 
     def commanded(self, lib, opts, args):
+        if not self.wlg:
+            self.lazy_setup(opts.cache)
+        if opts.force:
+            self.config['force'] = True
         write = config['import']['write'].get(bool)
         self.config.set_args(opts)
         for album in lib.albums(decargs(args)):
@@ -83,6 +90,8 @@ class WhatLastGenre(BeetsPlugin):
                     item.try_write()
 
     def imported(self, session, task):
+        if not self.wlg:
+            self.lazy_setup()
         if task.is_album:
             genres = self.genres(task.album)
             task.album.genre = genres
@@ -95,18 +104,19 @@ class WhatLastGenre(BeetsPlugin):
             item.genre = genres
             item.store()
 
-    def genres(self, album, force=False):
-        if not self.wlg:
-            self.lazy_setup()
-        self.wlg.cache.update_cache = self.config['force'].get(bool) or force
-        metadata = whatlastgenre.Metadata(
-            path=album.item_dir(), type='beet',
-            artists=[(t.artist, t.mb_artistid) for t in album.items()],
-            albumartist=(album.albumartist, album.mb_albumartistid),
-            album=album.album, mbid_album=album.mb_albumid,
-            mbid_relgrp=album.mb_releasegroupid,
-            year=album.year, releasetype=album.albumtype)
-        genres, _ = self.wlg.query_album(metadata)
-        genres = self.config['separator'].get(unicode).join(genres)
-        self._log.info(u'genres for album {0}: {1}', album, genres)
-        return genres
+    def genres(self, album):
+        if self.config['force'] or not album.genre:
+            metadata = whatlastgenre.Metadata(
+                path=album.item_dir(), type='beet',
+                artists=[(t.artist, t.mb_artistid) for t in album.items()],
+                albumartist=(album.albumartist, album.mb_albumartistid),
+                album=album.album, mbid_album=album.mb_albumid,
+                mbid_relgrp=album.mb_releasegroupid,
+                year=album.year, releasetype=album.albumtype)
+            genres, _ = self.wlg.query_album(metadata)
+            genres = self.config['separator'].get(unicode).join(genres)
+            self._log.info(u'genres for album {0}: {1}', album, genres)
+            return genres
+        else:
+            self._log.info(u'not forcing genre update for album {0}', album)
+        return album.genre
