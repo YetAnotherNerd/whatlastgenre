@@ -123,7 +123,7 @@ class WhatLastGenre(object):
                 exit()
         # regex replacements
         regex = []  # list of tuples instead of dict because order matters
-        for pat, repl in [(r'( ?[,;\\/&]+ ?| and )', '/'),
+        for pat, repl in [(r'( ?[,;\\/&_]+ ?| and )+', '/'),
                           (r'[\'"]+', ''), (r'  +', ' ')]:
             regex.append((re.compile(pat, re.I), repl))
         for pat, repl in tagsfile.items('regex', True):
