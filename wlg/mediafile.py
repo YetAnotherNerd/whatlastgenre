@@ -48,7 +48,7 @@ class AlbumError(Exception):
 class Album(object):
     '''Class for managing albums.'''
 
-    def __init__(self, path, v23sep):
+    def __init__(self, path, v23sep=None):
         if not os.path.exists(path):
             raise AlbumError("Folder vanished")
         self.path = path
@@ -130,13 +130,15 @@ class Track(object):
 
         :param key: metadata key name string
         '''
+        if not key:
+            return None
         if self.ext in ['flac', 'ogg']:
             return key.upper()
         if self.ext in ['mp3', 'm4a']:
             if key == 'releasetype':
                 return 'musicbrainz_albumtype'
             if key == 'musicbrainz_releasegroupid':
-                return
+                return None
         if self.ext == 'mp3' and key == 'albumartist':
             return 'performer'
         return key

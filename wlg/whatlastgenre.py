@@ -310,7 +310,7 @@ class WhatLastGenre(object):
             self.print_dapr_stats()
         # time
         diff = time.time() - self.stats.time
-        print("\nTime elapsed: %s (%s per folder)\n"
+        print("\nTime elapsed: %s (%s per folder)"
               % (timedelta(seconds=diff),
                  timedelta(seconds=diff / num_folders)))
 
@@ -674,7 +674,7 @@ class Cache(object):
 
     def clean(self):
         '''Clean up expired entries.'''
-        print("Cleaning cache... ", end='')
+        print("\nCleaning cache... ", end='')
         size = len(self.cache)
         for key, val in self.cache.items():
             if time.time() > val[0] + self.expire_after:
@@ -803,8 +803,9 @@ def work_folder(wlg, path):
         print("Genres: %s" % ', '.join(genres).encode('utf-8'))
         album.set_meta('genre', genres)
     else:
-        print("No genres found")
-        wlg.stats.errors["No genres found"].append(path)
+        err = "No genres found"
+        print(err)
+        wlg.stats.errors[err].append(path)
     if wlg.args.tag_release and releasetype:
         print("RelTyp: %s" % releasetype)
         album.set_meta('releasetype', releasetype)
@@ -864,7 +865,7 @@ def main():
     if not folders:
         return
 
-    i = 0
+    i = len(folders)
     try:  # main loop
         for i, path in enumerate(sorted(folders), start=1):
             print_progressbar(i, len(folders))
