@@ -48,7 +48,7 @@ Query = namedtuple(
     'Query', ['dapr', 'type', 'str', 'score', 'artist', 'mbid_artist',
               'album', 'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])
 
-Stats = namedtuple('Stats', ['time', 'errors', 'genres', 'difflib'])
+Stats = namedtuple('Stats', ['time', 'errors', 'genres', 'reltyps', 'difflib'])
 
 # regex pattern for 'Various Artist'
 VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
@@ -68,7 +68,8 @@ class WhatLastGenre(object):
         self.setup_logging(args.verbose)
         self.log.debug("args: %s\n", args)
         self.stats = Stats(time=time.time(), errors=defaultdict(list),
-                           genres=Counter(), difflib=defaultdict())
+                           genres=Counter(), reltyps=Counter(),
+                           difflib=defaultdict())
         self.conf = Config(wlgdir)
         self.cache = Cache(wlgdir, args.update_cache)
         self.daprs = dataprovider.get_daprs(self.conf)
@@ -182,7 +183,8 @@ class WhatLastGenre(object):
             # unique result
             res = results[0]
             query.dapr.stats['results'] += 1
-            if 'releasetype' in res and res['releasetype']:
+            if 'releasetype' in res and res['releasetype']\
+                    and self.args.tag_release:
                 taglib.releasetype = res['releasetype']
             if 'tags' in res and res['tags']:
                 found, added = taglib.add(query, res['tags'])
@@ -195,6 +197,9 @@ class WhatLastGenre(object):
 
         genres = taglib.top_genres(self.args.tag_limit)
         self.stats.genres.update(genres)
+        if taglib.releasetype:
+            taglib.releasetype = taglib.format(taglib.releasetype)
+            self.stats.reltyps[taglib.releasetype] += 1
         return genres, taglib.releasetype
 
     def create_queries(self, metadata):
@@ -292,6 +297,12 @@ class WhatLastGenre(object):
             tags = self.stats.genres.most_common()
             print("\n%d different tags used this often:" % len(tags))
             print(tag_display(tags, "%4d %-20s"))
+        # releasetype statistics
+        if self.args.tag_release and self.stats.reltyps:
+            reltyps = self.stats.reltyps.most_common()
+            print("\n%d different releasetypes used this often:"
+                  % len(reltyps))
+            print(tag_display(reltyps, "%4d %-20s"))
         # errors/messages
         if self.stats.errors:
             print("\n%d album(s) with errors:"
@@ -801,9 +812,14 @@ def work_folder(wlg, path):
         err = "No genres found"
         print(err)
         wlg.stats.errors[err].append(path)
-    if wlg.args.tag_release and releasetype:
-        print("RelTyp: %s" % releasetype)
-        album.set_meta('releasetype', releasetype)
+    if wlg.args.tag_release:
+        if releasetype:
+            print("RelTyp: %s" % releasetype)
+            album.set_meta('releasetype', releasetype)
+        else:
+            err = "No releasetype found"
+            print(err)
+            wlg.stats.errors[err].append(path)
     # save metadata to all tracks
     if wlg.args.dry:
         print("DRY-RUN! Not saving metadata.")
