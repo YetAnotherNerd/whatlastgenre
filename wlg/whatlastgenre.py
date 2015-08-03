@@ -382,12 +382,13 @@ class TagLib(object):
             if key not in self.wlg.whitelist:
                 key = self.resolve(key)
             # split if wasn't yet
-            if not split:
+            if not split and not ('&' in key and key in self.wlg.whitelist):
                 parts = self.split(key)
-                if parts and len(parts) < 6:
+                if parts and len(parts) < 6 and all(len(p) > 3 for p in parts):
                     _, add = self.add(query, {p: val for p in parts}, True)
                     if add:
                         added += add
+                        val *= self.wlg.conf.getfloat('scores', 'splitup')
                         self.log.debug("tag split   %s -> %s",
                                        key, ', '.join(parts))
             # filter
