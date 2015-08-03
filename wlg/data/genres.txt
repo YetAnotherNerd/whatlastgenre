@@ -1,5 +1,7 @@
 2-step
+abstract
 abstract hip-hop
+abstract rock
 acapella
 acid breakbeat
 acid house
@@ -7,9 +9,6 @@ acid jazz
 acid rock
 acoustic
 alternative
-abstract
-abstract rock
-abstract electronic
 alternative metal
 alternative rock
 ambient
@@ -19,14 +18,12 @@ avantgarde jazz
 avantgarde metal
 baroque
 beatbox
-vocal trance
 bebop
 big band
 big beat
 bitcore
 bitpop
 black metal
-blackened death metal
 bluegrass
 blues
 blues-rock
@@ -67,9 +64,11 @@ chant
 chicha
 chillout
 chillwave
+chiptune
 christian
 christmas
 classic
+classic pop
 classic rock
 classical
 club
@@ -99,18 +98,14 @@ darkcore
 darkstep
 darkwave
 death metal
-punk
 deathcore
 deathgrind
 deep funk
-future jazz
 deep house
 deep soul
 disco
 disco house
 dixieland jazz
-stage & screen
-chiptune
 doo wop
 doom metal
 doomcore
@@ -161,6 +156,7 @@ funk
 funk rock
 funkcore
 fusion jazz
+future jazz
 g-funk
 gabber
 gangsta rap
@@ -190,6 +186,7 @@ hip-hop
 horror punk
 horrorcore
 horrorcore
+house
 idm
 illbient
 impressionist
@@ -228,6 +225,7 @@ k-ska
 krautrock
 liquid drum&bass
 liquid funk
+live
 lo-fi
 lounge
 mambo
@@ -237,7 +235,6 @@ mathcore
 medieval
 medieval metal
 medieval rock
-house
 melodic metal
 melodic metalcore
 melodic trance
@@ -294,6 +291,7 @@ psy-trance
 psychedelic
 psychedelic pop
 psychedelic rock
+punk
 punk rock
 ragga
 rap
@@ -329,10 +327,12 @@ soul
 soul
 soul
 soundtrack
+southern rock
 space rock
 speed garage
 speed metal
 speedcore
+stage & screen
 stoner metal
 stoner rock
 swamp blues
@@ -359,5 +359,6 @@ trip-rock
 turntablism
 vocal house
 vocal jazz
+vocal trance
 world
 world fusion
