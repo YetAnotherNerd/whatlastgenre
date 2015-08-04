@@ -78,6 +78,12 @@ class DataProvider(object):
         self.session.headers.update(HEADERS)
         self.log = logging.getLogger('whatlastgenre')
 
+    def _wait_rate_limit(self):
+        '''Wait for the rate limit.'''
+        while time.time() - self.last_request < self.rate_limit:
+            self.stats['time_wait'] += .1
+            time.sleep(.1)
+
     def _query_jsonapi(self, url, params):
         '''Query a json-api by url and params.
 
@@ -87,10 +93,7 @@ class DataProvider(object):
         :param url: url str of the api
         :param params: dict of call parameters
         '''
-        # rate limit
-        while time.time() - self.last_request < self.rate_limit:
-            self.stats['time_wait'] += .1
-            time.sleep(.1)
+        self._wait_rate_limit()
         time_ = time.time()
         try:
             req = self.session.get(url, params=params)
