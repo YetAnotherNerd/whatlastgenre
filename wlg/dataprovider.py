@@ -35,9 +35,10 @@ try:  # use optional requests_cache if available
     requests_cache.install_cache(
         os.path.expanduser('~/.whatlastgenre/reqcache'),
         expire_after=180 * 24 * 60 * 60,
+        allowable_methods=('GET', 'POST'),
         old_data_on_error=True)
 except ImportError:
-    pass
+    requests_cache = None
 
 
 HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
@@ -174,18 +175,37 @@ class WhatCD(DataProvider):
             self.__logout()
 
     def __login(self):
-        '''Login to What.CD.'''
-        self.session.post('https://what.cd/login.php',
-                          {'username': self.cred[0], 'password': self.cred[1]})
+        '''Login to What.CD without using requests_cache.'''
+
+        def login():
+            '''Login to What.CD.'''
+            self._request('https://what.cd/login.php',
+                          {'username': self.cred[0],
+                           'password': self.cred[1]}, 'POST')
+
+        if requests_cache:
+            with self.session.cache_disabled():
+                login()
+        else:
+            login()
         self.loggedin = True
 
     def __logout(self):
-        '''Logout from What.CD.'''
-        data = self._query({'action': 'index'})
-        if 'authkey' in data:
-            self.session.get("https://what.cd/logout.php?auth=%s"
-                             % data['authkey'])
-            self.loggedin = False
+        '''Logout from What.CD without using requests_cache.'''
+
+        def logout():
+            '''Logout from What.CD.'''
+            res = self._query({'action': 'index'})
+            if 'authkey' in res:
+                self._request('https://what.cd/logout.php',
+                              {'auth': res['authkey']})
+
+        if requests_cache:
+            with self.session.cache_disabled():
+                logout()
+        else:
+            logout()
+        self.loggedin = False
 
     def _query(self, params):
         '''Query What.CD API.'''
@@ -384,7 +404,11 @@ class MusicBrainz(DataProvider):
 
 
 class Discogs(DataProvider):
-    '''Discogs DataProvider'''
+    '''Discogs DataProvider
+
+    Known issues:
+    * rauth requests can't be cached by requests_cache at this time
+    '''
 
     def __init__(self):
         super(Discogs, self).__init__()
