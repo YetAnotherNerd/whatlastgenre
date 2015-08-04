@@ -154,10 +154,10 @@ class WhatLastGenre(object):
             except NotImplementedError:
                 continue
             except dataprovider.DataProviderError as err:
-                query.dapr.stats['errors'] += 1
-                err = query.dapr.name + ' ' + str(err)
-                self.stats.errors[err].append(metadata.path)
-                print("%-8s %s" % (query.dapr.name, err))
+                query.dapr.stats['reqs_err'] += 1
+                msg = query.dapr.name + ': ' + str(err)
+                self.stats.errors[msg].append(metadata.path)
+                self.log.error(msg)
                 continue
             if not results:
                 self.verbose_status(query, cached, "no results")
@@ -257,10 +257,9 @@ class WhatLastGenre(object):
                     cachekey.replace(' ', ''))
         results = self.cache.get(cachekey)
         if results:
-            query.dapr.stats['queries_cache'] += 1
+            query.dapr.stats['reqs_cache'] += 1
             return results[1], True
         results = query.dapr.query(query)
-        query.dapr.stats['queries_web'] += 1
         self.cache.set(cachekey, results)
         # save cache periodically
         if time.time() - self.cache.time > 600:
@@ -331,22 +330,21 @@ class WhatLastGenre(object):
         print("\nSource stats  ",
               ''.join("| %-8s " % d.name for d in self.daprs),
               "\n", "-" * 14, "+----------" * len(self.daprs), sep='')
-        for key in ['errors', 'queries_web', 'queries_cache', 'results',
-                    'results/query', 'tags', 'tags/result', 'goodtags',
-                    'goodtags/tag', 'time_resp_avg', 'time_wait_avg']:
+        for key in [
+            'reqs_err', 'reqs_web', 'reqs_cache', 'reqs_lowcache',
+            'results_err', 'results', 'results/req', 'tags', 'tags/result',
+            'goodtags', 'goodtags/tag', 'time_resp_avg', 'time_wait_avg']:
             vals = []
             for dapr in self.daprs:
-                if key == 'results/query' and (dapr.stats['queries_web']
-                                               or dapr.stats['queries_cache']):
-                    vals.append(dapr.stats['results']
-                                / (dapr.stats['queries_web']
-                                   + dapr.stats['queries_cache']))
-                elif key == 'time_resp_avg' and dapr.stats['queries_web']:
-                    vals.append(dapr.stats['time_resp']
-                                / dapr.stats['queries_web'])
-                elif key == 'time_wait_avg' and dapr.stats['queries_web']:
-                    vals.append(dapr.stats['time_wait']
-                                / dapr.stats['queries_web'])
+                num_req_web = dapr.stats['reqs_web']
+                num_req = num_req_web + dapr.stats['reqs_cache'] \
+                    + dapr.stats['reqs_lowcache']
+                if key == 'results/req' and num_req > 0:
+                    vals.append(dapr.stats['results'] / num_req)
+                elif key == 'time_resp_avg' and num_req_web:
+                    vals.append(dapr.stats['time_resp'] / num_req_web)
+                elif key == 'time_wait_avg' and num_req_web:
+                    vals.append(dapr.stats['time_wait'] / num_req_web)
                 elif key == 'tags/result' and dapr.stats['results']:
                     vals.append(dapr.stats['tags'] / dapr.stats['results'])
                 elif key == 'goodtags/tag' and dapr.stats['tags']:

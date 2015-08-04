@@ -104,8 +104,11 @@ class DataProvider(object):
             self.log.debug(err)
             raise DataProviderError("request: %s" % err.message)
         if not getattr(res, 'from_cache', False):
+            self.stats['reqs_web'] += 1
             self.stats['time_resp'] += time.time() - time_
             self.last_request = time_
+        else:
+            self.stats['reqs_lowcache'] += 1
         return res
 
     def _request_json(self, url, params, method='GET'):
