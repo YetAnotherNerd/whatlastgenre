@@ -74,7 +74,7 @@ class DataProvider(object):
         self.rate_limit = 1.0  # min. seconds between requests
         self.last_request = 0
         self.stats = defaultdict(float)
-        self.session = requests.session()
+        self.session = requests.Session()
         self.session.headers.update(HEADERS)
         self.log = logging.getLogger('whatlastgenre')
 
@@ -84,34 +84,41 @@ class DataProvider(object):
             self.stats['time_wait'] += .1
             time.sleep(.1)
 
-    def _query_jsonapi(self, url, params):
-        '''Query a json-api by url and params.
+    def _request(self, url, params, method='GET'):
+        '''Send a request.
 
         Honor rate limits and record some timings for stats.
-        Return the json results.
 
-        :param url: url str of the api
+        :param url: url string
         :param params: dict of call parameters
+        :param method: request method
         '''
         self._wait_rate_limit()
         time_ = time.time()
         try:
-            req = self.session.get(url, params=params)
+            if method == 'POST':
+                res = self.session.post(url, data=params)
+            else:
+                res = self.session.get(url, params=params)
         except requests.exceptions.RequestException as err:
             self.log.debug(err)
-            raise DataProviderError("request error: %s" % err.message)
-        self.stats['time_resp'] += time.time() - time_
-        if not hasattr(req, 'from_cache') or not req.from_cache:
+            raise DataProviderError("request: %s" % err.message)
+        if not getattr(res, 'from_cache', False):
+            self.stats['time_resp'] += time.time() - time_
             self.last_request = time_
-        if req.status_code != 200:
-            self.log.debug(req.content)
-            raise DataProviderError("request error: status code %s"
-                                    % req.status_code)
+        return res
+
+    def _request_json(self, url, params, method='GET'):
+        '''Return a json response from a request.'''
+        res = self._request(url, params, method=method)
+        if res.status_code != 200:
+            self.log.debug(res.text)
+            raise DataProviderError('status code: %s' % res.status_code)
         try:
-            return req.json()
+            return res.json()
         except ValueError as err:
-            self.log.debug(req.content)
-            raise DataProviderError("request error: %s" % err.message)
+            self.log.debug(res.text)
+            raise DataProviderError("json request: %s" % err.message)
 
     def query(self, query):
         '''Get results for a given query from this DataProvider.'''
@@ -181,16 +188,15 @@ class WhatCD(DataProvider):
         '''Query What.CD API.'''
         if not self.loggedin:
             self.__login()
-        data = self._query_jsonapi('https://what.cd/ajax.php', params)
-        if data and 'status' in data and data['status'] == 'success' \
-                and 'response' in data:
-            return data['response']
+        res = self._request_json('https://what.cd/ajax.php', params)
+        if res and 'status' in res and res['status'] == 'success' \
+                and 'response' in res:
+            return res['response']
         return None
 
     def artist_query(self, query):
         '''Get artist data from What.CD.'''
-        results = self._query({'action': 'artist',
-                               'artistname': query.artist})
+        results = self._query({'action': 'artist', 'artistname': query.artist})
         if results and 'tags' in results and results['tags']:
             tags = {t['name'].replace('.', ' '): t['count']
                     for t in results['tags']}
@@ -242,11 +248,11 @@ class LastFM(DataProvider):
 
     def _query(self, params):
         '''Query Last.FM API.'''
-        params.update({'api_key': "54bee5593b60d0a5bf379cedcad79052",
-                       'format': 'json'})
-        data = self._query_jsonapi('http://ws.audioscrobbler.com/2.0/', params)
-        if data and 'error' not in data:
-            return data
+        params.update({'format': 'json',
+                       'api_key': '54bee5593b60d0a5bf379cedcad79052'})
+        res = self._request_json('http://ws.audioscrobbler.com/2.0/', params)
+        if res and 'error' not in res:
+            return res
         return None
 
     def artist_query(self, query):
@@ -315,7 +321,7 @@ class MusicBrainz(DataProvider):
             params.update({'query': query})
         else:
             params.update({'inc': 'tags'})
-        return self._query_jsonapi(
+        return self._request_json(
             'http://musicbrainz.org/ws/2/' + entity, params)
 
     def artist_query(self, query):
@@ -425,7 +431,7 @@ class Discogs(DataProvider):
         params = {'release_title': query.album}
         if query.artist:
             params.update({'artist': query.artist})
-        results = self._query_jsonapi(
+        results = self._request_json(
             'http://api.discogs.com/database/search', params)
         if results and 'results' in results and results['results']:
             # merge releases and masters
@@ -449,7 +455,7 @@ class EchoNest(DataProvider):
 
     def artist_query(self, query):
         '''Get artist data from EchoNest.'''
-        results = self._query_jsonapi(
+        results = self._request_json(
             'http://developer.echonest.com/api/v4/artist/search',
             [('api_key', 'ZS0LNJH7V6ML8AHW3'), ('format', 'json'),
              ('results', 1), ('bucket', 'genre'), ('bucket', 'terms'),
