@@ -53,12 +53,21 @@ def get_daprs(conf):
     if 'echonest' in sources:
         daprs.append(EchoNest())
     if 'whatcd' in sources:
-        daprs.append(WhatCD((conf.get('wlg', 'whatcduser'),
-                             conf.get('wlg', 'whatcdpass'))))
+        cred = {'username': conf.get('wlg', 'whatcduser'),
+                'password': conf.get('wlg', 'whatcdpass')}
+        if all(cred.values()):
+            daprs.append(WhatCD(cred))
+        else:
+            print("No What.CD credentials specified. "
+                  "What.CD support disabled.\n")
     if 'mbrainz' in sources:
         daprs.append(MusicBrainz())
     if 'lastfm' in sources:
         daprs.append(LastFM())
+    if not daprs:
+        print("Where do you want to get your data from?\nAt least one "
+              "source must be activated (multiple sources recommended)!")
+        exit()
     return daprs
 
 
@@ -179,9 +188,7 @@ class WhatCD(DataProvider):
 
         def login():
             '''Login to What.CD.'''
-            self._request('https://what.cd/login.php',
-                          {'username': self.cred[0],
-                           'password': self.cred[1]}, 'POST')
+            self._request('https://what.cd/login.php', self.cred, 'POST')
 
         if requests_cache:
             with self.session.cache_disabled():

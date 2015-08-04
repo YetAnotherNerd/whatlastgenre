@@ -546,7 +546,6 @@ class Config(ConfigParser.SafeConfigParser):
         self.fullpath = os.path.join(wlgdir, 'config')
         self.read(self.fullpath)
         self.maintain()
-        self.validate()
 
     def maintain(self):
         '''Maintain the config file.
@@ -587,27 +586,6 @@ class Config(ConfigParser.SafeConfigParser):
         if dirty:
             with open(self.fullpath, 'w') as file_:
                 self.write(file_)
-
-    def validate(self):
-        '''Validate some configuration options.'''
-        # sources
-        sources = self.get_list('wlg', 'sources')
-        for src in sources:
-            if src not in ['whatcd', 'lastfm', 'mbrainz', 'discogs',
-                           'echonest']:
-                msg = "%s is not a valid source" % src
-            elif src == 'whatcd' and not (self.get('wlg', 'whatcduser') and
-                                          self.get('wlg', 'whatcdpass')):
-                msg = "No What.CD credentials specified"
-            else:
-                continue
-            print("%s. %s support disabled.\n" % (msg, src))
-            sources.remove(src)
-            self.set('wlg', 'sources', ', '.join(sources))
-        if not sources:
-            print("Where do you want to get your data from?\nAt least one "
-                  "source must be activated (multiple sources recommended)!")
-            exit()
 
     def get_list(self, sec, opt):
         '''Gets a csv-string as list.'''
