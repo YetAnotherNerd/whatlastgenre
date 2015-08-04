@@ -55,7 +55,7 @@ def get_daprs(conf):
         daprs.append(WhatCD((conf.get('wlg', 'whatcduser'),
                              conf.get('wlg', 'whatcdpass'))))
     if 'mbrainz' in sources:
-        daprs.append(MBrainz())
+        daprs.append(MusicBrainz())
     if 'lastfm' in sources:
         daprs.append(LastFM())
     return daprs
@@ -296,13 +296,14 @@ class LastFM(DataProvider):
         return None
 
 
-class MBrainz(DataProvider):
+class MusicBrainz(DataProvider):
     '''MusicBrainz DataProvider'''
 
     def __init__(self):
-        super(MBrainz, self).__init__()
+        super(MusicBrainz, self).__init__()
         # http://musicbrainz.org/doc/XML_Web_Service/Rate_Limiting
         self.rate_limit = 1.0
+        self.name = 'MBrainz'
 
     def _query(self, entity, query=None):
         '''Query MusicBrainz API.'''
@@ -367,7 +368,7 @@ class MBrainz(DataProvider):
             results = [{'tags': {t['name']: int(t['count'])
                                  for t in d['tags']}}
                        for d in results if 'tags' in d]
-        return super(MBrainz, self).filter_results(query, results)
+        return super(MusicBrainz, self).filter_results(query, results)
 
 
 class Discogs(DataProvider):
