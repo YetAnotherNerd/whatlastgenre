@@ -130,7 +130,7 @@ class WhatLastGenre(object):
         for pat, repl in tagsfile.items('regex', True):
             regex.append((re.compile(r'\b%s\b' % pat, re.I), repl))
         self.tagsfile = {
-            'upper': tagsfile.items('upper', True),
+            'upper': dict(tagsfile.items('upper', True)).keys(),
             'aliases': dict(tagsfile.items('alias', True)),
             'love': self.conf.get_list('genres', 'love'),
             'hate': self.conf.get_list('genres', 'hate'),
