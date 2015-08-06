@@ -78,10 +78,12 @@ right set user input might be required, but several steps are taken to
 reduce needed interactivity:
 * Prefilter album results by year (if given)
 * Prefilter whatcd album results by releasetype (if given)
+* Prefilter whatcd album results by snatched flag
 * Automatically merges the tags from few results
     * only merge if all have the same releasetype if --tag-release is enabled
 * If there are still too many results, there are two options
-    * --tag-release and src is whatcd: ask user if -i enabled
+    * --tag-release, src is whatcd, no reltype, not snatched:
+    ask user if -i enabled
     * don't take results into account
 
 So, interactivity is only needed for setting proper releasetypes

@@ -251,20 +251,29 @@ class WhatCD(DataProvider):
                                 % (res['artist'], res['groupName'],
                                    res['groupYear'], res['releaseType'],
                                    res['groupId']),
+                        'snatched': any(t['hasSnatched']
+                                        for t in res['torrents']),
                         'year': res['groupYear']})
                 results_.append(res_)
             return results_
         return None
 
     def filter_results(self, query, results):
-        # filter by releasetype
-        if len(results) > 1 and query.type == 'album' and query.releasetype:
-            tmp = [d for d in results if 'releasetype' in d and
-                   d['releasetype'].lower() == query.releasetype.lower()]
+        if len(results) > 1 and query.type == 'album':
+            # filter by snatched
+            tmp = [r for r in results if r.get('snatched', False)]
             if tmp and len(tmp) < len(results):
-                self.log.debug("prefiltered results '%d' -> '%d' (by reltype)",
-                               len(results), len(tmp))
+                self.log.info("prefiltered %d of %d results by snatched",
+                              len(results) - len(tmp), len(results))
                 results = tmp
+            # filter by releasetype
+            if len(results) > 1 and query.releasetype:
+                tmp = [r for r in results if r.get('releasetype', '').lower()
+                       == query.releasetype.lower()]
+                if tmp and len(tmp) < len(results):
+                    self.log.info("prefiltered %d of %d results by reltyp",
+                                  len(results) - len(tmp), len(results))
+                    results = tmp
         return super(WhatCD, self).filter_results(query, results)
 
 
