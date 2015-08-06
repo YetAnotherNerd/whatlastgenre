@@ -41,7 +41,7 @@ Additionally, there are some configuration options in the beets configuration:
         whitelist: wlg
 
 * auto: Fetch genres automatically during import. Default: `yes`
-* force: Force cache updates. Default: `no`
+* force: Force overwrite existing genres. Default: `no`
 * count: Number of genres to fetch. Default: `4`
 * separator: A separator for multiple genres. Default: `', '`
 * whitelist: Default: `wlg`
