@@ -537,8 +537,8 @@ class Config(ConfigParser.SafeConfigParser):
             ('scores', 'splitup', '0.33', 1, (0, 1.0)),
             ('scores', 'src_whatcd', '1.50', 1, (0.5, 2.0)),
             ('scores', 'src_lastfm', '0.66', 1, (0.5, 2.0)),
-            ('scores', 'src_mbrainz', '0.66', 1, (0.5, 2.0)),
             ('scores', 'src_discogs', '1.00', 1, (0.5, 2.0)),
+            ('scores', 'src_mbrainz', '0.66', 1, (0.5, 2.0)),
             ('scores', 'src_echonest', '1.00', 1, (0.5, 2.0))]
 
     def __init__(self, wlgdir):

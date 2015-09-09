@@ -48,10 +48,6 @@ def get_daprs(conf):
     '''Return a list of DataProviders activated in the conf file.'''
     sources = conf.get_list('wlg', 'sources')
     daprs = []
-    if 'discogs' in sources:
-        daprs.append(Discogs())
-    if 'echonest' in sources:
-        daprs.append(EchoNest())
     if 'whatcd' in sources:
         cred = {'username': conf.get('wlg', 'whatcduser'),
                 'password': conf.get('wlg', 'whatcdpass')}
@@ -60,10 +56,14 @@ def get_daprs(conf):
         else:
             print("No What.CD credentials specified. "
                   "What.CD support disabled.\n")
-    if 'mbrainz' in sources:
-        daprs.append(MusicBrainz())
     if 'lastfm' in sources:
         daprs.append(LastFM())
+    if 'discogs' in sources:
+        daprs.append(Discogs())
+    if 'mbrainz' in sources:
+        daprs.append(MusicBrainz())
+    if 'echonest' in sources:
+        daprs.append(EchoNest())
     if not daprs:
         print("Where do you want to get your data from?\nAt least one "
               "source must be activated (multiple sources recommended)!")
@@ -344,6 +344,75 @@ class LastFM(DataProvider):
         return None
 
 
+class Discogs(DataProvider):
+    '''Discogs DataProvider
+
+    Known issues:
+    * rauth requests can't be cached by requests_cache at this time
+    '''
+
+    def __init__(self):
+        super(Discogs, self).__init__()
+        import rauth
+        # http://www.discogs.com/developers/#header:home-rate-limiting
+        self.rate_limit = 3.0
+        # OAuth1 authentication
+        discogs = rauth.OAuth1Service(
+            consumer_key='sYGBZLljMPsYUnmGOzTX',
+            consumer_secret='TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk',
+            request_token_url='https://api.discogs.com/oauth/request_token',
+            access_token_url='https://api.discogs.com/oauth/access_token',
+            authorize_url='https://www.discogs.com/oauth/authorize')
+        token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
+        try:
+            # try load access token from file
+            with open(token_file) as file_:
+                data = json.load(file_)
+            acc_token = data['token']
+            acc_secret = data['secret']
+        except (IOError, KeyError, ValueError):
+            # get request token
+            req_token, req_secret = discogs.get_request_token(headers=HEADERS)
+            # get verifier from user
+            print("\nDiscogs requires authentication by an own account.\n"
+                  "Update the configuration file to disable Discogs support "
+                  "or use this link to authenticate:\n%s"
+                  % discogs.get_authorize_url(req_token))
+            verifier = raw_input('Verification code: ')
+            # get access token
+            acc_token, acc_secret = discogs.get_access_token(
+                req_token, req_secret, data={'oauth_verifier': verifier},
+                headers=HEADERS)
+            # save access token to file
+            with open(token_file, 'w') as file_:
+                json.dump({'token': acc_token, 'secret': acc_secret}, file_)
+
+        self.session = discogs.get_session((acc_token, acc_secret))
+        self.session.headers.update(HEADERS)
+
+    def artist_query(self, query):
+        '''Get artist data from Discogs.'''
+        raise NotImplementedError()
+
+    def album_query(self, query):
+        '''Get album data from Discogs.'''
+        params = {'release_title': query.album}
+        if query.artist:
+            params.update({'artist': query.artist})
+        results = self._request_json(
+            'http://api.discogs.com/database/search', params)
+        if results and 'results' in results and results['results']:
+            # merge releases and masters
+            res_ = defaultdict(set)
+            for res in results['results']:
+                if res['type'] in ['master', 'release']:
+                    for key in ['genre', 'style']:
+                        if key in res:
+                            res_[res['title']].update(res[key])
+            return [{'tags': {t: 0 for t in r}} for r in res_.values()]
+        return None
+
+
 class MusicBrainz(DataProvider):
     '''MusicBrainz DataProvider'''
 
@@ -417,75 +486,6 @@ class MusicBrainz(DataProvider):
                                  for t in d['tags']}}
                        for d in results if 'tags' in d]
         return super(MusicBrainz, self).filter_results(query, results)
-
-
-class Discogs(DataProvider):
-    '''Discogs DataProvider
-
-    Known issues:
-    * rauth requests can't be cached by requests_cache at this time
-    '''
-
-    def __init__(self):
-        super(Discogs, self).__init__()
-        import rauth
-        # http://www.discogs.com/developers/#header:home-rate-limiting
-        self.rate_limit = 3.0
-        # OAuth1 authentication
-        discogs = rauth.OAuth1Service(
-            consumer_key='sYGBZLljMPsYUnmGOzTX',
-            consumer_secret='TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk',
-            request_token_url='https://api.discogs.com/oauth/request_token',
-            access_token_url='https://api.discogs.com/oauth/access_token',
-            authorize_url='https://www.discogs.com/oauth/authorize')
-        token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
-        try:
-            # try load access token from file
-            with open(token_file) as file_:
-                data = json.load(file_)
-            acc_token = data['token']
-            acc_secret = data['secret']
-        except (IOError, KeyError, ValueError):
-            # get request token
-            req_token, req_secret = discogs.get_request_token(headers=HEADERS)
-            # get verifier from user
-            print("\nDiscogs requires authentication by an own account.\n"
-                  "Update the configuration file to disable Discogs support "
-                  "or use this link to authenticate:\n%s"
-                  % discogs.get_authorize_url(req_token))
-            verifier = raw_input('Verification code: ')
-            # get access token
-            acc_token, acc_secret = discogs.get_access_token(
-                req_token, req_secret, data={'oauth_verifier': verifier},
-                headers=HEADERS)
-            # save access token to file
-            with open(token_file, 'w') as file_:
-                json.dump({'token': acc_token, 'secret': acc_secret}, file_)
-
-        self.session = discogs.get_session((acc_token, acc_secret))
-        self.session.headers.update(HEADERS)
-
-    def artist_query(self, query):
-        '''Get artist data from Discogs.'''
-        raise NotImplementedError()
-
-    def album_query(self, query):
-        '''Get album data from Discogs.'''
-        params = {'release_title': query.album}
-        if query.artist:
-            params.update({'artist': query.artist})
-        results = self._request_json(
-            'http://api.discogs.com/database/search', params)
-        if results and 'results' in results and results['results']:
-            # merge releases and masters
-            res_ = defaultdict(set)
-            for res in results['results']:
-                if res['type'] in ['master', 'release']:
-                    for key in ['genre', 'style']:
-                        if key in res:
-                            res_[res['title']].update(res[key])
-            return [{'tags': {t: 0 for t in r}} for r in res_.values()]
-        return None
 
 
 class EchoNest(DataProvider):

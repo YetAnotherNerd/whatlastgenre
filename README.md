@@ -3,7 +3,7 @@
 Improves genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
-* Supported music sites: What.CD, Last.FM, MusicBrainz, Discogs, EchoNest
+* Supported music sites: What.CD, Last.FM, Discogs, MusicBrainz, EchoNest
 * Feature Overview
   * Gets genre tags for artists and albums from music sites and finds the most
   eligible ones.
@@ -136,8 +136,8 @@ various = 0.66
 splitup = 0.33
 src_whatcd = 1.50
 src_lastfm = 0.66
-src_mbrainz = 0.66
 src_discogs = 1.00
+src_mbrainz = 0.66
 src_echonest = 1.00
 ```
 
@@ -151,12 +151,12 @@ The music sites where to get the genre tags from.
 well-kept tags from community
 * `lastfm` [[URL](http://last.fm)]
 many personal tags from users
-* `mbrainz` [[URL](http://musicbrainz.org)]
-home of mbids
 * `discogs` [[URL](http://discogs.com)]
 album only, fixed list of [genres and styles]
 (http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles),
 requires authentication (own account needed)
+* `mbrainz` [[URL](http://musicbrainz.org)]
+home of mbids
 * `echonest` [[URL](http://echonest.com)]
 artist only, fixed list of
 [genres](http://developer.echonest.com/docs/v4/genre.html#list)
