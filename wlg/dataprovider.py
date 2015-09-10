@@ -51,7 +51,7 @@ def get_daprs(conf):
     if 'whatcd' in sources:
         cred = {'username': conf.get('wlg', 'whatcduser'),
                 'password': conf.get('wlg', 'whatcdpass')}
-        if all(cred.values()):
+        if all(cred.itervalues()):
             daprs.append(WhatCD(cred))
         else:
             print("No What.CD credentials specified. "
@@ -230,8 +230,9 @@ class WhatCD(DataProvider):
         if results and 'tags' in results and results['tags']:
             tags = {t['name'].replace('.', ' '): t['count']
                     for t in results['tags']}
-            max_ = max(v for v in tags.values())
-            return [{'tags': {k: v for k, v in tags.items() if v > max_ / 3}}]
+            max_ = max(v for v in tags.itervalues())
+            return [{'tags': {k: v for k, v in tags.iteritems()
+                              if v > max_ / 3}}]
         return None
 
     def album_query(self, query):
@@ -337,8 +338,8 @@ class LastFM(DataProvider):
             tags = results['toptags']['tag']
             tags = tags if isinstance(tags, list) else [tags]
             tags = {t['name']: int(t['count']) for t in tags}
-            max_ = max(v for v in tags.values())
-            results = [{'tags': {k: v for k, v in tags.items()
+            max_ = max(v for v in tags.itervalues())
+            results = [{'tags': {k: v for k, v in tags.iteritems()
                                  if v > max_ / 3}}]
             return super(LastFM, self).filter_results(query, results)
         return None
@@ -409,7 +410,7 @@ class Discogs(DataProvider):
                     for key in ['genre', 'style']:
                         if key in res:
                             res_[res['title']].update(res[key])
-            return [{'tags': {t: 0 for t in r}} for r in res_.values()]
+            return [{'tags': {t: 0 for t in r}} for r in res_.itervalues()]
         return None
 
 
@@ -510,8 +511,9 @@ class EchoNest(DataProvider):
                 and results['response']['artists'][0]['terms']:
             tags = {t['name']: float(t['weight'])
                     for t in results['response']['artists'][0]['terms']}
-            max_ = max(v for v in tags.values())
-            return [{'tags': {k: v for k, v in tags.items() if v > max_ / 3}}]
+            max_ = max(v for v in tags.itervalues())
+            return [{'tags': {k: v for k, v in tags.iteritems()
+                              if v > max_ / 3}}]
         return None
 
     def album_query(self, query):

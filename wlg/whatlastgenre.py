@@ -272,7 +272,7 @@ class WhatLastGenre(object):
         tags = defaultdict(float)
         for res in results:
             if 'tags' in res and res['tags']:
-                for key, val in res['tags'].items():
+                for key, val in res['tags'].iteritems():
                     tags[key] += val / len(results)
         result = {'tags': tags}
         reltyps = [r['releasetype'] for r in results if 'releasetype' in r]
@@ -305,15 +305,15 @@ class WhatLastGenre(object):
         # errors/messages
         if self.stats.errors:
             print("\n%d album(s) with errors:"
-                  % sum(len(x) for x in self.stats.errors.values()))
-            for error, folders in sorted(self.stats.errors.items(),
+                  % sum(len(x) for x in self.stats.errors.itervalues()))
+            for error, folders in sorted(self.stats.errors.iteritems(),
                                          key=lambda x: len(x[1]), reverse=1):
                 print("  %s:\n    %s"
                       % (error, '\n    '.join(sorted(folders))))
         # difflib stats
         if self.stats.difflib:
             print("\ndifflib found %d tags:" % len(self.stats.difflib))
-            for key, val in self.stats.difflib.items():
+            for key, val in self.stats.difflib.iteritems():
                 print("%s = %s" % (key, val))
             print("You should add them as aliases (if correct) to tags.txt.")
         # dataprovider stats
@@ -381,7 +381,7 @@ class TagLib(object):
         :param split: was split already
         '''
         tags = self.score(tags, query.score)
-        tags = sorted(tags.items(), key=operator.itemgetter(1), reverse=1)
+        tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
         tags = tags[:99]
         added = 0
         for key, val in tags:
@@ -415,9 +415,9 @@ class TagLib(object):
 
     def score(self, tags, scoremod):
         '''Adjusts the score of a dict of tags using a scoremod.'''
-        any_ = any(tags.values())
-        max_ = max(tags.values())
-        for key, val in tags.items():
+        any_ = any(tags.itervalues())
+        max_ = max(tags.itervalues())
+        for key, val in tags.iteritems():
             if any_:  # tags with counts
                 tags[key] = val * max_ ** -1 * scoremod
             else:  # tags without counts
@@ -487,14 +487,14 @@ class TagLib(object):
     def merge(self):
         '''Merge all tag groups using different score modifiers.'''
         tags = defaultdict(float)
-        for key, val in self.taggrps.items():
+        for key, val in self.taggrps.iteritems():
             scoremod = 1
             if key == 'artist':
                 if self.various:
                     key = 'various'
                 scoremod = self.wlg.conf.getfloat('scores', key)
-            max_ = max(val.values())
-            for key, val_ in val.items():
+            max_ = max(val.itervalues())
+            for key, val_ in val.iteritems():
                 tags[key] += val_ / max_ * scoremod
         return tags
 
@@ -504,16 +504,17 @@ class TagLib(object):
         '''
         self.verboseinfo()
         tags = self.merge()
-        tags = sorted(tags.items(), key=operator.itemgetter(1), reverse=1)
+        tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
         return [self.format(k) for k, _ in tags[:limit]]
 
     def verboseinfo(self):
         '''Prints out some verbose info about the TagLib.'''
         if self.log.level > logging.INFO:
             return None
-        for key, val in self.taggrps.items():
-            val = {self.format(k): v for k, v in val.items() if v > 0.1}
-            val = sorted(val.items(), key=operator.itemgetter(1), reverse=1)
+        for key, val in self.taggrps.iteritems():
+            val = {self.format(k): v for k, v in val.iteritems() if v > 0.1}
+            val = sorted(val.iteritems(), key=operator.itemgetter(1),
+                         reverse=1)
             val = val[:12 if self.log.level > logging.DEBUG else 24]
             self.log.info("Best %-6s genres (%d):", key, len(val))
             self.log.info(tag_display(val, "%4.2f %-20s"))
@@ -613,11 +614,12 @@ class Cache(object):
             pass
 
         # backward compatibility code
-        for key, val in [(k, v) for k, v in self.cache.items() if '##' in k]:
+        oldkeys = {k: v for k, v in self.cache.iteritems() if '##' in k}
+        for key, val in oldkeys.iteritems():
             if val['data']:
                 # only keep some keys
                 keep = ['info', 'year'] if len(val['data']) > 1 else []
-                val['data'] = [{k: v for k, v in d.items()
+                val['data'] = [{k: v for k, v in d.iteritems()
                                 if k in ['tags', 'releasetype'] + keep}
                                for d in val['data'] if d]
                 # all tag data are dicts now
@@ -646,7 +648,7 @@ class Cache(object):
         '''Set value for a given key.'''
         if value:
             keep = ['info', 'year'] if len(value) > 1 else []
-            value = [{k: v for k, v in val.items()
+            value = [{k: v for k, v in val.iteritems()
                       if k in ['tags', 'releasetype'] + keep}
                      for val in value if val]
         self.cache[str(key)] = (time.time(), value)
