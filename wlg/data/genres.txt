@@ -42,6 +42,7 @@ c-jazz
 c-pop
 c-rock
 c-ska
+c-trance
 cabaret
 calypso
 calypso jazz
@@ -73,24 +74,16 @@ classic rock
 classical
 club
 comedy
+contemporary blues
 contemporary classical
-contonbley
+contemporary jazz
 cool jazz
 country
-country blues
-country gospel
-country pop
-country r&b
-country rock
-country-rap
 crossover
 crunk
 crunkcore
 crust punk
 dance
-dance-pop
-dance-punk
-dance-rock
 dancehall
 dark ambient
 dark pop
@@ -119,6 +112,8 @@ dub house
 dubstep
 dubtronica
 easy listening
+ebm
+edm
 electric blues
 electric folk
 electro-swing
@@ -131,12 +126,12 @@ emo pop
 emo rap
 emocore
 emotronic
-eurobeat
-eurodance
-eurodisco
-europop
-eurotrance
-eurourban
+euro-beat
+euro-dance
+euro-disco
+euro-house
+euro-pop
+euro-trance
 experimental
 experimental noise
 experimental pop
@@ -165,6 +160,7 @@ glam metal
 glam punk
 glam rock
 glitch
+glitch-hop
 glo-fi
 goa
 gospel
@@ -195,14 +191,12 @@ indie
 indie folk
 indie pop
 indie rock
-indietronica
-indo jazz
-indo rock
+indietronic
 industrial
-industrial hip-hop
 industrial metal
 industrial rock
 instrumental
+instrumental hip-hop
 instrumental rock
 j-fusion
 j-gothic
@@ -211,21 +205,22 @@ j-jazz
 j-pop
 j-rock
 j-ska
+j-trance
 jam rock
 jazz
 jazz fusion
 jazz-hop
 jungle
+jumpstyle
 k-gothic
 k-hip-hop
 k-jazz
 k-pop
 k-rock
 k-ska
+k-trance
 krautrock
-liquid drum&bass
 liquid funk
-live
 lo-fi
 lounge
 mambo
@@ -244,9 +239,11 @@ metalcore
 microhouse
 minimal
 modal jazz
+modern classical
 modern rock
 mpb
 mushroom jazz
+ndw
 neo-classical
 neo-classical
 neo-folk
@@ -255,15 +252,18 @@ neo-progressive
 neo-psychedelic
 neo-soul
 nerdcore
-neue deutsche härte
 new age
 new wave
 newgrass
 noise pop
 noise rock
+nu disco
 nu jazz
 nu metal
 nu soul
+nwa
+nwobhm
+nyhc
 oldies
 oriental
 p-funk
