@@ -306,45 +306,12 @@ class WhatLastGenre(object):
             print("You should add them as aliases (if correct) to tags.txt.")
         # dataprovider stats
         if self.log.level <= logging.INFO:
-            self.print_dapr_stats()
+            dataprovider.DataProvider.print_stats(self.daprs)
         # time
         diff = time.time() - self.stats.time
         print("\nTime elapsed: %s (%s per folder)"
               % (timedelta(seconds=diff),
                  timedelta(seconds=diff / num_folders)))
-
-    def print_dapr_stats(self):
-        '''Print some DataProvider statistics.'''
-        print("\nSource stats  ",
-              ''.join("| %-8s " % d.name for d in self.daprs),
-              "\n", "-" * 14, "+----------" * len(self.daprs), sep='')
-        for key in [
-            'reqs_err', 'reqs_web', 'reqs_cache', 'reqs_lowcache',
-            'results_err', 'results', 'results/req', 'tags', 'tags/result',
-            'goodtags', 'goodtags/tag', 'time_resp_avg', 'time_wait_avg']:
-            vals = []
-            for dapr in self.daprs:
-                num_req_web = dapr.stats['reqs_web']
-                num_req = num_req_web + dapr.stats['reqs_cache'] \
-                    + dapr.stats['reqs_lowcache']
-                if key == 'results/req' and num_req > 0:
-                    vals.append(dapr.stats['results'] / num_req)
-                elif key == 'time_resp_avg' and num_req_web:
-                    vals.append(dapr.stats['time_resp'] / num_req_web)
-                elif key == 'time_wait_avg' and num_req_web:
-                    vals.append(dapr.stats['time_wait'] / num_req_web)
-                elif key == 'tags/result' and dapr.stats['results']:
-                    vals.append(dapr.stats['tags'] / dapr.stats['results'])
-                elif key == 'goodtags/tag' and dapr.stats['tags']:
-                    vals.append(dapr.stats['goodtags'] / dapr.stats['tags'])
-                elif key in dapr.stats:
-                    vals.append(dapr.stats[key])
-                else:
-                    vals.append(0.0)
-            if any(v for v in vals):
-                pat = "| %8d " if all(v.is_integer() for v in vals) \
-                    else "| %8.2f "
-                print("%-13s " % key, ''.join(pat % v for v in vals), sep='')
 
 
 class TagLib(object):
