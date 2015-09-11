@@ -94,8 +94,8 @@ class DataProvider(object):
         print("\nSource stats  ", ''.join("| %-8s " % d.name for d in daprs),
               "\n", "-" * 14, "+----------" * len(daprs), sep='')
         for key in ['reqs_err', 'reqs_web', 'reqs_cache', 'reqs_lowcache',
-                    'results', 'results/req', 'tags', 'tags/result',
-                    'goodtags', 'goodtags/tag',
+                    'results', 'results_none', 'results/req',
+                    'tags', 'tags/result', 'goodtags', 'goodtags/tag',
                     'time_resp_avg', 'time_wait_avg']:
             vals = []
             for dapr in daprs:

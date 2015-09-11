@@ -148,6 +148,7 @@ class WhatLastGenre(object):
                 self.log.error(msg)
                 continue
             if not results:
+                query.dapr.stats['results_none'] += 1
                 self.verbose_status(query, cached, "no results")
                 continue
             # ask user if appropriated
