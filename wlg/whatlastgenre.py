@@ -65,7 +65,9 @@ class WhatLastGenre(object):
         if not os.path.exists(wlgdir):
             os.makedirs(wlgdir)
         self.args = args
-        self.setup_logging(args.verbose)
+        self.log = logging.getLogger('wlg')
+        self.log.setLevel(30 - 10 * args.verbose)
+        self.log.addHandler(logging.StreamHandler(sys.stdout))
         self.log.debug("args: %s\n", args)
         self.stats = Stats(time=time.time(), errors=defaultdict(list),
                            genres=Counter(), reltyps=Counter(),
@@ -81,22 +83,6 @@ class WhatLastGenre(object):
             print("Can't tag release with What.CD support disabled. "
                   "Release tagging disabled.\n")
             self.args.tag_release = False
-
-    def setup_logging(self, verbose):
-        '''Setup up the logging.'''
-        level = 30 - verbose * 10
-        self.log = logging.getLogger('whatlastgenre')
-        self.log.setLevel(level)
-        hdlr = logging.StreamHandler(sys.stdout)
-        hdlr.setLevel(level)
-        self.log.addHandler(hdlr)
-
-        # add null handler
-        class NullHandler(logging.Handler):
-            '''Do nothing handler.'''
-            def emit(self, record):
-                pass
-        self.log.addHandler(NullHandler())
 
     def read_whitelist(self, path=None):
         '''Read whitelist file and store its contents as set.'''
