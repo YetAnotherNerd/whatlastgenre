@@ -61,10 +61,6 @@ class WhatLastGenre(object):
     '''Main class featuring a docstring that needs to be written.'''
 
     def __init__(self, args):
-        wlgdir = os.path.expanduser('~/.whatlastgenre')
-        if not os.path.exists(wlgdir):
-            os.makedirs(wlgdir)
-        self.args = args
         self.log = logging.getLogger('wlg')
         self.log.setLevel(30 - 10 * args.verbose)
         self.log.addHandler(logging.StreamHandler(sys.stdout))
@@ -72,17 +68,17 @@ class WhatLastGenre(object):
         self.stats = Stats(time=time.time(), errors=defaultdict(list),
                            genres=Counter(), reltyps=Counter(),
                            difflib=defaultdict())
-        self.conf = Config(wlgdir)
-        self.cache = Cache(wlgdir, args.update_cache)
+        self.conf = Config(args)
+        self.cache = Cache(self.conf.path, self.conf.args.update_cache)
         self.daprs = dataprovider.get_daprs(self.conf)
         self.read_whitelist(self.conf.get('wlg', 'whitelist'))
         self.read_tagsfile()
         # validate settings
-        if self.args.tag_release \
+        if self.conf.args.tag_release \
                 and 'whatcd' not in self.conf.get_list('wlg', 'sources'):
             print("Can't tag release with What.CD support disabled. "
                   "Release tagging disabled.\n")
-            self.args.tag_release = False
+            self.conf.args.tag_release = False
 
     def read_whitelist(self, path=None):
         '''Read whitelist file and store its contents as set.'''
@@ -149,8 +145,8 @@ class WhatLastGenre(object):
                 self.verbose_status(query, cached, "no results")
                 continue
             # ask user if appropriated
-            if len(results) > 1 \
-                    and self.args.tag_release and self.args.interactive \
+            if len(results) > 1 and self.conf.args.interactive \
+                    and self.conf.args.tag_release \
                     and query.dapr.name.lower() == 'whatcd' \
                     and query.type == 'album' \
                     and not query.releasetype:
@@ -170,7 +166,7 @@ class WhatLastGenre(object):
             res = results[0]
             query.dapr.stats['results'] += 1
             if 'releasetype' in res and res['releasetype']\
-                    and self.args.tag_release:
+                    and self.conf.args.tag_release:
                 taglib.releasetype = res['releasetype']
             if 'tags' in res and res['tags']:
                 found, added = taglib.add(query, res['tags'])
@@ -181,7 +177,7 @@ class WhatLastGenre(object):
                 status = "no    tags"
             self.verbose_status(query, cached, status)
 
-        genres = taglib.top_genres(self.args.tag_limit)
+        genres = taglib.top_genres(self.conf.args.tag_limit)
         self.stats.genres.update(genres)
         if taglib.releasetype:
             taglib.releasetype = taglib.format(taglib.releasetype)
@@ -283,7 +279,7 @@ class WhatLastGenre(object):
             print("\n%d different tags used this often:" % len(tags))
             print(tag_display(tags, "%4d %-20s"))
         # releasetype statistics
-        if self.args.tag_release and self.stats.reltyps:
+        if self.conf.args.tag_release and self.stats.reltyps:
             reltyps = self.stats.reltyps.most_common()
             print("\n%d different releasetypes used this often:"
                   % len(reltyps))
@@ -436,7 +432,7 @@ class TagLib(object):
                                    key_, key, pat.pattern)
             return key
         # match
-        if self.wlg.args.difflib:
+        if self.wlg.conf.args.difflib:
             match = difflib.get_close_matches(key, self.wlg.whitelist, 1, .92)
             if match:
                 self.log.debug("tag match   %s -> %s", key, match[0])
@@ -528,9 +524,13 @@ class Config(ConfigParser.SafeConfigParser):
             ('scores', 'src_mbrainz', '0.66', 1, (0.5, 2.0)),
             ('scores', 'src_echonest', '1.00', 1, (0.5, 2.0))]
 
-    def __init__(self, wlgdir):
+    def __init__(self, args):
         ConfigParser.SafeConfigParser.__init__(self)
-        self.fullpath = os.path.join(wlgdir, 'config')
+        self.args = args
+        self.path = os.path.expanduser('~/.whatlastgenre')
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
+        self.fullpath = os.path.join(self.path, 'config')
         self.read(self.fullpath)
         self.maintain()
 
@@ -776,7 +776,7 @@ def work_folder(wlg, path):
         err = "No genres found"
         print(err)
         wlg.stats.errors[err].append(path)
-    if wlg.args.tag_release:
+    if wlg.conf.args.tag_release:
         if releasetype:
             print("RelTyp: %s" % releasetype)
             album.set_meta('releasetype', releasetype)
@@ -785,7 +785,7 @@ def work_folder(wlg, path):
             print(err)
             wlg.stats.errors[err].append(path)
     # save metadata to all tracks
-    if wlg.args.dry:
+    if wlg.conf.args.dry:
         print("DRY-RUN! Not saving metadata.")
     else:
         album.save()
