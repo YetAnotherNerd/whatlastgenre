@@ -130,7 +130,9 @@ class WhatLastGenre(object):
     def query_album(self, metadata):
         '''Query for top genres of an album identified by metadata
         and return them and the releasetype.'''
-        num_artists = len(set(metadata.artists))
+        num_artists = 1
+        if not metadata.albumartist[0]:
+            num_artists = len(set(metadata.artists))
 
         self.log.info("[%s] artist=%s, album=%s, date=%s%s",
                       metadata.type, metadata.albumartist[0], metadata.album,
