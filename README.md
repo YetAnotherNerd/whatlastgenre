@@ -3,7 +3,8 @@
 Improve genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
-* Supported music sites: What.CD, Last.FM, Discogs, MusicBrainz, EchoNest
+* Supported music sites: What.CD, Last.FM, Discogs, MusicBrainz, RateYourMusic,
+EchoNest
 * Feature Overview
   * Gets genre tags for artists and albums from music sites and finds the most
   eligible ones.
@@ -44,7 +45,7 @@ where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of `1.0`, a tag having only half of the top tag's count gets
 a score of `0.5` and so on.
 
-##### Tag scoring without count (What.CD album, Discogs, EchoNest genres)
+##### Tag scoring without count (What.CD album, Discogs, RateYourMusic, EchoNest genres)
 Tags supplied without a count will be scored `max(1/3, 0.85^(n-1))`, where `n`
 is the total number of tags supplied by this source. The more tags the lower
 the score for each tag will be. So if only one tag is supplied, it will get a
@@ -107,6 +108,9 @@ cloned/extracted to
 ##### Optional dependencies
 * `rauth` is required for Discogs. If you want to use Discogs, install `rauth`
 with pip like above and activate `discogs` in the config file (see below).
+* `lxml` is required for RateYourMusic. If you want to use RateYourMusic,
+install `lxml` with pip like above and activate `rymusic` in the config file
+(see below).
 * `requests-cache` can additionally cache the raw queries from requests if
 installed. This is mainly a developers feature.
 
@@ -135,6 +139,7 @@ src_whatcd = 1.50
 src_lastfm = 0.66
 src_discogs = 1.00
 src_mbrainz = 0.66
+src_rymusic = 1.33
 src_echonest = 1.00
 ```
 
@@ -154,6 +159,8 @@ album only, fixed list of [genres and styles]
 requires own account
 * `mbrainz` [[URL](http://musicbrainz.org)]
 home of mbids
+* `rymusic` [[URL](http://rateyourmusic.com)]
+no real api (slow)
 * `echonest` [[URL](http://echonest.com)]
 artist only, genres without counts and terms with counts (see
 [doc](http://developer.echonest.com/docs/v4/))

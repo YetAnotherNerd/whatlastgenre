@@ -188,6 +188,8 @@ class DataProvider(object):
             dapr = Discogs()
         elif name == 'mbrainz':
             dapr = MusicBrainz()
+        elif name == 'rymusic':
+            dapr = RateYourMusic()
         elif name == 'echonest':
             dapr = EchoNest()
         else:
@@ -684,6 +686,84 @@ class EchoNest(DataProvider):
     def query_album(self, album, artist=None, year=None, reltyp=None):
         '''Query for album data.'''
         raise NotImplementedError()
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        raise NotImplementedError()
+
+
+class RateYourMusic(DataProvider):
+    '''RateYourMusic DataProvider
+
+    see http://rateyourmusic.com/rymzilla/view?id=683
+    '''
+
+    def __init__(self):
+        super(RateYourMusic, self).__init__()
+        self.rate_limit = 3.0
+        self.name = 'RYMusic'
+
+    def _request_html(self, url, params, method='GET'):
+        '''Return a html response from a request.'''
+        from lxml import html
+        res = self._request(url, params, method=method)
+        if res.status_code == 404:
+            return None
+        try:
+            return html.fromstring(res.text)
+        except ValueError as err:
+            self.log.debug(res.text)
+            raise DataProviderError("html request: %s" % err.message)
+
+    def _scrap_url(self, path):
+        '''Scrap genres from an url.'''
+        tree = self._request_html('http://rateyourmusic.com/' + path, {})
+        if tree is not None:
+            tags = tree.xpath('//a[@class="genre"]/text()')
+            return [{'tags': {t: 0 for t in set(tags)}}]
+        return None
+
+    def _query(self, type_, searchterm):
+        '''Search RateYourMusic.'''
+
+        def match(str_a, str_b):
+            '''Return True if str_a and str_b are quite similar.'''
+            import difflib
+            return difflib.SequenceMatcher(
+                None, str_a.lower(), str_b.lower()).quick_ratio() > 0.9
+
+        tree = self._request_html(
+            'http://rateyourmusic.com/httprequest',
+            {'type': type_, 'searchterm': searchterm, 'rym_ajax_req': 1,
+             'page': 1, 'action': 'Search'}, method='POST')
+        # get first good enough result
+        for result in tree.xpath('//tr[@class="infobox"]'):
+            try:
+                name = result.xpath('.//a[@class="searchpage"]/text()')[0]
+                if type_ in 'ay' and not match(name, searchterm):
+                    continue
+                elif type_ == 'l':
+                    artist = result.xpath(
+                        './/td[2]//td[1]/a[@class="artist"]/text()')[0]
+                    if not match(artist + ' ' + name, searchterm):
+                        continue
+                url = result.xpath('.//a[@class="searchpage"]/@href')[0]
+            except IndexError:
+                continue
+            return self._scrap_url(url)
+        return None
+
+    def query_artist(self, artist):
+        '''Query for artist data.'''
+        # guess url (so much faster)
+        res = self._scrap_url('/artist/' + artist.replace(' ', '_'))
+        return res or self._query('a', artist)
+
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        if artist:
+            return self._query('l', artist + ' ' + album)
+        return self._query('y', album)
 
     def query_by_mbid(self, entity, mbid):
         '''Query by mbid.'''
