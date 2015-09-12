@@ -79,6 +79,12 @@ class WhatLastGenre(object):
             print("Can't tag release with What.CD support disabled. "
                   "Release tagging disabled.\n")
             self.conf.args.tag_release = False
+        # validate aliases
+        for key, val in self.tagsfile['aliases'].items():
+            if val not in self.whitelist:
+                del self.tagsfile['aliases'][key]
+                self.log.info('warning: alias not whitelisted: %s -> %s',
+                              key, val)
 
     def read_whitelist(self, path=None):
         '''Read whitelist file and store its contents as set.'''
@@ -416,9 +422,6 @@ class TagLib(object):
         aliases, regex replacements and optional difflib matching.
         '''
         if key in self.wlg.tagsfile['aliases']:
-            if self.wlg.tagsfile['aliases'][key] not in self.wlg.whitelist:
-                self.log.info("warning: aliased %s is not whitelisted.", key)
-                return key
             self.log.debug("tag alias   %s -> %s", key,
                            self.wlg.tagsfile['aliases'][key])
             return self.wlg.tagsfile['aliases'][key]
