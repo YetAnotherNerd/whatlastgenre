@@ -45,33 +45,6 @@ except ImportError:
 HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 
 
-def get_daprs(conf):
-    '''Return a list of DataProviders activated in the conf file.'''
-    sources = conf.get_list('wlg', 'sources')
-    daprs = []
-    if 'whatcd' in sources:
-        cred = {'username': conf.get('wlg', 'whatcduser'),
-                'password': conf.get('wlg', 'whatcdpass')}
-        if all(cred.itervalues()):
-            daprs.append(WhatCD(cred))
-        else:
-            print("No What.CD credentials specified. "
-                  "What.CD support disabled.\n")
-    if 'lastfm' in sources:
-        daprs.append(LastFM())
-    if 'discogs' in sources:
-        daprs.append(Discogs())
-    if 'mbrainz' in sources:
-        daprs.append(MusicBrainz())
-    if 'echonest' in sources:
-        daprs.append(EchoNest())
-    if not daprs:
-        print("Where do you want to get your data from?\nAt least one "
-              "source must be activated (multiple sources recommended)!")
-        exit()
-    return daprs
-
-
 class Cache(object):
     '''Load and save a dict as json from/into a file for some
     speedup.
@@ -165,13 +138,54 @@ class DataProvider(object):
     '''Base class for DataProviders.'''
 
     def __init__(self):
+        self.log = logging.getLogger(__name__)
         self.name = self.__class__.__name__
         self.rate_limit = 1.0  # min. seconds between requests
         self.last_request = 0
+        self.cache = None
         self.stats = defaultdict(float)
         self.session = requests.Session()
         self.session.headers.update(HEADERS)
-        self.log = logging.getLogger('whatlastgenre')
+
+    @classmethod
+    def init_dataproviders(cls, conf):
+        '''Initializes the DataProviders activated in the conf file.'''
+        daprs = []
+        cache = Cache(conf.path, conf.args.update_cache)
+        for src in conf.get_list('wlg', 'sources'):
+            dapr = DataProvider.factory(src, conf)
+            if dapr:
+                dapr.cache = cache
+                daprs.append(dapr)
+        if not daprs:
+            logging.getLogger(__name__).error(
+                'Where do you want to get your data from?\nAt least one '
+                'source must be activated! (multiple sources recommended)')
+            exit()
+        return daprs
+
+    @classmethod
+    def factory(cls, name, conf):
+        '''Factory method for DataProvider instances.'''
+        dapr = None
+        if name == 'whatcd':
+            cred = {'username': conf.get('wlg', 'whatcduser'),
+                    'password': conf.get('wlg', 'whatcdpass')}
+            if all(cred.itervalues()):
+                dapr = WhatCD(cred)
+            else:
+                logging.getLogger(__name__).warn(
+                    'No What.CD credentials specified. '
+                    'What.CD support disabled.')
+        elif name == 'lastfm':
+            dapr = LastFM()
+        elif name == 'discogs':
+            dapr = Discogs()
+        elif name == 'mbrainz':
+            dapr = MusicBrainz()
+        elif name == 'echonest':
+            dapr = EchoNest()
+        return dapr
 
     @classmethod
     def print_stats(cls, daprs):
@@ -200,7 +214,7 @@ class DataProvider(object):
                 elif key in dapr.stats:
                     vals.append(dapr.stats[key])
                 else:
-                    vals.append(0.0)
+                    vals.append(.0)
             if any(v for v in vals):
                 pat = "| %8d " if all(v.is_integer() for v in vals) \
                     else "| %8.2f "
@@ -223,6 +237,7 @@ class DataProvider(object):
         '''
         self._wait_rate_limit()
         time_ = time.time()
+
         try:
             if method == 'POST':
                 res = self.session.post(url, data=params)
@@ -231,60 +246,100 @@ class DataProvider(object):
         except requests.exceptions.RequestException as err:
             self.log.debug(err)
             raise DataProviderError("request: %s" % err.message)
+
         if not getattr(res, 'from_cache', False):
             self.stats['reqs_web'] += 1
             self.stats['time_resp'] += time.time() - time_
             self.last_request = time_
         else:
             self.stats['reqs_lowcache'] += 1
+
+        if res.status_code not in [200, 404]:
+            raise DataProviderError(
+                'status code %d: %s' % (res.status_code, res.reason))
+
         return res
 
     def _request_json(self, url, params, method='GET'):
         '''Return a json response from a request.'''
         res = self._request(url, params, method=method)
-        if res.status_code != 200:
-            self.log.debug(res.text)
-            raise DataProviderError('status code: %s' % res.status_code)
         try:
             return res.json()
         except ValueError as err:
             self.log.debug(res.text)
             raise DataProviderError("json request: %s" % err.message)
 
+    def cached_query(self, query):
+        '''Perform a cached DataProvider query.'''
+        cachekey = query.artist
+        if query.type == 'album':
+            cachekey += query.album
+        cachekey = (self.name.lower(), query.type, cachekey.replace(' ', ''))
+
+        # check cache
+        res = self.cache.get(cachekey)
+        if res:
+            self.stats['reqs_cache'] += 1
+            return res[1], True
+
+        # no cache hit
+        res = self.query(query)
+        self.cache.set(cachekey, res)
+
+        # save cache periodically
+        if time.time() - self.cache.time > 600:
+            self.cache.save()
+
+        return res, False
+
     def query(self, query):
-        '''Get results for a given query from this DataProvider.'''
+        '''Perform a real DataProvider query.'''
+        res = None
         if query.type == 'artist':
-            results = self.artist_query(query)
+            try:  # query by mbid
+                if query.mbid_artist:
+                    res = self.query_by_mbid(query.type, query.mbid_artist)
+            except NotImplementedError:
+                pass
+            if not res:
+                res = self.query_artist(query.artist)
+
         elif query.type == 'album':
-            results = self.album_query(query)
-        # filter results
-        if results:
-            results = self.filter_results(query, results)
-        return results
+            try:  # query by mbid
+                if query.mbid_relgrp:
+                    res = self.query_by_mbid(query.type, query.mbid_relgrp)
+                if not res and query.mbid_album:
+                    res = self.query_by_mbid(query.type, query.mbid_album)
+            except NotImplementedError:
+                pass
+            if not res:
+                res = self.query_album(query.album, query.artist,
+                                       query.year, query.releasetype)
+                # prefilter by album year
+                if res and len(res) > 1 and query.year:
+                    year = int(query.year)
+                    for i in range(4):
+                        tmp = [r for r in res if 'year' in r
+                               and abs(int(r['year']) - year) <= i]
+                        if tmp and len(tmp) < len(res):
+                            self.log.info("prefiltered %d of %d res by year",
+                                          len(res) - len(tmp), len(res))
+                            res = tmp
+                            break
 
-    def artist_query(self, query):
-        '''Get artist data from a DataProvider.'''
+        return res
+
+    def query_artist(self, artist):
+        '''Query for artist data.'''
         raise NotImplementedError()
 
-    def album_query(self, query):
-        '''Get album data from a DataProvider.'''
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
         raise NotImplementedError()
 
-    def filter_results(self, query, results):
-        '''Filter results from a DataProvider.'''
-        # filter by album year
-        if len(results) > 1 and query.type == 'album' and query.year:
-            year = int(query.year)
-            for i in range(4):
-                tmp = [d for d in results if 'year' in d
-                       and abs(int(d['year']) - year) <= i]
-                if tmp and len(tmp) < len(results):
-                    self.log.debug(
-                        "prefiltered results '%d' -> '%d' (by year)",
-                        len(results), len(tmp))
-                    results = tmp
-                    break
-        return results
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        raise NotImplementedError()
 
 
 class WhatCD(DataProvider):
@@ -292,108 +347,117 @@ class WhatCD(DataProvider):
 
     def __init__(self, cred):
         super(WhatCD, self).__init__()
-        self.cred = cred
-        self.loggedin = False
         # http://github.com/WhatCD/Gazelle/wiki/JSON-API-Documentation
         self.rate_limit = 2.0
+        self.cred = cred
+        self.authkey = None  # also a logged-in-flag
 
     def __del__(self):
-        if self.loggedin:
-            self.__logout()
+        if self.authkey:
+            self.logout()
 
-    def __login(self):
+    def login(self):
         '''Login to What.CD without using requests_cache.'''
+
+        self.log.debug('WhatCD login...')
 
         def login():
             '''Login to What.CD.'''
-            self._request('https://what.cd/login.php', self.cred, 'POST')
+            try:
+                self._request('https://what.cd/login.php', self.cred, 'POST')
+                res = self._request_json(
+                    'https://what.cd/ajax.php', {'action': 'index'})
+                self.authkey = res['response']['authkey']
+            except (DataProviderError, KeyError):
+                raise DataProviderError("login failed")
 
         if requests_cache:
             with self.session.cache_disabled():
                 login()
         else:
             login()
-        self.loggedin = True
 
-    def __logout(self):
+    def logout(self):
         '''Logout from What.CD without using requests_cache.'''
+
+        self.log.debug('WhatCD logout...')
 
         def logout():
             '''Logout from What.CD.'''
-            res = self._query({'action': 'index'})
-            if 'authkey' in res:
+            if self.authkey:
                 self._request('https://what.cd/logout.php',
-                              {'auth': res['authkey']})
+                              {'auth': self.authkey})
+                self.authkey = None
 
         if requests_cache:
             with self.session.cache_disabled():
                 logout()
         else:
             logout()
-        self.loggedin = False
 
     def _query(self, params):
         '''Query What.CD API.'''
-        if not self.loggedin:
-            self.__login()
-        res = self._request_json('https://what.cd/ajax.php', params)
-        if res and 'status' in res and res['status'] == 'success' \
-                and 'response' in res:
-            return res['response']
-        return None
+        if not self.authkey:
+            self.login()
+        result = self._request_json('https://what.cd/ajax.php', params)
+        try:
+            return result['response']
+        except KeyError:
+            raise DataProviderError('request failure')
 
-    def artist_query(self, query):
-        '''Get artist data from What.CD.'''
-        results = self._query({'action': 'artist', 'artistname': query.artist})
-        if results and 'tags' in results and results['tags']:
-            tags = {t['name'].replace('.', ' '): t['count']
-                    for t in results['tags']}
-            max_ = max(v for v in tags.itervalues())
-            return [{'tags': {k: v for k, v in tags.iteritems()
-                              if v > max_ / 3}}]
-        return None
+    def query_artist(self, artist):
+        '''Query for artist data.'''
+        result = self._query({'action': 'artist', 'artistname': artist})
+        if not result:
+            return None
+        tags = {tag['name'].replace('.', ' '): tag.get('count', 0)
+                for tag in result['tags']}
+        return [{'tags': tags}]
 
-    def album_query(self, query):
-        '''Get album data from What.CD.'''
-        results = self._query({'action': 'browse', 'filter_cat[1]': 1,
-                               'artistname': query.artist,
-                               'groupname': query.album})
-        if results and 'results' in results and results['results']:
-            results_ = []
-            for res in results['results']:
-                res_ = {'tags': {t.replace('.', ' '): 0 for t in res['tags']},
-                        'releasetype': res['releaseType']}
-                if len(results['results']) > 1:
-                    res_.update({
-                        'info': "%s - %s (%s) [%s]: "
-                                "https://what.cd/torrents.php?id=%s"
-                                % (res['artist'], res['groupName'],
-                                   res['groupYear'], res['releaseType'],
-                                   res['groupId']),
-                        'snatched': any(t['hasSnatched']
-                                        for t in res['torrents']),
-                        'year': res['groupYear']})
-                results_.append(res_)
-            return results_
-        return None
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        res = self._query({'action': 'browse', 'filter_cat[1]': 1,
+                           'artistname': artist, 'groupname': album})
 
-    def filter_results(self, query, results):
-        if len(results) > 1 and query.type == 'album':
-            # filter by snatched
-            tmp = [r for r in results if r.get('snatched', False)]
-            if tmp and len(tmp) < len(results):
+        if not res['results']:
+            return None
+
+        res = res['results']
+
+        # prefilter by reltyp
+        if len(res) > 1 and reltyp:
+            tmp = [r for r in res if r.get('releaseType', '').lower()
+                   == reltyp.lower()]
+            if tmp and len(tmp) < len(res):
+                self.log.info("prefiltered %d of %d results by reltyp",
+                              len(res) - len(tmp), len(res))
+                res = tmp
+
+        # prefilter by snatched
+        if len(res) > 1:
+            tmp = [r for r in res if r.get('hasSnatched', False)]
+            if tmp and len(tmp) < len(res):
                 self.log.info("prefiltered %d of %d results by snatched",
-                              len(results) - len(tmp), len(results))
-                results = tmp
-            # filter by releasetype
-            if len(results) > 1 and query.releasetype:
-                tmp = [r for r in results if r.get('releasetype', '').lower()
-                       == query.releasetype.lower()]
-                if tmp and len(tmp) < len(results):
-                    self.log.info("prefiltered %d of %d results by reltyp",
-                                  len(results) - len(tmp), len(results))
-                    results = tmp
-        return super(WhatCD, self).filter_results(query, results)
+                              len(res) - len(tmp), len(res))
+                res = tmp
+
+        results = []
+        for res_ in res:
+            tags = {t.replace('.', ' '): 0 for t in res_['tags']}
+            result = {'tags': tags, 'releasetype': res_['releaseType']}
+            if len(res) > 1:
+                info = ('%s - %s (%s) [%s]: https://what.cd/torrents.php?id=%s'
+                        % (res_['artist'], res_['groupName'],
+                           res_['groupYear'], res_['releaseType'],
+                           res_['groupId']))
+                result.update({'info': info, 'year': res_['groupYear']})
+            results.append(result)
+
+        return results
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        raise NotImplementedError()
 
 
 class LastFM(DataProvider):
@@ -402,89 +466,70 @@ class LastFM(DataProvider):
     def __init__(self):
         super(LastFM, self).__init__()
         # http://lastfm.de/api/tos
-        self.rate_limit = 0.25
+        self.rate_limit = .25
 
     def _query(self, params):
         '''Query Last.FM API.'''
         params.update({'format': 'json',
                        'api_key': '54bee5593b60d0a5bf379cedcad79052'})
-        res = self._request_json('http://ws.audioscrobbler.com/2.0/', params)
-        if res and 'error' not in res:
-            return res
-        return None
+        result = self._request_json(
+            'http://ws.audioscrobbler.com/2.0/', params)
 
-    def artist_query(self, query):
-        '''Get artist data from Last.FM.'''
-        results = None
-        # search by mbid
-        if query.mbid_artist:
-            self.log.info("%-8s artist use   artist mbid     '%s'.",
-                          self.name, query.mbid_artist)
-            results = self._query({'method': 'artist.gettoptags',
-                                   'mbid': query.mbid_artist})
-        # search by name
-        if not results:
-            results = self._query({'method': 'artist.gettoptags',
-                                   'artist': query.artist})
-        return results
+        if 'error' in result:
+            self.log.debug('%-8s error: %s', self.name, result['message'])
+            return None
 
-    def album_query(self, query):
-        '''Get album data from Last.FM.'''
-        results = None
-        # search by mbid_album
-        if query.mbid_album:
-            self.log.info("%-8s album  use   album  mbid     '%s'.",
-                          self.name, query.mbid_album)
-            results = self._query({'method': 'album.gettoptags',
-                                   'mbid': query.mbid_album})
-        # search by mbid_relgrp
-        if query.mbid_relgrp and not results:
-            self.log.info("%-8s album  use   relgrp mbid     '%s'.",
-                          self.name, query.mbid_relgrp)
-            results = self._query({'method': 'album.gettoptags',
-                                   'mbid': query.mbid_relgrp})
-        # search by name
-        if not results:
-            artist = query.artist or 'Various Artists'
-            results = self._query({'method': 'album.gettoptags',
-                                   'album': query.album, 'artist': artist})
-        return results
+        tags = result['toptags'].get('tag')
+        if tags:
+            if not isinstance(tags, list):
+                tags = [tags]
+            tags = {t['name']: int(t.get('count', 0)) for t in tags}
 
-    def filter_results(self, query, results):
-        # resolve results
-        if results and 'toptags' in results and 'tag' in results['toptags']:
-            tags = results['toptags']['tag']
-            tags = tags if isinstance(tags, list) else [tags]
-            tags = {t['name']: int(t['count']) for t in tags}
-            max_ = max(v for v in tags.itervalues())
-            results = [{'tags': {k: v for k, v in tags.iteritems()
-                                 if v > max_ / 3}}]
-            return super(LastFM, self).filter_results(query, results)
-        return None
+        return [{'tags': tags}]
+
+    def query_artist(self, artist):
+        '''Query for artist data.'''
+        return self._query({'method': 'artist.gettoptags', 'artist': artist})
+
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        return self._query({'method': 'album.gettoptags', 'album': album,
+                            'artist': artist or 'Various Artists'})
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        if entity == 'album':
+            # FIXME: seems broken at the moment,
+            # resolve later when lastfm finished migration
+            raise NotImplementedError()
+        self.log.debug("%-8s %-6s use mbid '%s'.", self.name, entity, mbid)
+        return self._query({'method': entity + '.gettoptags', 'mbid': mbid})
 
 
 class Discogs(DataProvider):
     '''Discogs DataProvider
 
-    Known issues:
-    * rauth requests can't be cached by requests_cache at this time
+    rauth requests can't be cached by requests_cache at this time,
+    see https://github.com/reclosedev/requests-cache/pull/52
     '''
 
     def __init__(self):
         super(Discogs, self).__init__()
-        import rauth
         # http://www.discogs.com/developers/#header:home-rate-limiting
         self.rate_limit = 3.0
+
         # OAuth1 authentication
+        import rauth
         discogs = rauth.OAuth1Service(
             consumer_key='sYGBZLljMPsYUnmGOzTX',
             consumer_secret='TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk',
             request_token_url='https://api.discogs.com/oauth/request_token',
             access_token_url='https://api.discogs.com/oauth/access_token',
             authorize_url='https://www.discogs.com/oauth/authorize')
+
+        # load access token from file
         token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
         try:
-            # try load access token from file
             with open(token_file) as file_:
                 data = json.load(file_)
             acc_token = data['token']
@@ -492,16 +537,22 @@ class Discogs(DataProvider):
         except (IOError, KeyError, ValueError):
             # get request token
             req_token, req_secret = discogs.get_request_token(headers=HEADERS)
+
             # get verifier from user
-            print("\nDiscogs requires authentication by an own account.\n"
-                  "Update the configuration file to disable Discogs support "
-                  "or use this link to authenticate:\n%s"
-                  % discogs.get_authorize_url(req_token))
+            print('Discogs requires authentication with your own account.\n'
+                  'Disable discogs in the config file or use this link to '
+                  'authenticate:\n%s' % discogs.get_authorize_url(req_token))
             verifier = raw_input('Verification code: ')
+
             # get access token
-            acc_token, acc_secret = discogs.get_access_token(
-                req_token, req_secret, data={'oauth_verifier': verifier},
-                headers=HEADERS)
+            try:
+                acc_token, acc_secret = discogs.get_access_token(
+                    req_token, req_secret, data={'oauth_verifier': verifier},
+                    headers=HEADERS)
+            except KeyError as err:
+                self.log.fatal(err.message)
+                exit()
+
             # save access token to file
             with open(token_file, 'w') as file_:
                 json.dump({'token': acc_token, 'secret': acc_secret}, file_)
@@ -509,27 +560,33 @@ class Discogs(DataProvider):
         self.session = discogs.get_session((acc_token, acc_secret))
         self.session.headers.update(HEADERS)
 
-    def artist_query(self, query):
-        '''Get artist data from Discogs.'''
+    def query_artist(self, artist):
+        '''Query for artist data.'''
         raise NotImplementedError()
 
-    def album_query(self, query):
-        '''Get album data from Discogs.'''
-        params = {'release_title': query.album}
-        if query.artist:
-            params.update({'artist': query.artist})
-        results = self._request_json(
-            'http://api.discogs.com/database/search', params)
-        if results and 'results' in results and results['results']:
-            # merge releases and masters
-            res_ = defaultdict(set)
-            for res in results['results']:
-                if res['type'] in ['master', 'release']:
-                    for key in ['genre', 'style']:
-                        if key in res:
-                            res_[res['title']].update(res[key])
-            return [{'tags': {t: 0 for t in r}} for r in res_.itervalues()]
-        return None
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        params = {'release_title': album}
+        if artist:
+            params.update({'artist': artist})
+        result = self._request_json(
+            'https://api.discogs.com/database/search', params)
+
+        if not result['results']:
+            return None
+
+        # merge all releases and masters
+        tags = set()
+        for res in result['results']:
+            if res['type'] in ['master', 'release']:
+                for key in ['genre', 'style']:
+                    tags.update(res.get(key))
+
+        return [{'tags': {tag: 0 for tag in tags}}]
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        raise NotImplementedError()
 
 
 class MusicBrainz(DataProvider):
@@ -541,70 +598,46 @@ class MusicBrainz(DataProvider):
         self.rate_limit = 1.0
         self.name = 'MBrainz'
 
-    def _query(self, entity, query=None):
-        '''Query MusicBrainz API.'''
-        params = {'fmt': 'json'}
-        if query:
-            params.update({'query': query})
-        else:
-            params.update({'inc': 'tags'})
-        return self._request_json(
-            'http://musicbrainz.org/ws/2/' + entity, params)
+    def _query(self, path, params):
+        '''Query MusicBrainz.'''
+        params.update({'fmt': 'json'})
+        result = self._request_json(
+            'http://musicbrainz.org/ws/2/' + path, params)
 
-    def artist_query(self, query):
-        '''Get artist data from MusicBrainz.'''
-        # search by mbid
-        if query.mbid_artist:
-            self.log.info("%-8s %-6s use   artist mbid     '%s'.",
-                          self.name, query.type, query.mbid_artist)
-            results = self._query('artist/%s' % query.mbid_artist)
-            if results and 'error' not in results:
-                return [results]
-            print("%-8s %-6s got nothing, invalid MBID?"
-                  % (self.name, query.type))
-        # search by name
-        results = self._query('artist', 'artist:"%s"' % query.artist)
-        if results and 'artists' in results:
-            return results['artists']
-        return None
+        if 'error' in result:
+            self.log.debug('%-8s error: %s', self.name, result['error'])
+            return None
 
-    def album_query(self, query):
-        '''Get album data from MusicBrainz.'''
-        # search by mbid_relgrp
-        if query.mbid_relgrp:
-            self.log.info("%-8s %-6s use   relgrp mbid     '%s'.",
-                          self.name, query.type, query.mbid_relgrp)
-            results = self._query('release-group/%s' % query.mbid_relgrp)
-            if results and 'error' not in results:
-                return [results]
-            print("%-8s %-6s got nothing, invalid MBID?"
-                  % (self.name, query.type))
-        # search by mbid_album
-        if query.mbid_album:
-            self.log.info("%-8s %-6s use   album  mbid     '%s'.",
-                          self.name, query.type, query.mbid_album)
-            results = self._query('release/%s' % query.mbid_album)
-            if results and 'error' not in results:
-                return [results]
-            print("%-8s %-6s got nothing, invalid MBID?"
-                  % (self.name, query.type))
-        # search by name
-        qry = " AND artist: %s" % query.artist if query.artist else ''
-        results = self._query('release-group',
-                              "releasegroup: %s" % query.album + qry)
-        if results and 'release-groups' in results:
-            return results['release-groups']
-        return None
+        if 'query' in params:
+            result = result[path + 's']
+            # prefilter by score
+            if len(result) > 1:
+                min_ = max(int(r['score']) for r in result) - 5
+                result = [r for r in result if int(r['score']) > min_]
 
-    def filter_results(self, query, results):
-        if results:
-            if len(results) > 1 and all('score' in d for d in results):
-                max_ = max(int(d['score']) for d in results)
-                results = [d for d in results if int(d['score']) > max_ - 5]
-            results = [{'tags': {t['name']: int(t['count'])
-                                 for t in d['tags']}}
-                       for d in results if 'tags' in d]
-        return super(MusicBrainz, self).filter_results(query, results)
+        else:  # by mbid
+            result = [result]
+
+        return [{'tags': {t['name']: int(t.get('count', 0))
+                          for t in r.get('tags', {})}} for r in result]
+
+    def query_artist(self, artist):
+        '''Query for artist data.'''
+        return self._query('artist', {'query': 'artist: ' + artist})
+
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        qry = 'releasegroup: %s' % album
+        if artist:
+            qry += ' AND artist: %s' % artist
+        return self._query('release-group', {'query': qry})
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        self.log.debug("%-8s %-6s use mbid '%s'.", self.name, entity, mbid)
+        if entity == 'album':
+            entity = 'release-group'
+        return self._query(entity + '/' + mbid, {'inc': 'tags'})
 
 
 class EchoNest(DataProvider):
@@ -615,25 +648,30 @@ class EchoNest(DataProvider):
         # http://developer.echonest.com/docs/v4#rate-limits
         self.rate_limit = 3.0
 
-    def artist_query(self, query):
-        '''Get artist data from EchoNest.'''
-        results = self._request_json(
+    def query_artist(self, artist):
+        '''Query for artist data.'''
+        result = self._request_json(
             'http://developer.echonest.com/api/v4/artist/search',
             [('api_key', 'ZS0LNJH7V6ML8AHW3'), ('format', 'json'),
-             ('results', 1), ('bucket', 'genre'), ('bucket', 'terms'),
-             ('name', query.artist)])
-        if results and 'response' in results and results['response'] \
-                and 'artists' in results['response'] \
-                and results['response']['artists'] \
-                and 'terms' in results['response']['artists'][0] \
-                and results['response']['artists'][0]['terms']:
-            tags = {t['name']: float(t['weight'])
-                    for t in results['response']['artists'][0]['terms']}
-            max_ = max(v for v in tags.itervalues())
-            return [{'tags': {k: v for k, v in tags.iteritems()
-                              if v > max_ / 3}}]
-        return None
+             ('results', 1), ('bucket', 'terms'), ('bucket', 'genre'),
+             ('name', artist)])
 
-    def album_query(self, query):
-        '''Get album data from EchoNest.'''
+        if not result['response']['artists']:
+            return None
+
+        result = result['response']['artists'][0]
+        terms = {tag['name']: float(tag['weight'] + tag['frequency']) * .5
+                 for tag in result['terms']}
+        genres = {tag['name']: 0 for tag in result['genres']}
+        # TODO: merge them instead of using just one, can't just be handled as
+        # separate results at this time since unscored tags with and without
+        # counts can't be auto-merged later
+        return [{'tags': terms or genres}]
+
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        raise NotImplementedError()
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
         raise NotImplementedError()

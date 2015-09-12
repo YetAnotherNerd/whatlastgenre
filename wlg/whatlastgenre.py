@@ -67,9 +67,7 @@ class WhatLastGenre(object):
                            genres=Counter(), reltyps=Counter(),
                            difflib=defaultdict())
         self.conf = Config(args)
-        self.cache = dataprovider.Cache(self.conf.path,
-                                        self.conf.args.update_cache)
-        self.daprs = dataprovider.get_daprs(self.conf)
+        self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
         self.read_whitelist(self.conf.get('wlg', 'whitelist'))
         self.read_tagsfile()
         # validate settings
@@ -137,7 +135,7 @@ class WhatLastGenre(object):
             if not query.str:
                 continue
             try:
-                results, cached = self.cached_query(query)
+                results, cached = query.dapr.cached_query(query)
             except NotImplementedError:
                 continue
             except dataprovider.DataProviderError as err:
@@ -236,24 +234,6 @@ class WhatLastGenre(object):
                         album='', mbid_album='', mbid_relgrp='',
                         year='', releasetype=''))
         return queries
-
-    def cached_query(self, query):
-        '''Query Cache before querying real DataProviders.'''
-        cachekey = query.artist
-        if query.type == 'album':
-            cachekey += query.album
-        cachekey = (query.dapr.name.lower(), query.type,
-                    cachekey.replace(' ', ''))
-        results = self.cache.get(cachekey)
-        if results:
-            query.dapr.stats['reqs_cache'] += 1
-            return results[1], True
-        results = query.dapr.query(query)
-        self.cache.set(cachekey, results)
-        # save cache periodically
-        if time.time() - self.cache.time > 600:
-            self.cache.save()
-        return results, False
 
     @classmethod
     def merge_results(cls, results):
