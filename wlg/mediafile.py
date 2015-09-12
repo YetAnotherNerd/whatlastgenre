@@ -19,14 +19,26 @@
 
 from __future__ import print_function
 
+from collections import namedtuple
 import os.path
+import re
 
 import mutagen
 from mutagen.id3 import ID3
 
 
+Metadata = namedtuple(
+    'Metadata', ['path', 'type', 'artists', 'albumartist', 'album',
+                 'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])
+
 # supported extensions
 EXTENSIONS = ['.mp3', '.flac', '.ogg', '.m4a']
+
+# regex pattern for 'Various Artist'
+VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
+
+# musicbrainz artist id of 'Various Artists'
+VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
 
 def find_music_folders(paths):
@@ -64,6 +76,34 @@ class Album(object):
         if not self.get_meta('album'):
             raise AlbumError("Not all tracks have the same or any album-tag")
         self.type = ','.join(set(t.ext for t in self.tracks)).upper()
+
+    def get_metadata(self):
+        '''Return a Metadata namedtuple.'''
+        artists = []
+        for track in self.tracks:
+            artist = (track.get_meta('artist'),
+                      track.get_meta('musicbrainz_artistid'))
+            if artist[0] and not VA_PAT.match(artist[0]):
+                if artist[1] == VA_MBID:
+                    artists.append((artist[0], None))
+                else:
+                    artists.append(artist)
+        albumartist = (self.get_meta('albumartist'),
+                       self.get_meta('musicbrainz_albumartistid'))
+        if not albumartist[0]:
+            albumartist = (self.get_meta('artist', lcp=True),
+                           self.get_meta('musicbrainz_artistid'))
+        if albumartist[0] and VA_PAT.match(albumartist[0]) \
+                or albumartist[1] == VA_MBID:
+            albumartist = (None, VA_MBID)
+        return Metadata(
+            path=self.path, type=self.type,
+            artists=artists, albumartist=albumartist,
+            album=self.get_meta('album'),
+            mbid_album=self.get_meta('musicbrainz_albumid'),
+            mbid_relgrp=self.get_meta('musicbrainz_releasegroupid'),
+            year=self.get_meta('date'),
+            releasetype=self.get_meta('releasetype'))
 
     def get_meta(self, key, lcp=True):
         '''Get metadata that all tracks have in common.

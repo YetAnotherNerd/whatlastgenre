@@ -38,21 +38,11 @@ import time
 from wlg import __version__, dataprovider, mediafile
 
 
-Metadata = namedtuple(
-    'Metadata', ['path', 'type', 'artists', 'albumartist', 'album',
-                 'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])
-
 Query = namedtuple(
     'Query', ['dapr', 'type', 'str', 'score', 'artist', 'mbid_artist',
               'album', 'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])
 
 Stats = namedtuple('Stats', ['time', 'errors', 'genres', 'reltyps', 'difflib'])
-
-# regex pattern for 'Various Artist'
-VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
-
-# musicbrainz artist id of 'Various Artists'
-VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
 
 class WhatLastGenre(object):
@@ -592,30 +582,7 @@ def work_folder(wlg, path):
         wlg.stats.errors[str(err)].append(path)
         return
     # read album metadata
-    artists = []
-    for track in album.tracks:
-        artist = (track.get_meta('artist'),
-                  track.get_meta('musicbrainz_artistid'))
-        if artist[0] and not VA_PAT.match(artist[0]):
-            if artist[1] == VA_MBID:
-                artists.append((artist[0], None))
-            else:
-                artists.append(artist)
-    albumartist = (album.get_meta('albumartist'),
-                   album.get_meta('musicbrainz_albumartistid'))
-    if not albumartist[0]:
-        albumartist = (album.get_meta('artist', lcp=True),
-                       album.get_meta('musicbrainz_artistid'))
-    if albumartist[0] and VA_PAT.match(albumartist[0]) \
-            or albumartist[1] == VA_MBID:
-        albumartist = (None, VA_MBID)
-    metadata = Metadata(
-        path=album.path, type=album.type,
-        artists=artists, albumartist=albumartist,
-        album=album.get_meta('album'),
-        mbid_album=album.get_meta('musicbrainz_albumid'),
-        mbid_relgrp=album.get_meta('musicbrainz_releasegroupid'),
-        year=album.get_meta('date'), releasetype=album.get_meta('releasetype'))
+    metadata = album.get_metadata()
     # query genres (and releasetype) for album metadata
     genres, releasetype = wlg.query_album(metadata)
     # update album metadata
