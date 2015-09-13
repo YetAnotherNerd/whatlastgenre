@@ -45,7 +45,7 @@ Query = namedtuple(
     'Query', ['dapr', 'type', 'str', 'score', 'artist', 'mbid_artist',
               'album', 'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])
 
-Stats = namedtuple('Stats', ['time', 'errors', 'genres', 'reltyps', 'difflib'])
+Stats = namedtuple('Stats', ['time', 'messages', 'genres', 'reltyps'])
 
 
 class WhatLastGenre(object):
@@ -60,9 +60,8 @@ class WhatLastGenre(object):
         self.log.debug('args:   %s', vars(args))
         self.log.debug('config: %s\n', self.conf.fullpath)
 
-        self.stats = Stats(time=time.time(), errors=defaultdict(list),
-                           genres=Counter(), reltyps=Counter(),
-                           difflib=defaultdict())
+        self.stats = Stats(time=time.time(), messages=defaultdict(list),
+                           genres=Counter(), reltyps=Counter())
 
         # dataproviders
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
@@ -82,8 +81,8 @@ class WhatLastGenre(object):
         for key, val in self.tagsfile['aliases'].items():
             if val not in self.whitelist:
                 del self.tagsfile['aliases'][key]
-                self.log.info('warning: alias not whitelisted: %s -> %s',
-                              key, val)
+                self.stat_message(logging.WARN, 'alias not whitelisted',
+                                  '%s -> %s' % (key, val), 2)
 
     def read_whitelist(self, path=None):
         '''Read whitelist file and store its contents as set.'''
@@ -150,13 +149,17 @@ class WhatLastGenre(object):
                 continue
             except dataprovider.DataProviderError as err:
                 query.dapr.stats['reqs_err'] += 1
-                msg = query.dapr.name + ': ' + str(err)
-                self.stats.errors[msg].append(metadata.path)
-                self.log.error(msg)
+                self.stat_message(logging.ERROR, '%-8s %-6s error: %s'
+                                  % (query.dapr.name, query.type, err),
+                                  metadata.path, 1)
                 continue
 
             if not results:
                 query.dapr.stats['results_none'] += 1
+                if query.type == 'album' or num_artists == 1:
+                    self.stat_message(logging.DEBUG, '%s: no %s results'
+                                      % (query.dapr.name, query.type),
+                                      metadata.path)
                 self.verbose_status(query, cached, "no results")
                 continue
 
@@ -178,6 +181,10 @@ class WhatLastGenre(object):
             # too many results
             if len(results) > 1:
                 query.dapr.stats['results_many'] += 1
+                if query.type == 'album' or num_artists == 1:
+                    self.stat_message(logging.DEBUG, '%s: too many %s results'
+                                      % (query.dapr.name, query.type),
+                                      metadata.path)
                 self.verbose_status(query, cached,
                                     "%2d results" % len(results))
                 continue
@@ -199,11 +206,20 @@ class WhatLastGenre(object):
         # genres
         genres = taglib.top_genres(self.conf.args.tag_limit)
         self.stats.genres.update(genres)
+        if not genres:
+            self.stat_message(logging.ERROR, 'No genres found', metadata.path)
+        for group in ['artist', 'album']:
+            if group not in taglib.taggrps:
+                self.stat_message(logging.INFO, 'No %s tags' % group,
+                                  metadata.path, False)
 
         # releasetype
         if taglib.releasetype:
             taglib.releasetype = taglib.format(taglib.releasetype)
             self.stats.reltyps[taglib.releasetype] += 1
+        elif self.conf.args.tag_release:
+            self.stat_message(logging.ERROR, 'No releasetype found',
+                              metadata.path)
 
         return genres, taglib.releasetype
 
@@ -276,6 +292,14 @@ class WhatLastGenre(object):
                       query.type, status, qry.strip(),
                       " (cached)" if cached else '')
 
+    def stat_message(self, level, message, item, log=None):
+        '''Record a message in the stats and optionally log it.'''
+        self.stats.messages[(level, message)].append(item)
+        if log:
+            if log > 1:
+                message += ': ' + item
+            self.log.log(level, message)
+
     def print_stats(self, num_folders):
         '''Print some statistics.'''
         # genres
@@ -289,20 +313,14 @@ class WhatLastGenre(object):
             print("\n%d different releasetypes used this often:"
                   % len(reltyps))
             print(tag_display(reltyps, "%4d %-20s"))
-        # errors
-        if self.stats.errors:
-            print("\n%d album(s) with errors:"
-                  % sum(len(x) for x in self.stats.errors.itervalues()))
-            for error, folders in sorted(self.stats.errors.iteritems(),
-                                         key=lambda x: len(x[1]), reverse=1):
-                print("  %s:\n    %s"
-                      % (error, '\n    '.join(sorted(folders))))
-        # difflib
-        if self.stats.difflib:
-            print("\ndifflib found %d tags:" % len(self.stats.difflib))
-            for key, val in self.stats.difflib.iteritems():
-                print("%s = %s" % (key, val))
-            print("You should add them as aliases (if correct) to tags.txt.")
+        # messages
+        messages = sorted(self.stats.messages.iteritems(),
+                          key=lambda x: (x[0][0], len(x[1])), reverse=True)
+        for (lvl, msg), items in messages:
+            if self.log.level <= lvl:
+                items = sorted(set(items))
+                print("\n%s (%d):\n  %s"
+                      % (msg, len(items), '\n  '.join(items)))
         # dataprovider
         if self.log.level <= logging.INFO:
             dataprovider.DataProvider.print_stats(self.daprs)
@@ -405,8 +423,10 @@ class TagLib(object):
         if self.wlg.conf.args.difflib:
             match = difflib.get_close_matches(key, self.wlg.whitelist, 1, .92)
             if match:
-                self.log.debug("tag match   %s -> %s", key, match[0])
-                self.wlg.stats.difflib[key] = match[0]
+                self.wlg.stat_message(
+                    logging.WARN, 'possible aliases found by difflib',
+                    '%s = %s' % (key, match[0]))
+                self.log.debug('tag match   %s -> %s', key, match[0])
                 return match[0]
         return key
 
@@ -609,8 +629,7 @@ def work_folder(wlg, path):
     try:
         album = mediafile.Album(path, wlg.conf.get('wlg', 'id3v23sep'))
     except mediafile.AlbumError as err:
-        print(err)
-        wlg.stats.errors[str(err)].append(path)
+        wlg.stat_message(logging.ERROR, str(err), path, 1)
         return
 
     # read album metadata
@@ -621,20 +640,11 @@ def work_folder(wlg, path):
 
     # update album metadata
     if genres:
-        print("Genres: %s" % ', '.join(genres).encode('utf-8'))
         album.set_meta('genre', genres)
-    else:
-        err = "No genres found"
-        print(err)
-        wlg.stats.errors[err].append(path)
-    if wlg.conf.args.tag_release:
-        if releasetype:
-            print("RelTyp: %s" % releasetype)
-            album.set_meta('releasetype', releasetype)
-        else:
-            err = "No releasetype found"
-            print(err)
-            wlg.stats.errors[err].append(path)
+        print("Genres: %s" % ', '.join(genres).encode('utf-8'))
+    if releasetype and wlg.conf.args.tag_release:
+        album.set_meta('releasetype', releasetype)
+        print("RelTyp: %s" % releasetype)
 
     # save metadata to all tracks
     if wlg.conf.args.dry:
