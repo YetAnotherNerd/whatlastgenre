@@ -48,7 +48,7 @@ Stats = namedtuple('Stats', ['time', 'errors', 'genres', 'reltyps', 'difflib'])
 class WhatLastGenre(object):
     '''Main class featuring a docstring that needs to be written.'''
 
-    def __init__(self, args):
+    def __init__(self, args, whitelist=None):
         self.log = logging.getLogger('wlg')
         self.log.setLevel(30 - 10 * args.verbose)
         self.log.addHandler(logging.StreamHandler(sys.stdout))
@@ -58,7 +58,7 @@ class WhatLastGenre(object):
                            difflib=defaultdict())
         self.conf = Config(args)
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
-        self.read_whitelist(self.conf.get('wlg', 'whitelist'))
+        self.read_whitelist(whitelist)
         self.read_tagsfile()
         # validate settings
         if self.conf.args.tag_release \
@@ -75,11 +75,12 @@ class WhatLastGenre(object):
 
     def read_whitelist(self, path=None):
         '''Read whitelist file and store its contents as set.'''
-        if not path or path == 'wlg':
-            wlstr = pkgutil.get_data('wlg', 'data/genres.txt').decode('utf8')
-        else:
+        path = path or self.conf.get('wlg', 'whitelist')
+        if path:
             with open(path, b'r') as file_:
                 wlstr = u'\n'.join([l.decode('utf8') for l in file_])
+        else:
+            wlstr = pkgutil.get_data('wlg', 'data/genres.txt').decode('utf8')
         self.whitelist = set()
         for line in wlstr.split(u'\n'):
             line = line.strip().lower()
