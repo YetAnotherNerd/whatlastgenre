@@ -91,25 +91,6 @@ class Cache(object):
         except (IOError, ValueError):
             pass
 
-        # backward compatibility code
-        oldkeys = {k: v for k, v in self.cache.iteritems() if '##' in k}
-        for key, val in oldkeys.iteritems():
-            if val['data']:
-                # only keep some keys
-                keep = ['info', 'year'] if len(val['data']) > 1 else []
-                val['data'] = [{k: v for k, v in d.iteritems()
-                                if k in ['tags', 'releasetype'] + keep}
-                               for d in val['data'] if d]
-                # all tag data are dicts now
-                for dat in val['data']:
-                    if dat and 'tags' in dat and isinstance(dat['tags'], list):
-                        dat['tags'] = {t: 0 for t in dat['tags']}
-            del self.cache[key]
-            key = str(tuple(key.encode("utf-8").split('##')))
-            val['data'] = val['data'] if val['data'] else []
-            self.cache[key] = (val['time'], val['data'])
-            self.dirty = True
-
     def __del__(self):
         self.save()
 
