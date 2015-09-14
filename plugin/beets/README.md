@@ -1,26 +1,27 @@
 # whatlastgenre plugin for beets
 
-Plug whatlastgenre into [beets](http://github.com/sampsyo/beets).
+Plug [whatlastgenre](https://github.com/YetAnotherNerd/whatlastgenre)
+into [beets](https://github.com/sampsyo/beets).
 
 
 ## Installation
 
 Install and configure beets and whatlastgenre according to its docs.
 
-Run wlg standalone to see if its working (see [wlg doc]
-(http://github.com/YetAnotherNerd/whatlastgenre/blob/master/README.md))
+Run whatlastgenre standalone to see if it is working.
 
-Configure beets to use wlg plugin, for example (adjust path):
+Configure beets to use the wlg plugin, for example (adjust path):
 
     pluginpath:
         ~/git/whatlastgenre/plugin/beets/beetsplug
 
     wlg:
         auto: yes
+        force: yes
 
-If you didn't install wlg, make sure to have it in PYTHONPATH:
+If you didn't install whatlastgenre, make sure to have it in PYTHONPATH:
 
-    export PYTHONPATH="~/git/whatlastgenre/:${PYTHONPATH}"
+    export PYTHONPATH="~/git/whatlastgenre:${PYTHONPATH}"
 
 See also: [beets doc about plugins]
 (http://beets.readthedocs.org/en/latest/plugins/index.html)
@@ -28,23 +29,21 @@ See also: [beets doc about plugins]
 
 ## Configuration
 
-The wlg plugin uses the same configuration file as the standalone version.
-See whatlastgenre documentation for how to configure it.
-
-Additionally, there are some configuration options in the beets configuration:
+The wlg plugin uses the same config file as the standalone version.
+Additionally, there are some config options in the beets config:
 
     wlg:
-        auto: yes
+        auto: no
         force: no
         count: 4
         separator: ', '
         whitelist: wlg
 
-* auto: Fetch genres automatically during import. Default: `yes`
+* auto: Automatically fetch genres during import. Default: `no`
 * force: Force overwrite existing genres. Default: `no`
-* count: Number of genres to fetch. Default: `4`
-* separator: A separator for multiple genres. Default: `', '`
-* whitelist: Default: `wlg`
+* count: Number of genres to store. Default: `4`
+* separator: Separator for multiple genres. Default: `', '`
+* whitelist:
     * `wlg` use whitelist from whatlastgenre (default)
     * `beets` use whitelist from lastgenre beets plugin
     * or use custom path to whitelist
@@ -69,5 +68,4 @@ Make sure `auto: yes` is set in the `wlg` part of the beets configuration.
 ## Known issues / Differences to standalone
 
 * genres always one tag with separation / only when using id3v23
-(See [beets#505](http://github.com/sampsyo/beets/issues/505))
-
+(See [beets#505](https://github.com/sampsyo/beets/issues/505))
