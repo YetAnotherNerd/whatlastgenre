@@ -166,6 +166,7 @@ class WhatLastGenre(object):
                 results = self.merge_results(results)
             # too many results
             if len(results) > 1:
+                query.dapr.stats['results_many'] += 1
                 self.verbose_status(query, cached,
                                     "%2d results" % len(results))
                 continue
