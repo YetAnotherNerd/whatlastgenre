@@ -1,6 +1,6 @@
 # whatlastgenre
 
-Improves genre metadata of audio files based on tags from various music sites.
+Improve genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
 * Supported music sites: What.CD, Last.FM, Discogs, MusicBrainz, EchoNest
@@ -14,21 +14,23 @@ Improves genre metadata of audio files based on tags from various music sites.
     * Splits tags in various applicable ways, eg.
     Jazz/Funk&Rock -> Jazz, Funk, Rock;
     Alternative Rock -> Alternative, Rock
-    * Uses a whitelist to avoid crappy tags (see genres.txt)
+    * Uses a whitelist to avoid crappy tags (see
+    [genres.txt](wlg/data/genres.txt))
     * Scores tags while taking personal preferences into account
   * Caches all data received from music sites to make reruns super fast
   * Uses MusicBrainz IDs for searching when available
   * Optional: gets release type (Album, EP, Anthology, ...) from What.CD
   (with interactivity mode for ambiguous results)
-  * Can be used as plugin in 3rd party software, currently: beets
+  * Can be used as plugin in other software, currently:
+  [beets](https://github.com/sampsyo/beets)
   * Dry-mode for safe testing
 
 
 ## How it works
-It scans through folders for albums and receives genre tags for them and their
-artists from selected music sites. Equal tags in different writings will be
-split and/or merged to ensure consistent names and proper scoring. Artist and
-album tags get handled separately and then merged using configurable score
+It scans through directories for albums and receives genre tags for them and
+their artists from selected music sites. Equal tags in different writings will
+be split and/or merged to ensure consistent names and proper scoring. Artist
+and album tags get handled separately and then merged using configurable score
 modifiers. The best scored tags will be saved as genre metadata in the
 corresponding album tracks. All data received from music sites gets cached so
 that rerunning the script will be super fast. There are several score
@@ -36,13 +38,13 @@ multipliers to adjust the scoring to your needs and take your personal
 preferences into account. Please take a look at "Configuration options
 explained" below for more details.
 
-##### Tag scoring with count (What.CD, Last.FM, MusicBrainz)
+##### Tag scoring with count (What.CD artist, Last.FM, MusicBrainz, EchoNest terms)
 If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of `1.0`, a tag having only half of the top tag's count gets
 a score of `0.5` and so on.
 
-##### Tag scoring without count (What.CD, Discogs, EchoNest)
+##### Tag scoring without count (What.CD album, Discogs, EchoNest genres)
 Tags supplied without a count will be scored `max(1/3, 0.85^(n-1))`, where `n`
 is the total number of tags supplied by this source. The more tags the lower
 the score for each tag will be. So if only one tag is supplied, it will get a
@@ -72,19 +74,15 @@ for details.
 However, if you don't want to use v2.4 tags you can use the `id3v23sep` config
 option explained below.
 
-##### Interactivity
-Sometimes a dataprovider returns more then one result of tags. To know the
-right set user input might be required, but several steps are taken to
-reduce needed interactivity:
-* Prefilter album results by year (if given)
-* Prefilter whatcd album results by releasetype (if given)
-* Prefilter whatcd album results by snatched flag
-* Automatically merges the tags from few results
-    * only merge if all have the same releasetype if --tag-release is enabled
-* If there are still too many results, there are two options
-    * --tag-release, src is whatcd, no reltype, not snatched:
-    ask user if -i enabled
-    * don't take results into account
+##### Interactivity (while tagging releasetypes)
+Sometimes a dataprovider returns more than one result of tags (eg. different
+editions of the same album or album and single with the same name). This is not
+a problem since these results often contain very similar tags that can simply
+be merged together. However, to tag releasetypes it is necessary to know the
+right result, so some user input might be required when the results have
+different releasetypes, but several steps are taken to reduce needed
+interactivity, like filtering by snatched flag (make sure to enable 'Snatched
+torrents indicator' in your whatcd profile settings) or by year (if given).
 
 So, interactivity is only needed for setting proper releasetypes
 in some ambiguous cases.
@@ -106,10 +104,9 @@ this as root:
 cloned/extracted to
 * Install it by running `python setup.py install` as root in that directory
 
-##### Optional Dependencies
-* `rauth` is required for Discogs support. If you want to use
-Discogs, install `rauth` with pip like above and activate `discogs` in the
-configuration file (see below).
+##### Optional dependencies
+* `rauth` is required for Discogs. If you want to use Discogs, install `rauth`
+with pip like above and activate `discogs` in the config file (see below).
 * `requests-cache` can additionally cache the raw queries from requests if
 installed. This is mainly a developers feature.
 
@@ -121,7 +118,7 @@ A configuration file with default values will be created at
 ### Example configuration file
 ```
 [wlg]
-sources = whatcd, lastfm, discogs, mbrainz
+sources = whatcd, lastfm, discogs, mbrainz, echonest
 whatcduser = whatusername
 whatcdpass = whatpassword
 whitelist =
@@ -158,11 +155,13 @@ requires authentication (own account needed)
 * `mbrainz` [[URL](http://musicbrainz.org)]
 home of mbids
 * `echonest` [[URL](http://echonest.com)]
-artist only, fixed list of
-[genres](http://developer.echonest.com/docs/v4/genre.html#list)
+artist only, genres without counts and terms with counts (see
+[doc](http://developer.echonest.com/docs/v4/))
 
 ##### whitelist option
-Path to your custom whitelist. Use shipped whitelist if empty (default).
+Path to your custom whitelist. Use [shipped whitelist](wlg/data/genres.txt)
+if empty (default). Make sure the aliases and replacements from
+[tags.txt](wlg/data/tags.txt) fit the used whitelist.
 
 ##### vaqueries option
 Search for all artists if there is no albumartist on albums with various
@@ -203,9 +202,9 @@ Default `1.33`, Range `0.5 - 2.0`
 * `> 1.0` prefer artist tags
 
 ##### various option
-Score multiplier similar to artist option, but this one applies to various
+Score multiplier similar to the artist option, but this one applies to various
 artists releases if there is no albumartist and all the track artists get used
-for searching, which can be en/disabled with the `vaqueries` option (see above).
+for searching, which can be controlled with the `vaqueries` option (see above).
 For example: a 5 track va-album with 3 tracks from artist A and 2 tracks from
 artist B will get tags like this:
 
@@ -216,17 +215,13 @@ Default `0.66`, Range `0.1 - 1.0`
 * `= 1.0` handle them equally
 
 ##### splitup option
-Score multiplier for modifying the score of the base tag from a tag that got
-split up by space. This enables you to decide whether to keep, prefer or ban
-the base tags. For example, lets say we have 'Alternative Rock' with a score
-of 1: It will end up as Alternative with score 1, Rock with score 1 and
-Alternative Rock with score `1 * <splitup-score>`. So if you don't want to keep
-Alternative Rock, just set it to 0.
+Score multiplier for modifying the score of a tag that got split up by space.
+This enables you to decide whether to keep, lessen or ignore the 'base' tags.
 
 Default `0.33`, Range `0.0 - 1.0`
 * `= 0.0` forget about the base tags
-* `< 1.0` prefer split parts
-* `= 1.0` handle them equally
+* `< 1.0` reduce score of base tags
+* `= 1.0` leave score unmodified
 
 ##### src_* options
 Every source has its own score multiplier, so music sites that generally
@@ -243,7 +238,7 @@ Default `1.0`, Range `0.5 - 2.0`. See `sources` option above.
 usage: whatlastgenre [-h] [-v] [-n] [-u] [-l N] [-r] [-i] [-d] path [path ...]
 
 positional arguments:
-  path                 folder(s) to scan for albums
+  path                 directory(ies) to scan for albums
 
 optional arguments:
   -h, --help           show this help message and exit
@@ -264,13 +259,12 @@ might get less releasetypes.
 
 Remove the cache file to reset the cache or use `-u` to force cache updates.
 
-Don't waste your time running -n and -i together.
+Don't waste your time running `-n` and `-i` together.
 
 whatlastgenre doesn't correct any other tags. If your music files are badly or
 not tagged it won't work well at all.
 
 ### Examples
-
 Do a verbose dry-run on your albums in /media/music changing nothing:
 
 	whatlastgenre -vn /media/music
@@ -288,28 +282,41 @@ Tag releasetypes and up to 4 genre tags for all albums in /media/music:
 
 whatlastgenre can be used in other software via plugins.
 
-At the moment there is a plugin for beets.
+At the moment there is a [plugin for beets](plugin/beets).
 
-See README files in plugin folder for details.
+See README files in the [plugin](plugin) directory for details.
 
 
 ## Help / Debug
 
-In order to debug tag handling to improve the whitelist, aliases and replaces,
-you can do the following:
+#### Errors / Bugs / Crashes
+If you encounter any strange errors (especially after updating to a later
+version), please delete the cache file and try again with an empty cache
+before reporting it (do a backup first in case it doesn't solve the issue).
 
-Do a debug dry run and save output to log:
+#### Mediaplayers and file modification times
+Since file modification times are preserved, some players don't realize the
+changed genre metadata automatically and might require some manual steps.
 
-    whatlastgenre -nvv /media/music > /tmp/wlg.log 2>&1
+for example
+* mpd: needs rescan instead of normal update to get the mpd database updated.
 
-Search the log for specific lines:
+#### Debug tag handling / Improve tag results
+In order to debug tag handling to improve the whitelist and tagsfile, you can
+do a debug dry run and save the output to a logfile (adjust path):
 
-    grep ^Error /tmp/wlg.log | sort -u | less
+    whatlastgenre -nvv /media/music > /tmp/wlg.log
+
+Then search the logfile for specific lines:
+
     grep ^tag /tmp/wlg.log | sort | uniq -c | sort -r | less
 
 Use the results to add missing whitelist entries, aliases or replaces.
-Share your improvements to the data/*.txt files if you like.
 
-Feel free to send me your log file so i can use it for debugging myself.
+Feel free to share your improvements to the [data/*.txt](wlg/data) files or
+send me your logfile so i can use it for debugging myself.
 
-Please report any bugs and errors you encounter, i would like to fix them :)
+Another way to find possbile aliases is using the difflib `-d` argument.
+
+
+Please report any bugs and errors, i would like to fix them :)
