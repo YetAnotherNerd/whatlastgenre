@@ -77,8 +77,8 @@ class Cache(object):
     speedup.
     '''
 
-    def __init__(self, wlgdir, update_cache):
-        self.fullpath = os.path.join(wlgdir, 'cache')
+    def __init__(self, path, update_cache):
+        self.fullpath = os.path.join(path, 'cache')
         self.update_cache = update_cache
         self.expire_after = 180 * 24 * 60 * 60
         self.time = time.time()
@@ -112,31 +112,33 @@ class Cache(object):
 
     def __del__(self):
         self.save()
-        print()
 
     def get(self, key):
         '''Return a (time, value) data tuple for a given key.'''
-        if str(key) in self.cache \
-                and time.time() < self.cache[str(key)][0] + self.expire_after \
-                and (str(key) in self.new or not self.update_cache):
-            return self.cache[str(key)]
+        key = str(key)
+        if key in self.cache \
+                and time.time() < self.cache[key][0] + self.expire_after \
+                and (not self.update_cache or key in self.new):
+            return self.cache[key]
         return None
 
     def set(self, key, value):
         '''Set value for a given key.'''
+        key = str(key)
         if value:
-            keep = ['info', 'year'] if len(value) > 1 else []
-            value = [{k: v for k, v in val.iteritems()
-                      if k in ['tags', 'releasetype'] + keep}
+            keep = ['tags', 'releasetype']
+            if len(value) > 1:
+                keep.append('info')
+            value = [{k: v for k, v in val.iteritems() if k in keep}
                      for val in value if val]
-        self.cache[str(key)] = (time.time(), value)
+        self.cache[key] = (time.time(), value)
         if self.update_cache:
-            self.new.add(str(key))
+            self.new.add(key)
         self.dirty = True
 
     def clean(self):
         '''Clean up expired entries.'''
-        print("\nCleaning cache... ", end='')
+        print("Cleaning cache... ", end='')
         size = len(self.cache)
         for key, val in self.cache.items():
             if time.time() > val[0] + self.expire_after:
