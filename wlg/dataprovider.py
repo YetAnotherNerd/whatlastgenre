@@ -601,6 +601,9 @@ class Discogs(DataProvider):
         self.session = discogs.get_session((acc_token, acc_secret))
         self.session.headers.update(HEADERS)
 
+        if requests_cache:  # avoid filling cache with unusable entries
+            self.session._is_cache_disabled = True  # pylint: disable=W0212
+
     def query_artist(self, artist):
         '''Query for artist data.'''
         raise NotImplementedError()
