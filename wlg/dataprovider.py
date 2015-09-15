@@ -22,6 +22,7 @@ from __future__ import division, print_function
 from collections import defaultdict
 import json
 import logging
+import operator
 import os.path
 from tempfile import NamedTemporaryFile
 import time
@@ -278,6 +279,42 @@ class DataProvider(object):
             results = res
         return results
 
+    @classmethod
+    def _preprocess_tags(cls, tags):
+        '''Preprocess tags slightly to reduce the amount and don't
+        pollute the cache with tags that obviously don't get used
+        anyway.
+        '''
+        if not tags:
+            return tags
+
+        # strip and lower case tags
+        tags = {k.strip().lower(): v for k, v in tags.iteritems()}
+
+        # filter by length
+        # 64 is not valid for a single tag, but it could be a
+        # composition of tags for splitting
+        tags = {k: v for k, v in tags.iteritems() if len(k) in range(2, 64)}
+
+        # answer to the ultimate question of life, the universe,
+        # the optimal number of considerable tags and everything
+        limit = 42
+
+        if len(tags) > limit:
+
+            if any(tags.itervalues()):  # tags with scores
+                min_val = max(tags.itervalues()) / 3
+                tags = {k: v for k, v in tags.iteritems() if v >= min_val}
+                sort_key = operator.itemgetter(1)  # best tags
+
+            else:  # tags without scores
+                sort_key = len  # shortest tags
+
+            tags = sorted(tags.iteritems(), key=sort_key, reverse=1)
+            tags = {k: v for k, v in tags[:limit]}
+
+        return tags
+
     def cached_query(self, query):
         '''Perform a cached DataProvider query.'''
         cachekey = query.artist
@@ -324,6 +361,10 @@ class DataProvider(object):
             if not res:
                 res = self.query_album(query.album, query.artist,
                                        query.year, query.releasetype)
+
+        # preprocess tags
+        for result in res or []:
+            result['tags'] = self._preprocess_tags(result['tags'])
 
         return res
 
