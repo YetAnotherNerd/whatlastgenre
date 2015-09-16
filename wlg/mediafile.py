@@ -43,15 +43,15 @@ VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
 VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
 
-def find_music_folders(paths):
-    '''Scan paths for folders containing supported music files.'''
-    folders = []
+def find_music_dirs(paths):
+    '''Scan paths for directories containing supported music files.'''
+    dirs = []
     for path in paths:
         for root, _, files in os.walk(path):
             if any(os.path.splitext(f)[1].lower() in EXTENSIONS
                    for f in files):
-                folders.append(root)
-    return folders
+                dirs.append(root)
+    return dirs
 
 
 class AlbumError(Exception):
@@ -64,7 +64,7 @@ class Album(object):
 
     def __init__(self, path, v23sep=None):
         if not os.path.exists(path):
-            raise AlbumError("Folder vanished")
+            raise AlbumError("Directory vanished")
         self.path = path
         self.tracks = []
         for file_ in os.listdir(path):

@@ -283,7 +283,7 @@ class WhatLastGenre(object):
                 message += ': ' + item
             self.log.log(level, message)
 
-    def print_stats(self, num_folders):
+    def print_stats(self, num_dirs):
         '''Print some statistics.'''
         # genres
         if self.stats.genres:
@@ -309,9 +309,8 @@ class WhatLastGenre(object):
             dataprovider.DataProvider.print_stats(self.daprs)
         # time
         diff = time.time() - self.stats.time
-        print("\nTime elapsed: %s (%s per folder)\n"
-              % (timedelta(seconds=diff),
-                 timedelta(seconds=diff / num_folders)))
+        print("\nTime elapsed: %s (%s per directory)\n"
+              % (timedelta(seconds=diff), timedelta(seconds=diff / num_dirs)))
 
 
 class TagLib(object):
@@ -697,8 +696,8 @@ def ask_user(query, results):
     return [results[num - 1]] if num else results
 
 
-def work_folder(wlg, path):
-    '''Create an Album object for a folder given by path to read and
+def work_directory(wlg, path):
+    '''Create an Album object for a directory given by path to read and
     write metadata from/to.  Query top genre tags by album metadata,
     update metadata with results and save the album (its tracks).
     '''
@@ -745,7 +744,7 @@ def get_args():
         description='Improve genre metadata of audio files '
                     'based on tags from various music sites.')
     parser.add_argument('path', nargs='+',
-                        help='folder(s) to scan for albums')
+                        help='directory(ies) to scan for albums')
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help='verbose output (-vv for debug)')
     parser.add_argument('-n', '--dry', action='store_true',
@@ -766,25 +765,26 @@ def get_args():
 def main():
     '''main function of whatlastgenre.
 
-    Get arguments, set up WhatLastGenre object, search for music
-    folders, run the main loop on them and print out some statistics.
+    Get arguments, set up WhatLastGenre object,
+    search for music directories, run the main loop on them
+    and print out some statistics.
     '''
     print("whatlastgenre v%s\n" % __version__)
 
     args = get_args()
     wlg = WhatLastGenre(args)
-    folders = mediafile.find_music_folders(args.path)
+    dirs = mediafile.find_music_dirs(args.path)
 
-    print("Found %d music folders!" % len(folders))
-    if not folders:
+    print("Found %d music directories!" % len(dirs))
+    if not dirs:
         return
 
-    i = len(folders)
+    i = len(dirs)
     try:  # main loop
-        for i, path in enumerate(sorted(folders), start=1):
-            print_progressbar(i, len(folders))
+        for i, path in enumerate(sorted(dirs), start=1):
+            print_progressbar(i, len(dirs))
             print(path)
-            work_folder(wlg, path)
+            work_directory(wlg, path)
         print('\n...all done!')
     except KeyboardInterrupt:
         print()
