@@ -572,7 +572,8 @@ class Config(ConfigParser.SafeConfigParser):
     '''Read, maintain and write the configuration file.'''
 
     # (section, option, default, required, (min, max))
-    conf = [('wlg', 'sources', 'whatcd, lastfm, mbrainz', 1, ()),
+    conf = [('wlg', 'sources',
+             'whatcd, lastfm, discogs, mbrainz, echonest', 1, ()),
             ('wlg', 'whatcduser', '', 0, ()),
             ('wlg', 'whatcdpass', '', 0, ()),
             ('wlg', 'whitelist', '', 0, ()),
