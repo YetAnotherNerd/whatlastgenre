@@ -138,7 +138,7 @@ class WhatLastGenre(object):
                       metadata.year, (" (%d artists)" % num_artists
                                       if num_artists > 1 else ''))
 
-        taglib = TagLib(self, num_artists > 1)
+        taglib = TagLib(self, metadata.path, num_artists > 1)
         for query in self.create_queries(metadata):
             if not query.str:
                 continue
@@ -195,33 +195,16 @@ class WhatLastGenre(object):
             if 'releasetype' in res and res['releasetype']:
                 taglib.releasetype = res['releasetype']
             if 'tags' in res and res['tags']:
-                found, added = taglib.add(query, res['tags'])
-                query.dapr.stats['tags'] += found
-                query.dapr.stats['goodtags'] += added
-                status = "%2d of %2d tags" % (added, found)
+                tags = taglib.score(res['tags'], query.score)
+                good = taglib.add(tags, query.type)
+                query.dapr.stats['tags'] += len(tags)
+                query.dapr.stats['goodtags'] += good
+                status = "%2d of %2d tags" % (good, len(tags))
             else:
                 status = "no    tags"
             self.verbose_status(query, cached, status)
 
-        # genres
-        genres = taglib.top_genres(self.conf.args.tag_limit)
-        self.stats.genres.update(genres)
-        if not genres:
-            self.stat_message(logging.ERROR, 'No genres found', metadata.path)
-        for group in ['artist', 'album']:
-            if group not in taglib.taggrps:
-                self.stat_message(logging.INFO, 'No %s tags' % group,
-                                  metadata.path, False)
-
-        # releasetype
-        if taglib.releasetype:
-            taglib.releasetype = taglib.format(taglib.releasetype)
-            self.stats.reltyps[taglib.releasetype] += 1
-        elif self.conf.args.tag_release:
-            self.stat_message(logging.ERROR, 'No releasetype found',
-                              metadata.path)
-
-        return genres, taglib.releasetype
+        return taglib.get_genres(), taglib.get_releasetype()
 
     def create_queries(self, metadata):
         '''Create queries for all DataProviders based on metadata.'''
@@ -332,93 +315,118 @@ class WhatLastGenre(object):
 
 
 class TagLib(object):
-    '''Class to keep tag information (tags with name and score from
-    different types).
-    '''
+    '''Class to handle tags.'''
 
-    def __init__(self, wlg, various):
+    def __init__(self, wlg, path, various):
         self.wlg = wlg
-        self.log = wlg.log
+        self.path = path
         self.various = various
-        self.taggrps = {}
+        self.log = logging.getLogger(__name__)
+        self.taggrps = {'artist': defaultdict(float),
+                        'album': defaultdict(float)}
         self.releasetype = None
 
-    def add(self, query, tags, split=False):
+    def add(self, tags, group, split=False):
         '''Add scored tags to a group of tags.
 
-        Return the number of tags processed and added.
+        Return the number of good (used) tags.
 
-        :param query: query object
-        :param tags: dict of tag names and tag counts
+        :param tags: dict of tag names and tag scores
+        :param group: name of the tag group (artist or album)
         :param split: was split already
         '''
-        tags = self.score(tags, query.score)
-        tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
-        tags = tags[:99]
-        added = 0
-        for key, val in tags:
-            key = key.lower().strip()
-            if len(key) < 3:
-                continue
+        good = 0
+        for key, val in tags.iteritems():
+
             # resolve if not whitelisted
             if key not in self.wlg.whitelist:
                 key = self.resolve(key)
+
             # split if wasn't yet
-            if not split and not ('&' in key and key in self.wlg.whitelist):
-                parts = self.split(key)
-                if parts and len(parts) < 6 and all(len(p) > 3 for p in parts):
-                    _, add = self.add(query, {p: val for p in parts}, True)
-                    if add:
-                        added += add
-                        val *= self.wlg.conf.getfloat('scores', 'splitup')
-                        self.log.debug("tag split   %s -> %s",
-                                       key, ', '.join(parts))
+            splitgood = 0
+            if not split:
+                splitgood, base = self.split(key, val, group)
+                if splitgood:
+                    good += 1
+                    val = base
+
+            # filter unscored
+            if val < .001:
+                self.log.debug('tag noscore %s', key)
+                continue
+
+            self.log.debug('tag score   %s %.3f', key, val)
+
             # filter
             if key not in self.wlg.whitelist:
-                self.log.debug("tag filter  %s", key)
+                self.log.debug('tag filter  %s', key)
                 continue
+
+            # was not good for splitting, but still good for itself
+            # avoid counting as good multiple times due to splitting
+            if not splitgood:
+                good += 1
+
             # add
-            if query.type not in self.taggrps:
-                self.taggrps[query.type] = defaultdict(float)
-            self.taggrps[query.type][key] += val
-            added += 1
-            self.log.debug("tag add     %s", key)
-        return len(tags), added
+            self.taggrps[group][key] += val
+            self.log.debug('tag add     %s', key)
+
+        return good
 
     def score(self, tags, scoremod):
-        '''Adjusts the score of a dict of tags using a scoremod.'''
-        any_ = any(tags.itervalues())
-        max_ = max(tags.itervalues())
-        for key, val in tags.iteritems():
-            if any_:  # tags with counts
-                tags[key] = val * max_ ** -1 * scoremod
-            else:  # tags without counts
-                tags[key] = max(0.1, .85 ** (len(tags) - 1) * scoremod)
-            # apply user bonus
-            if key in self.wlg.tagsfile['love']:
-                tags[key] *= 2.0
-            elif key in self.wlg.tagsfile['hate']:
-                tags[key] *= 0.5
+        '''Score tags taking a scoremod into account.'''
+        if not tags:
+            return tags
+
+        # tags with counts
+        if any(tags.itervalues()):
+            max_ = max(tags.itervalues()) * scoremod
+            tags = {k: v / max_ for k, v in tags.iteritems()}
+
+        # tags without counts
+        else:
+            val = max(.1, .85 ** (len(tags) - 1)) * scoremod
+            tags = {k: val for k in tags.iterkeys()}
+
+        self.log.debug('tagscoring: num=%d, min=%.3f, max=%.3f, avg=%.3f',
+                       len(tags), min(tags.itervalues()),
+                       max(tags.itervalues()),
+                       sum(tags.itervalues()) / len(tags))
+
         return tags
 
     def resolve(self, key):
         '''Try to resolve a tag to a valid whitelisted tag by using
         aliases, regex replacements and optional difflib matching.
         '''
+
+        def alias(key):
+            '''Return whether a key got an alias and log it if True.'''
+            if key in self.wlg.tagsfile['aliases']:
+                self.log.debug('tag alias   %s -> %s', key,
+                               self.wlg.tagsfile['aliases'][key])
+                return True
+            return False
+
         # alias
-        if key in self.wlg.tagsfile['aliases']:
-            self.log.debug("tag alias   %s -> %s", key,
-                           self.wlg.tagsfile['aliases'][key])
+        if alias(key):
             return self.wlg.tagsfile['aliases'][key]
+
         # regex
         if any(r[0].search(key) for r in self.wlg.tagsfile['regex']):
             for pat, repl in self.wlg.tagsfile['regex']:
                 if pat.search(key):
                     key_ = key
                     key = pat.sub(repl, key)
-                    self.log.debug("tag replace %s -> %s (%s)",
+                    self.log.debug('tag replace %s -> %s (%s)',
                                    key_, key, pat.pattern)
+
+            # key got replaced, try alias again
+            if alias(key):
+                return self.wlg.tagsfile['aliases'][key]
+
             return key
+
         # match
         if self.wlg.conf.args.difflib:
             match = difflib.get_close_matches(key, self.wlg.whitelist, 1, .92)
@@ -428,22 +436,61 @@ class TagLib(object):
                     '%s = %s' % (key, match[0]))
                 self.log.debug('tag match   %s -> %s', key, match[0])
                 return match[0]
+
         return key
 
-    @classmethod
-    def split(cls, key):
-        '''Split a tag into all possible subtags.'''
-        if len(key) < 7:
-            return None
+    def split(self, key, val, group):
+        '''Split a tag into its parts and add them.'''
         keys = []
+        good = 0
+        base = val
+        flag = True
+        # some exceptions (move dontsplit to tagsfile if it gets longer)
+        dontsplit = ['vanity house']
+
         if '/' in key:  # all delimiters got replaced with / earlier
-            keys = key.split('/')
-        elif ' ' in key:
-            parts = key.split(' ')
-            for i in range(1, len(parts) - 1):
-                for combi in itertools.combinations(parts, len(parts) - i):
-                    keys.append(' '.join(combi))
-        return [k for k in keys if len(k) > 2]
+            keys = [k.strip() for k in key.split('/') if len(k.strip()) > 2]
+            flag = False
+
+        elif ' ' in key and key not in dontsplit \
+                and not (key in self.wlg.whitelist
+                         and ('&' in key or key.startswith('nu '))):
+            keys = [k.strip() for k in key.split(' ') if len(k.strip()) > 2]
+            if len(keys) > 2:
+                # build all combinations with length 1 to 3, requires
+                # at least 3 words, permutations would be overkill
+                combis = []
+                for length in range(1, min(4, len(keys))):
+                    for combi in itertools.combinations(keys, length):
+                        combis.append(' '.join(combi))
+                keys = combis
+            base = val * self.wlg.conf.getfloat('scores', 'splitup')
+
+        elif '-' in key and key not in self.wlg.whitelist:
+            keys = [k.strip() for k in key.split('-') if len(k.strip()) > 2]
+
+        # add the parts
+        if keys:
+            self.log.debug('tag split   %s -> %s', key, ', '.join(keys))
+            good = self.add({k: val * .5 for k in keys}, group, flag)
+
+        return good, base
+
+    def merge(self):
+        '''Merge all tag groups using different score modifiers.'''
+        mergedtags = defaultdict(float)
+        for group, tags in self.taggrps.iteritems():
+            if not tags:
+                continue
+            scoremod = 1
+            if group == 'artist':
+                if self.various:
+                    group = 'various'
+                scoremod = self.wlg.conf.getfloat('scores', group)
+            max_ = max(tags.itervalues())
+            for key, val in tags.iteritems():
+                mergedtags[key] += val / max_ * scoremod
+        return mergedtags
 
     def format(self, key):
         '''Format a tag to correct case.'''
@@ -456,40 +503,70 @@ class TagLib(object):
                 words[i] = word.title()
         return ' '.join(words)
 
-    def merge(self):
-        '''Merge all tag groups using different score modifiers.'''
-        tags = defaultdict(float)
-        for key, val in self.taggrps.iteritems():
-            scoremod = 1
-            if key == 'artist':
-                if self.various:
-                    key = 'various'
-                scoremod = self.wlg.conf.getfloat('scores', key)
-            max_ = max(val.itervalues())
-            for key, val_ in val.iteritems():
-                tags[key] += val_ / max_ * scoremod
+    def get_genres(self):
+        '''Return the formatted names of the limited top genres.
+
+        Record messages in the stats if appropriated.
+        '''
+        for group in ['artist', 'album']:
+            if not self.taggrps[group]:
+                self.wlg.stat_message(
+                    logging.INFO, 'No %s tags' % group, self.path, 1)
+
+        # merge taggroups
+        tags = self.merge()
+
+        if not tags:
+            self.wlg.stat_message(
+                logging.ERROR, 'No genres found', self.path, 1)
+            return None
+
+        # apply user score bonus
+        for key in tags.iterkeys():
+            if key in self.wlg.tagsfile['love']:
+                tags[key] *= 2.0
+            elif key in self.wlg.tagsfile['hate']:
+                tags[key] *= 0.5
+
+        # sort, limit and format
+        tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
+        tags = tags[:self.wlg.conf.args.tag_limit]
+        tags = [self.format(k) for k, _ in tags]
+
+        self.log.info(self)
+        self.wlg.stats.genres.update(tags)
+
         return tags
 
-    def top_genres(self, limit=4):
-        '''Return the formated names of the top genre tags by score,
-        limited to a set number of genres.
-        '''
-        self.verboseinfo()
-        tags = self.merge()
-        tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
-        return [self.format(k) for k, _ in tags[:limit]]
+    def get_releasetype(self):
+        '''Return the formatted releasetype.
 
-    def verboseinfo(self):
-        '''Prints out some verbose info about the TagLib.'''
-        if self.log.level > logging.INFO:
+        Record an error in the stats if appropriated.
+        '''
+        if not self.releasetype:
+            if self.wlg.conf.args.tag_release:
+                self.wlg.stat_message(
+                    logging.ERROR, 'No releasetype found', self.path, 1)
             return None
-        for key, val in self.taggrps.iteritems():
-            val = {self.format(k): v for k, v in val.iteritems() if v > 0.1}
-            val = sorted(val.iteritems(), key=operator.itemgetter(1),
-                         reverse=1)
-            val = val[:12 if self.log.level > logging.DEBUG else 24]
-            self.log.info("Best %-6s genres (%d):", key, len(val))
-            self.log.info(tag_display(val, "%4.2f %-20s"))
+
+        releasetype = self.releasetype
+        self.wlg.stats.reltyps[releasetype] += 1
+
+        return releasetype
+
+    def __str__(self):
+        strs = []
+        for group, tags in self.taggrps.iteritems():
+            if not tags:
+                continue
+            max_ = max(tags.itervalues())
+            tags = {self.format(k): v / max_ for k, v in tags.iteritems()
+                    if v / max_ >= .01}
+            tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
+                          reverse=1)
+            strs.append(u'Best %-6s genres (%d):' % (group, len(tags)))
+            strs.append(tag_display(tags[:9], u'%4.2f %-20s'))
+        return u'\n'.join(strs)
 
 
 class Config(ConfigParser.SafeConfigParser):
