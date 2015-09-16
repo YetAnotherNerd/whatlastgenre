@@ -52,15 +52,17 @@ class WhatLastGenre(object):
     '''Main class featuring a docstring that needs to be written.'''
 
     def __init__(self, args, whitelist=None):
+        self.conf = Config(args)
+
         self.log = logging.getLogger('wlg')
         self.log.setLevel(30 - 10 * args.verbose)
         self.log.addHandler(logging.StreamHandler(sys.stdout))
-        self.log.debug("args: %s\n", args)
+        self.log.debug('args:   %s', vars(args))
+        self.log.debug('config: %s\n', self.conf.fullpath)
 
         self.stats = Stats(time=time.time(), errors=defaultdict(list),
                            genres=Counter(), reltyps=Counter(),
                            difflib=defaultdict())
-        self.conf = Config(args)
 
         # dataproviders
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
