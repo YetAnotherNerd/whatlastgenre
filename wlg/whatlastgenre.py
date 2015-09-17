@@ -72,8 +72,8 @@ class WhatLastGenre(object):
         # validate tag_release arg
         if self.conf.args.tag_release \
                 and 'whatcd' not in self.conf.get_list('wlg', 'sources'):
-            print("Can't tag release with What.CD support disabled. "
-                  "Release tagging disabled.\n")
+            self.log.warn('Can\'t tag release with What.CD support disabled. '
+                          'Release tagging disabled.\n')
             self.conf.args.tag_release = False
 
         # validate aliases
@@ -109,7 +109,7 @@ class WhatLastGenre(object):
         tagsfile.readfp(StringIO.StringIO(tfstr))
         for sec in ['upper', 'alias', 'regex']:
             if not tagsfile.has_section(sec):
-                print("Got no [%s] from tags.txt file." % sec)
+                self.log.critical('Got no [%s] from tags.txt file.', sec)
                 exit()
         # regex replacements
         regex = []  # list of tuples instead of dict because order matters
@@ -208,7 +208,7 @@ class WhatLastGenre(object):
         artists = metadata.artists
         num_artists = len(set(artists))
         if num_artists > 42:
-            print("Too many artists for va-artist search")
+            self.log.warn('Too many artists for va-artist search')
             artists = []
         albumartist = searchstr(metadata.albumartist[0])
         album = searchstr(metadata.album)
@@ -532,7 +532,8 @@ class Config(ConfigParser.SafeConfigParser):
                 cor = ["large: setting to max", rng[1]]
             else:
                 continue
-            print("%s option too %s value of %.2f." % (opt, cor[0], cor[1]))
+            logging.getLogger(__name__).warn(
+                '%s option too %s value of %.2f.', opt, cor[0], cor[1])
             self.set(sec, opt, str(cor[1]))
             dirty = True
         # save
