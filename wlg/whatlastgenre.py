@@ -99,7 +99,7 @@ class WhatLastGenre(object):
                 self.whitelist.add(line)
 
         if not self.whitelist:
-            self.log.error("error: empty whitelist: %s", path)
+            self.log.critical('empty whitelist: %s', path)
             exit()
 
     def read_tagsfile(self):
@@ -181,8 +181,7 @@ class WhatLastGenre(object):
             # unique result
             res = results[0]
             query.dapr.stats['results'] += 1
-            if 'releasetype' in res and res['releasetype']\
-                    and self.conf.args.tag_release:
+            if 'releasetype' in res and res['releasetype']:
                 taglib.releasetype = res['releasetype']
             if 'tags' in res and res['tags']:
                 found, added = taglib.add(query, res['tags'])
@@ -257,7 +256,7 @@ class WhatLastGenre(object):
         for res in results:
             if 'tags' in res and res['tags']:
                 for key, val in res['tags'].iteritems():
-                    tags[key] += val / len(results)
+                    tags[key] += val
         result = {'tags': tags}
         reltyps = [r['releasetype'] for r in results if 'releasetype' in r]
         if len(set(reltyps)) == 1:
@@ -305,7 +304,7 @@ class WhatLastGenre(object):
             dataprovider.DataProvider.print_stats(self.daprs)
         # time
         diff = time.time() - self.stats.time
-        print("\nTime elapsed: %s (%s per folder)"
+        print("\nTime elapsed: %s (%s per folder)\n"
               % (timedelta(seconds=diff),
                  timedelta(seconds=diff / num_folders)))
 
@@ -569,18 +568,18 @@ def tag_display(tags, pattern):
     :param pattern: should not exceed (80-2)/3 = 26 chars length.
     '''
     len_ = int(math.ceil(len(tags) / 3))
-    lines = [' '.join([pattern % tuple(reversed(tags[i]))
-                       for i in [l + len_ * j for j in range(3)]
-                       if i < len(tags)]) for l in range(len_)]
-    return '\n'.join(lines).encode('utf-8')
+    lines = [u' '.join([pattern % tuple(reversed(tags[i]))
+                        for i in [l + len_ * j for j in range(3)]
+                        if i < len(tags)]) for l in range(len_)]
+    return u'\n'.join(lines).encode('utf-8')
 
 
 def ask_user(query, results):
     '''Ask the user to choose from a list of results.'''
     print("%-8s %-6s got    %2d results. Which is it?"
           % (query.dapr.name, query.type, len(results)))
-    for i, dat in enumerate(results, start=1):
-        info = dat['info'].encode(sys.stdout.encoding, errors='replace')
+    for i, result in enumerate(results, start=1):
+        info = result['info'].encode(sys.stdout.encoding, errors='replace')
         print("#%2d: %s" % (i, info))
     while True:
         try:
@@ -651,7 +650,7 @@ def get_args():
     '''Get the cmdline arguments from ArgumentParser.'''
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='Improves genre metadata of audio files '
+        description='Improve genre metadata of audio files '
                     'based on tags from various music sites.')
     parser.add_argument('path', nargs='+',
                         help='folder(s) to scan for albums')
@@ -694,7 +693,7 @@ def main():
             print_progressbar(i, len(folders))
             print(path)
             work_folder(wlg, path)
-        print("\n...all done!")
+        print('\n...all done!')
     except KeyboardInterrupt:
         print()
     wlg.print_stats(i)

@@ -27,7 +27,6 @@ import os.path
 import re
 
 import mutagen
-from mutagen.id3 import ID3
 
 
 Metadata = namedtuple(
@@ -35,7 +34,7 @@ Metadata = namedtuple(
                  'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])
 
 # supported extensions
-EXTENSIONS = ['.mp3', '.flac', '.ogg', '.m4a']
+EXTENSIONS = ['.flac', '.ogg', '.mp3', '.m4a']
 
 # regex pattern for 'Various Artist'
 VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
@@ -214,7 +213,8 @@ class Track(object):
                 del self.muta[key]
                 self.dirty = True
             return
-        val = val if isinstance(val, list) else [val]
+        if not isinstance(val, list):
+            val = [val]
         # check for change
         old = [o if isinstance(o, unicode) else o.decode('utf-8')
                for o in self.muta.get(key, [])]
@@ -237,6 +237,7 @@ class Track(object):
             self.muta.save()
             # downgrade id3 v2.4 tags to v2.3 if separator is set
             if self.ext == 'mp3' and self.v23sep:
+                from mutagen.id3 import ID3
                 audio = ID3(self.fullpath, v2_version=3)
                 audio.save(v2_version=3, v23_sep=self.v23sep + ' ')
             # preserve modtime
