@@ -729,12 +729,15 @@ def work_directory(wlg, path):
         album.save()
 
 
-def print_progressbar(current, total):
-    '''Print the progressbar.'''
-    print("\n(%2d/%d) [" % (current, total),
-          '#' * int(60 * current / total),
-          '-' * int(60 * (1 - current / total)),
-          "] %2.0f%%" % (100 * current / total), sep='')
+def progressbar(current, total):
+    '''Return a progressbar string.'''
+    size = 60
+    prog = current / total
+    done = int(size * prog)
+    return u'(%2d/%d) [' % (current, total) \
+        + u'#' * done \
+        + u'-' * (size - done) \
+        + u'] %2.0f%%' % math.floor(100 * prog)
 
 
 def get_args():
@@ -782,7 +785,7 @@ def main():
     i = len(dirs)
     try:  # main loop
         for i, path in enumerate(sorted(dirs), start=1):
-            print_progressbar(i, len(dirs))
+            print('\n' + progressbar(i, len(dirs)))
             print(path)
             work_directory(wlg, path)
         print('\n...all done!')
