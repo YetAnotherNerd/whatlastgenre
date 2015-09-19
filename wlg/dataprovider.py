@@ -269,6 +269,15 @@ class DataProvider(object):
             self.log.debug(res.text)
             raise DataProviderError("json request: %s" % err.message)
 
+    def _prefilter_results(self, results, name, value, func):
+        '''Try to prefilter results.'''
+        res = [r for r in results if func(r) == value]
+        if res and len(res) < len(results):
+            self.log.info('prefilter %d of %d results by %s',
+                          len(results) - len(res), len(results), name)
+            results = res
+        return results
+
     def cached_query(self, query):
         '''Perform a cached DataProvider query.'''
         cachekey = query.artist
@@ -315,17 +324,6 @@ class DataProvider(object):
             if not res:
                 res = self.query_album(query.album, query.artist,
                                        query.year, query.releasetype)
-                # prefilter by album year
-                if res and len(res) > 1 and query.year:
-                    year = int(query.year)
-                    for i in range(4):
-                        tmp = [r for r in res if 'year' in r
-                               and abs(int(r['year']) - year) <= i]
-                        if tmp and len(tmp) < len(res):
-                            self.log.info("prefiltered %d of %d res by year",
-                                          len(res) - len(tmp), len(res))
-                            res = tmp
-                            break
 
         return res
 
@@ -424,33 +422,35 @@ class WhatCD(DataProvider):
 
         res = res['results']
 
+        # prefilter by snatched
+        # make sure to enable "Enable snatched torrents indicator" in
+        # your whatcd profile settings
+        if len(res) > 1:
+            res = self._prefilter_results(
+                res, 'snatched', True, lambda x: any(t['hasSnatched']
+                                                     for t in x['torrents']))
+
         # prefilter by reltyp
         if len(res) > 1 and reltyp:
-            tmp = [r for r in res if r.get('releaseType', '').lower()
-                   == reltyp.lower()]
-            if tmp and len(tmp) < len(res):
-                self.log.info("prefiltered %d of %d results by reltyp",
-                              len(res) - len(tmp), len(res))
-                res = tmp
+            res = self._prefilter_results(
+                res, 'releasetype', reltyp.lower(),
+                lambda x: x.get('releaseType', '').lower())
 
-        # prefilter by snatched
-        if len(res) > 1:
-            tmp = [r for r in res if r.get('hasSnatched', False)]
-            if tmp and len(tmp) < len(res):
-                self.log.info("prefiltered %d of %d results by snatched",
-                              len(res) - len(tmp), len(res))
-                res = tmp
+        # prefilter by year
+        if len(res) > 1 and year:
+            res = self._prefilter_results(
+                res, 'year', int(year), lambda x: int(x.get('groupYear', 0)))
 
         results = []
         for res_ in res:
             tags = {t.replace('.', ' '): 0 for t in res_['tags']}
             result = {'tags': tags, 'releasetype': res_['releaseType']}
             if len(res) > 1:
-                info = ('%s - %s (%s) [%s]: https://what.cd/torrents.php?id=%s'
-                        % (res_['artist'], res_['groupName'],
-                           res_['groupYear'], res_['releaseType'],
-                           res_['groupId']))
-                result.update({'info': info, 'year': res_['groupYear']})
+                info = \
+                    '%s - %s (%s) [%s]: https://what.cd/torrents.php?id=%s' \
+                    % (res_['artist'], res_['groupName'], res_['groupYear'],
+                       res_['releaseType'], res_['groupId'])
+                result.update({'info': info})
             results.append(result)
 
         return results
