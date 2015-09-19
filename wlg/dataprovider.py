@@ -37,8 +37,7 @@ try:  # use optional requests_cache if available
     requests_cache.install_cache(
         os.path.expanduser('~/.whatlastgenre/reqcache'),
         expire_after=180 * 24 * 60 * 60,
-        allowable_methods=('GET', 'POST'),
-        old_data_on_error=True)
+        allowable_methods=('GET', 'POST'))
 except ImportError:
     requests_cache = None
 
