@@ -43,11 +43,11 @@ tag gets a score of `1.0`, a tag having only half of the top tag's count gets
 a score of `0.5` and so on.
 
 ##### Tag scoring without count (What.CD, Discogs, EchoNest)
-Tags supplied without a count will be scored `max(0.1, 0.85^(n-1))`, where `n`
+Tags supplied without a count will be scored `max(1/3, 0.85^(n-1))`, where `n`
 is the total number of tags supplied by this source. The more tags the lower
 the score for each tag will be. So if only one tag is supplied, it will get a
 score of `1.0`, two tags will get a score of `0.85` each and so on. The minimum
-score is `0.1`, which applies if there are more than 15 tags supplied.
+score is `1/3`, which applies if there are more than 7 tags supplied.
 
 ##### Tag merging of artist and album tags
 After all tags have been gathered the scores of album and artist tags will be

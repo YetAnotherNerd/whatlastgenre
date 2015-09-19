@@ -384,7 +384,7 @@ class TagLib(object):
 
         # tags without counts
         else:
-            val = max(.1, .85 ** (len(tags) - 1)) * scoremod
+            val = max(1 / 3, .85 ** (len(tags) - 1)) * scoremod
             tags = {k: val for k in tags.iterkeys()}
 
         self.log.debug('tagscoring: num=%d, min=%.3f, max=%.3f, avg=%.3f',
