@@ -15,7 +15,11 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-'''whatlastgenre dataprovider'''
+'''whatlastgenre dataprovider
+
+Contains classes for requesting genre data from APIs of some
+music related sites (DataProviders) and a Cache for those.
+'''
 
 from __future__ import division, print_function
 
@@ -48,9 +52,7 @@ HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 
 
 class Cache(object):
-    '''Load and save a dict as json from/into a file for some
-    speedup.
-    '''
+    '''Load/save a dict as json from/to a file.'''
 
     def __init__(self, path, update_cache):
         self.fullpath = os.path.join(path, 'cache')
@@ -59,6 +61,8 @@ class Cache(object):
         self.time = time.time()
         self.dirty = False
         self.cache = {}
+        # this new set is to avoid doing the same query multiple
+        # times during the same run while using update_cache
         self.new = set()
         try:
             with open(self.fullpath) as file_:
@@ -70,7 +74,9 @@ class Cache(object):
         self.save()
 
     def get(self, key):
-        '''Return a (time, value) data tuple for a given key.'''
+        '''Return a (time, value) tuple for a given key
+        or None if the key wasn't found.
+        '''
         key = str(key)
         if key in self.cache \
                 and time.time() < self.cache[key][0] + self.expire_after \
@@ -104,8 +110,9 @@ class Cache(object):
 
     def save(self):
         '''Save the cache dict as json string to a file.
-        Clean expired entries before saving and use a tempfile to
-        avoid data loss on interruption.
+
+        Clean expired entries before saving and use a temporary
+        file to avoid data loss on interruption.
         '''
         if not self.dirty:
             return

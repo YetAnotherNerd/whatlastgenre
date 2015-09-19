@@ -15,7 +15,10 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-'''whatlastgenre mediafile'''
+'''whatlastgenre mediafile
+
+Read and write metadata of audio files using mutagen.
+'''
 
 from __future__ import print_function
 
@@ -42,7 +45,7 @@ VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
 
 def find_music_folders(paths):
-    '''Scan paths for folders containing music files.'''
+    '''Scan paths for folders containing supported music files.'''
     folders = []
     for path in paths:
         for root, _, files in os.walk(path):
@@ -232,7 +235,7 @@ class Track(object):
             return False
         try:
             self.muta.save()
-            # downgrade v2.4 id3 tags to v2.3 if separator
+            # downgrade id3 v2.4 tags to v2.3 if separator is set
             if self.ext == 'mp3' and self.v23sep:
                 audio = ID3(self.fullpath, v2_version=3)
                 audio.save(v2_version=3, v23_sep=self.v23sep + ' ')

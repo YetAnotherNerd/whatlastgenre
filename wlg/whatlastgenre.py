@@ -15,7 +15,10 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-'''whatlastgenre'''
+'''whatlastgenre
+
+https://github.com/YetAnotherNerd/whatlastgenre
+'''
 
 from __future__ import division, print_function
 
@@ -59,12 +62,14 @@ class WhatLastGenre(object):
                            difflib=defaultdict())
         self.conf = Config(args)
 
+        # dataproviders
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
 
+        # whitelist and tagsfile
         self.read_whitelist(whitelist)
         self.read_tagsfile()
 
-        # validate settings
+        # validate tag_release arg
         if self.conf.args.tag_release \
                 and 'whatcd' not in self.conf.get_list('wlg', 'sources'):
             print("Can't tag release with What.CD support disabled. "
@@ -162,7 +167,7 @@ class WhatLastGenre(object):
                 if len(set(reltyps)) != 1:  # all the same anyway
                     results = ask_user(query, results)
 
-            # merge_results all tags from multiple results
+            # merge multiple results
             if len(results) in range(2, 6):
                 results = self.merge_results(results)
 
@@ -188,9 +193,11 @@ class WhatLastGenre(object):
                 status = "no    tags"
             self.verbose_status(query, cached, status)
 
+        # genres
         genres = taglib.top_genres(self.conf.args.tag_limit)
         self.stats.genres.update(genres)
 
+        # releasetype
         if taglib.releasetype:
             taglib.releasetype = taglib.format(taglib.releasetype)
             self.stats.reltyps[taglib.releasetype] += 1
@@ -245,7 +252,7 @@ class WhatLastGenre(object):
 
     @classmethod
     def merge_results(cls, results):
-        '''Merge the tags of multiple results.'''
+        '''Merge multiple results.'''
         tags = defaultdict(float)
         for res in results:
             if 'tags' in res and res['tags']:
@@ -258,7 +265,7 @@ class WhatLastGenre(object):
         return [result]
 
     def verbose_status(self, query, cached, status):
-        '''Return a string for status printing.'''
+        '''Log a status line in verbose mode.'''
         qry = query.artist
         if query.type == 'album':
             qry += ' ' + query.album
@@ -268,18 +275,18 @@ class WhatLastGenre(object):
 
     def print_stats(self, num_folders):
         '''Print some statistics.'''
-        # genre tag statistics
+        # genres
         if self.stats.genres:
             tags = self.stats.genres.most_common()
             print("\n%d different tags used this often:" % len(tags))
             print(tag_display(tags, "%4d %-20s"))
-        # releasetype statistics
+        # releasetypes
         if self.conf.args.tag_release and self.stats.reltyps:
             reltyps = self.stats.reltyps.most_common()
             print("\n%d different releasetypes used this often:"
                   % len(reltyps))
             print(tag_display(reltyps, "%4d %-20s"))
-        # errors/messages
+        # errors
         if self.stats.errors:
             print("\n%d album(s) with errors:"
                   % sum(len(x) for x in self.stats.errors.itervalues()))
@@ -287,13 +294,13 @@ class WhatLastGenre(object):
                                          key=lambda x: len(x[1]), reverse=1):
                 print("  %s:\n    %s"
                       % (error, '\n    '.join(sorted(folders))))
-        # difflib stats
+        # difflib
         if self.stats.difflib:
             print("\ndifflib found %d tags:" % len(self.stats.difflib))
             for key, val in self.stats.difflib.iteritems():
                 print("%s = %s" % (key, val))
             print("You should add them as aliases (if correct) to tags.txt.")
-        # dataprovider stats
+        # dataprovider
         if self.log.level <= logging.INFO:
             dataprovider.DataProvider.print_stats(self.daprs)
         # time
@@ -377,6 +384,7 @@ class TagLib(object):
         '''Try to resolve a tag to a valid whitelisted tag by using
         aliases, regex replacements and optional difflib matching.
         '''
+        # alias
         if key in self.wlg.tagsfile['aliases']:
             self.log.debug("tag alias   %s -> %s", key,
                            self.wlg.tagsfile['aliases'][key])
@@ -464,7 +472,7 @@ class TagLib(object):
 class Config(ConfigParser.SafeConfigParser):
     '''Read, maintain and write the configuration file.'''
 
-    # [section, option, default, required, [min, max]]
+    # (section, option, default, required, (min, max))
     conf = [('wlg', 'sources', 'whatcd, lastfm, mbrainz', 1, ()),
             ('wlg', 'whatcduser', '', 0, ()),
             ('wlg', 'whatcdpass', '', 0, ()),
@@ -590,8 +598,9 @@ def ask_user(query, results):
 
 def work_folder(wlg, path):
     '''Create an Album object for a folder given by path to read and
-    write metadata from/to. Query top genre tags by album metadata,
-    update metadata with results and save the album and its tracks.'''
+    write metadata from/to.  Query top genre tags by album metadata,
+    update metadata with results and save the album (its tracks).
+    '''
     # create album object to read and write metadata
     try:
         album = mediafile.Album(path, wlg.conf.get('wlg', 'id3v23sep'))
@@ -667,7 +676,7 @@ def main():
     '''main function of whatlastgenre.
 
     Get arguments, set up WhatLastGenre object, search for music
-    folders, run the main loop on them and prints out some statistics.
+    folders, run the main loop on them and print out some statistics.
     '''
     print("whatlastgenre v%s\n" % __version__)
 
