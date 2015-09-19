@@ -20,6 +20,7 @@
 from __future__ import division, print_function
 
 from collections import defaultdict
+from datetime import timedelta
 import json
 import logging
 import operator
@@ -36,7 +37,7 @@ try:  # use optional requests_cache if available
     import requests_cache
     requests_cache.install_cache(
         os.path.expanduser('~/.whatlastgenre/reqcache'),
-        expire_after=180 * 24 * 60 * 60,
+        expire_after=timedelta(days=180),
         allowable_codes=(200, 404),
         allowable_methods=('GET', 'POST'))
 except ImportError:
@@ -54,7 +55,7 @@ class Cache(object):
     def __init__(self, path, update_cache):
         self.fullpath = os.path.join(path, 'cache')
         self.update_cache = update_cache
-        self.expire_after = 180 * 24 * 60 * 60
+        self.expire_after = timedelta(days=180).total_seconds()
         self.time = time.time()
         self.dirty = False
         self.cache = {}
