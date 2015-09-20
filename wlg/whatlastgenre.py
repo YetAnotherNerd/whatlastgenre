@@ -596,7 +596,27 @@ class Config(ConfigParser.SafeConfigParser):
         if not os.path.exists(self.path):
             os.makedirs(self.path)
         self.fullpath = os.path.join(self.path, 'config')
+
+        # create default config if necessary
+        if not os.path.exists(self.fullpath):
+            self.create_default_config()
+
         self.read(self.fullpath)
+
+    def create_default_config(self):
+        '''Create a default configuration file.'''
+
+        for sec, opt, val in self.conf:
+            if not self.has_section(sec):
+                self.add_section(sec)
+            self.set(sec, opt, str(val))
+
+        # write config file
+        with open(self.fullpath, 'w') as file_:
+            self.write(file_)
+
+        print('Please edit your config file: %s' % self.fullpath)
+        exit()
 
     def get_list(self, sec, opt):
         '''Gets a csv-string as list.'''
