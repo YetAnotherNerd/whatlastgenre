@@ -196,7 +196,7 @@ albums from one artist get more equal tags.
 
 `<artist tags> * <artist score> + <album tags>`
 
-Default `1.33`, Range `0.5 - 2.0`
+Default `1.33`
 * `< 1.0` prefer album tags
 * `= 1.0` handle them equally
 * `> 1.0` prefer artist tags
@@ -210,7 +210,7 @@ artist B will get tags like this:
 
 `(3 * <artist A tags> + 2 * <artist B tags>) * <various score> + <album tags>`
 
-Default `0.66`, Range `0.1 - 1.0`
+Default `0.66`
 * `< 1.0` prefer album tags
 * `= 1.0` handle them equally
 
@@ -218,7 +218,7 @@ Default `0.66`, Range `0.1 - 1.0`
 Score multiplier for modifying the score of a tag that got split up by space.
 This enables you to decide whether to keep, lessen or ignore the 'base' tags.
 
-Default `0.33`, Range `0.0 - 1.0`
+Default `0.33`
 * `= 0.0` forget about the base tags
 * `< 1.0` reduce score of base tags
 * `= 1.0` leave score unmodified
@@ -230,7 +230,7 @@ provide bad, inaccurate or personal tags. Increase if you trust the tags from
 a source, lower if the source provides many inaccurate or personal tags. If you
 don't want tags from a specific source remove it from the sources list option.
 
-Default `1.0`, Range `0.5 - 2.0`. See `sources` option above.
+Default `1.0`, see `sources` option above.
 
 
 ## Usage

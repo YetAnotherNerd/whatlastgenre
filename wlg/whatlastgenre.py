@@ -571,25 +571,23 @@ class TagLib(object):
 class Config(ConfigParser.SafeConfigParser):
     '''Read, maintain and write the configuration file.'''
 
-    # (section, option, default, required, (min, max))
-    conf = [('wlg', 'sources',
-             'whatcd, lastfm, discogs, mbrainz, echonest', 1, ()),
-            ('wlg', 'whatcduser', '', 0, ()),
-            ('wlg', 'whatcdpass', '', 0, ()),
-            ('wlg', 'whitelist', '', 0, ()),
-            ('wlg', 'vaqueries', True, 1, ()),
-            ('wlg', 'id3v23sep', '', 0, ()),
-            ('genres', 'love', '', 0, ()),
-            ('genres', 'hate',
-             'alternative, electronic, indie, pop, rock', 0, ()),
-            ('scores', 'artist', '1.33', 1, (0.5, 2.0)),
-            ('scores', 'various', '0.66', 1, (0.1, 1.0)),
-            ('scores', 'splitup', '0.33', 1, (0, 1.0)),
-            ('scores', 'src_whatcd', '1.50', 1, (0.5, 2.0)),
-            ('scores', 'src_lastfm', '0.66', 1, (0.5, 2.0)),
-            ('scores', 'src_discogs', '1.00', 1, (0.5, 2.0)),
-            ('scores', 'src_mbrainz', '0.66', 1, (0.5, 2.0)),
-            ('scores', 'src_echonest', '1.00', 1, (0.5, 2.0))]
+    # (section, option, value)
+    conf = [('wlg', 'sources', 'whatcd, lastfm, discogs, mbrainz, echonest'),
+            ('wlg', 'whatcduser', ''),
+            ('wlg', 'whatcdpass', ''),
+            ('wlg', 'whitelist', ''),
+            ('wlg', 'vaqueries', 'true'),
+            ('wlg', 'id3v23sep', ''),
+            ('genres', 'love', ''),
+            ('genres', 'hate', 'alternative, electronic, indie, pop, rock'),
+            ('scores', 'artist', '1.33'),
+            ('scores', 'various', '0.66'),
+            ('scores', 'splitup', '0.33'),
+            ('scores', 'src_whatcd', '1.50'),
+            ('scores', 'src_lastfm', '0.66'),
+            ('scores', 'src_discogs', '1.00'),
+            ('scores', 'src_mbrainz', '0.66'),
+            ('scores', 'src_echonest', '1.00')]
 
     def __init__(self, args):
         ConfigParser.SafeConfigParser.__init__(self)
