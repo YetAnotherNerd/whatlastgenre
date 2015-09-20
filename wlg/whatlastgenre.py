@@ -599,48 +599,6 @@ class Config(ConfigParser.SafeConfigParser):
             os.makedirs(self.path)
         self.fullpath = os.path.join(self.path, 'config')
         self.read(self.fullpath)
-        self.maintain()
-
-    def maintain(self):
-        '''Maintain the config file.
-
-        Make sure the config file only contains valid options with
-        reasonable values.
-        '''
-        dirty = False
-        # clean up
-        for sec in self.sections():
-            if sec not in set(x[0] for x in self.conf):
-                self.remove_section(sec)
-                dirty = True
-                continue
-            for opt in self.options(sec):
-                if (sec, opt) not in [(x[0], x[1]) for x in self.conf]:
-                    self.remove_option(sec, opt)
-                    dirty = True
-        # add and sanitize
-        for sec, opt, default, req, rng in self.conf:
-            if not self.has_option(sec, opt) or \
-                    req and self.get(sec, opt) == '':
-                if not self.has_section(sec):
-                    self.add_section(sec)
-                self.set(sec, opt, str(default))
-                dirty = True
-                continue
-            if rng and self.getfloat(sec, opt) < rng[0]:
-                cor = ["small: setting to min", rng[0]]
-            elif rng and self.getfloat(sec, opt) > rng[1]:
-                cor = ["large: setting to max", rng[1]]
-            else:
-                continue
-            logging.getLogger(__name__).warn(
-                '%s option too %s value of %.2f.', opt, cor[0], cor[1])
-            self.set(sec, opt, str(cor[1]))
-            dirty = True
-        # save
-        if dirty:
-            with open(self.fullpath, 'w') as file_:
-                self.write(file_)
 
     def get_list(self, sec, opt):
         '''Gets a csv-string as list.'''
