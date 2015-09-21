@@ -68,7 +68,7 @@ See `vaqueries` and `various` options below.
 ##### Multiple value metadata and old ID3 versions
 Mutagen's ID3 API is primary targeted at id3v2.4, so by default any id3 tags
 will be upgraded to 2.4 and saving a file will make it 2.4 as well.
-See [mutagen doc here]
+See [mutagen doc]
 (https://mutagen.readthedocs.org/en/latest/tutorial.html#id3-versions)
 for details.
 However, if you don't want to use v2.4 tags you can use the `id3v23sep` config
@@ -145,13 +145,13 @@ src_echonest = 1.00
 ##### sources option
 The music sites where to get the genre tags from.
 * `whatcd` [[URL](https://what.cd)]
-well-kept tags from community
+well-kept tags from community, requires own account
 * `lastfm` [[URL](http://last.fm)]
 many personal tags from users
 * `discogs` [[URL](http://discogs.com)]
 album only, fixed list of [genres and styles]
 (http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles),
-requires authentication (own account needed)
+requires own account
 * `mbrainz` [[URL](http://musicbrainz.org)]
 home of mbids
 * `echonest` [[URL](http://echonest.com)]
@@ -165,7 +165,7 @@ if empty (default). Make sure the aliases and replacements from
 
 ##### vaqueries option
 Search for all artists if there is no albumartist on albums with various
-artists. This will make queries for va-albums without albumartist take
+artists. This will make queries for va-albums without an albumartist take
 significantly longer, but yields more results. (Default: `True`)
 See `various` score option below.
 
@@ -296,9 +296,8 @@ before reporting it (do a backup first in case it doesn't solve the issue).
 
 #### Mediaplayers and file modification times
 Since file modification times are preserved, some players don't realize the
-changed genre metadata automatically and might require some manual steps.
+changed genre metadata automatically and might require some manual steps, e.g.:
 
-for example
 * mpd: needs rescan instead of normal update to get the mpd database updated.
 
 #### Debug tag handling / Improve tag results
@@ -320,3 +319,5 @@ Another way to find possbile aliases is using the difflib `-d` argument.
 
 
 Please report any bugs and errors, i would like to fix them :)
+
+Thanks to everyone who made suggestions and reported problems <3
