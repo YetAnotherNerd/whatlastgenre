@@ -238,7 +238,7 @@ Default `1.0`, see `sources` option above.
 usage: whatlastgenre [-h] [-v] [-n] [-u] [-l N] [-r] [-i] [-d] path [path ...]
 
 positional arguments:
-  path                 directory(ies) to scan for albums
+  path                 path(s) to scan for albums
 
 optional arguments:
   -h, --help           show this help message and exit

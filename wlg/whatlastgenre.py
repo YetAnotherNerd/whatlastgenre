@@ -669,7 +669,7 @@ def get_args():
         description='Improve genre metadata of audio files '
                     'based on tags from various music sites.')
     parser.add_argument('path', nargs='+',
-                        help='directory(ies) to scan for albums')
+                        help='path(s) to scan for albums')
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help='verbose output (-vv for debug)')
     parser.add_argument('-n', '--dry', action='store_true',
