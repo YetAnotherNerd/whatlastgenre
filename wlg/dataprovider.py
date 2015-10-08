@@ -246,7 +246,6 @@ class DataProvider(object):
         '''
         self._wait_rate_limit()
         time_ = time.time()
-
         try:
             if method == 'POST':
                 res = self.session.post(url, data=params)
@@ -255,18 +254,15 @@ class DataProvider(object):
         except requests.exceptions.RequestException as err:
             self.log.debug(err)
             raise DataProviderError("request: %s" % err.message)
-
         if not getattr(res, 'from_cache', False):
             self.stats['reqs_web'] += 1
             self.stats['time_resp'] += time.time() - time_
             self.last_request = time_
         else:
             self.stats['reqs_lowcache'] += 1
-
         if res.status_code not in [200, 404]:
             raise DataProviderError(
                 'status code %d: %s' % (res.status_code, res.reason))
-
         return res
 
     def _request_json(self, url, params, method='GET'):
@@ -295,32 +291,24 @@ class DataProvider(object):
         '''
         if not tags:
             return tags
-
         # strip and lower case tags
         tags = {k.strip().lower(): v for k, v in tags.iteritems()}
-
         # filter by length
         # 64 is not valid for a single tag, but it could be a
         # composition of tags for splitting
         tags = {k: v for k, v in tags.iteritems() if len(k) in range(2, 64)}
-
         # answer to the ultimate question of life, the universe,
         # the optimal number of considerable tags and everything
         limit = 42
-
         if len(tags) > limit:
-
             if any(tags.itervalues()):  # tags with scores
                 min_val = max(tags.itervalues()) / 3
                 tags = {k: v for k, v in tags.iteritems() if v >= min_val}
                 sort_key = operator.itemgetter(1)  # best tags
-
             else:  # tags without scores
                 sort_key = len  # shortest tags
-
             tags = sorted(tags.iteritems(), key=sort_key, reverse=1)
             tags = {k: v for k, v in tags[:limit]}
-
         return tags
 
     def cached_query(self, query):
@@ -329,21 +317,17 @@ class DataProvider(object):
         if query.type == 'album':
             cachekey += query.album
         cachekey = (self.name.lower(), query.type, cachekey.replace(' ', ''))
-
         # check cache
         res = self.cache.get(cachekey)
         if res:
             self.stats['reqs_cache'] += 1
             return res[1], True
-
         # no cache hit
         res = self.query(query)
         self.cache.set(cachekey, res)
-
         # save cache periodically
         if time.time() - self.cache.time > 600:
             self.cache.save()
-
         return res, False
 
     def query(self, query):
@@ -357,7 +341,6 @@ class DataProvider(object):
                 pass
             if not res:
                 res = self.query_artist(query.artist)
-
         elif query.type == 'album':
             try:  # query by mbid
                 if query.mbid_relgrp:
@@ -369,11 +352,9 @@ class DataProvider(object):
             if not res:
                 res = self.query_album(query.album, query.artist,
                                        query.year, query.releasetype)
-
         # preprocess tags
         for result in res or []:
             result['tags'] = self._preprocess_tags(result['tags'])
-
         return res
 
     def query_artist(self, artist):
@@ -465,12 +446,9 @@ class WhatCD(DataProvider):
         '''Query for album data.'''
         res = self._query({'action': 'browse', 'filter_cat[1]': 1,
                            'artistname': artist, 'groupname': album})
-
         if not res['results']:
             return None
-
         res = res['results']
-
         # prefilter by snatched
         # make sure to enable "Enable snatched torrents indicator" in
         # your whatcd profile settings
@@ -478,18 +456,15 @@ class WhatCD(DataProvider):
             res = self._prefilter_results(
                 res, 'snatched', True, lambda x: any(t['hasSnatched']
                                                      for t in x['torrents']))
-
         # prefilter by reltyp
         if len(res) > 1 and reltyp:
             res = self._prefilter_results(
                 res, 'releasetype', reltyp.lower(),
                 lambda x: x.get('releaseType', '').lower())
-
         # prefilter by year
         if len(res) > 1 and year:
             res = self._prefilter_results(
                 res, 'year', int(year), lambda x: int(x.get('groupYear', 0)))
-
         results = []
         for res_ in res:
             tags = {t.replace('.', ' '): 0 for t in res_['tags']}
@@ -501,7 +476,6 @@ class WhatCD(DataProvider):
                        res_['releaseType'], res_['groupId'])
                 result.update({'info': info})
             results.append(result)
-
         return results
 
     def query_by_mbid(self, entity, mbid):
@@ -523,17 +497,14 @@ class LastFM(DataProvider):
                        'api_key': '54bee5593b60d0a5bf379cedcad79052'})
         result = self._request_json(
             'http://ws.audioscrobbler.com/2.0/', params)
-
         if 'error' in result:
             self.log.debug('%-8s error: %s', self.name, result['message'])
             return None
-
         tags = result['toptags'].get('tag')
         if tags:
             if not isinstance(tags, list):
                 tags = [tags]
             tags = {t['name']: int(t.get('count', 0)) for t in tags}
-
         return [{'tags': tags}]
 
     def query_artist(self, artist):
@@ -566,7 +537,6 @@ class Discogs(DataProvider):
         super(Discogs, self).__init__()
         # http://www.discogs.com/developers/#header:home-rate-limiting
         self.rate_limit = 3.0
-
         # OAuth1 authentication
         import rauth
         discogs = rauth.OAuth1Service(
@@ -575,7 +545,6 @@ class Discogs(DataProvider):
             request_token_url='https://api.discogs.com/oauth/request_token',
             access_token_url='https://api.discogs.com/oauth/access_token',
             authorize_url='https://www.discogs.com/oauth/authorize')
-
         # load access token from file
         token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
         try:
@@ -586,13 +555,11 @@ class Discogs(DataProvider):
         except (IOError, KeyError, ValueError):
             # get request token
             req_token, req_secret = discogs.get_request_token(headers=HEADERS)
-
             # get verifier from user
             print('Discogs requires authentication with your own account.\n'
                   'Disable discogs in the config file or use this link to '
                   'authenticate:\n%s' % discogs.get_authorize_url(req_token))
             verifier = raw_input('Verification code: ')
-
             # get access token
             try:
                 acc_token, acc_secret = discogs.get_access_token(
@@ -601,14 +568,11 @@ class Discogs(DataProvider):
             except KeyError as err:
                 self.log.fatal(err.message)
                 exit()
-
             # save access token to file
             with open(token_file, 'w') as file_:
                 json.dump({'token': acc_token, 'secret': acc_secret}, file_)
-
         self.session = discogs.get_session((acc_token, acc_secret))
         self.session.headers.update(HEADERS)
-
         if requests_cache:  # avoid filling cache with unusable entries
             self.session._is_cache_disabled = True  # pylint: disable=W0212
 
@@ -623,17 +587,14 @@ class Discogs(DataProvider):
             params.update({'artist': artist})
         result = self._request_json(
             'https://api.discogs.com/database/search', params)
-
         if not result['results']:
             return None
-
         # merge all releases and masters
         tags = set()
         for res in result['results']:
             if res['type'] in ['master', 'release']:
                 for key in ['genre', 'style']:
                     tags.update(res.get(key))
-
         return [{'tags': {tag: 0 for tag in tags}}]
 
     def query_by_mbid(self, entity, mbid):
@@ -655,11 +616,9 @@ class MusicBrainz(DataProvider):
         params.update({'fmt': 'json'})
         result = self._request_json(
             'http://musicbrainz.org/ws/2/' + path, params)
-
         if 'error' in result:
             self.log.debug('%-8s error: %s', self.name, result['error'])
             return None
-
         if 'query' in params:
             result = result[path + 's']
             # prefilter by score
@@ -669,7 +628,6 @@ class MusicBrainz(DataProvider):
 
         else:  # by mbid
             result = [result]
-
         return [{'tags': {t['name']: int(t.get('count', 0))
                           for t in r.get('tags', {})}} for r in result]
 
@@ -707,10 +665,8 @@ class EchoNest(DataProvider):
             [('api_key', 'ZS0LNJH7V6ML8AHW3'), ('format', 'json'),
              ('results', 1), ('bucket', 'terms'), ('bucket', 'genre'),
              ('name', artist)])
-
         if not result['response']['artists']:
             return None
-
         result = result['response']['artists'][0]
         terms = {tag['name']: float(tag['weight'] + tag['frequency']) * .5
                  for tag in result['terms']}

@@ -53,30 +53,24 @@ class WhatLastGenre(object):
 
     def __init__(self, args, whitelist=None):
         self.conf = Config(args)
-
         self.log = logging.getLogger('wlg')
         self.log.setLevel(30 - 10 * args.verbose)
         self.log.addHandler(logging.StreamHandler(sys.stdout))
         self.log.debug('args:   %s', vars(args))
         self.log.debug('config: %s\n', self.conf.fullpath)
-
         self.stats = Stats(time=time.time(), messages=defaultdict(list),
                            genres=Counter(), reltyps=Counter())
-
         # dataproviders
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
-
         # whitelist and tagsfile
         self.read_whitelist(whitelist)
         self.read_tagsfile()
-
         # validate tag_release arg
         if self.conf.args.tag_release \
                 and 'whatcd' not in self.conf.get_list('wlg', 'sources'):
             self.log.warn('Can\'t tag release with What.CD support disabled. '
                           'Release tagging disabled.\n')
             self.conf.args.tag_release = False
-
         # validate aliases
         for key, val in self.tagsfile['aliases'].items():
             if val not in self.whitelist:
@@ -92,13 +86,11 @@ class WhatLastGenre(object):
                 wlstr = u'\n'.join([l.decode('utf8') for l in file_])
         else:
             wlstr = pkgutil.get_data('wlg', 'data/genres.txt').decode('utf8')
-
         self.whitelist = set()
         for line in wlstr.split(u'\n'):
             line = line.strip().lower()
             if line and not line.startswith(u'#'):
                 self.whitelist.add(line)
-
         if not self.whitelist:
             self.log.critical('empty whitelist: %s', path)
             exit()
@@ -132,17 +124,14 @@ class WhatLastGenre(object):
         num_artists = 1
         if not metadata.albumartist[0]:
             num_artists = len(set(metadata.artists))
-
         self.log.info("[%s] artist=%s, album=%s, date=%s%s",
                       metadata.type, metadata.albumartist[0], metadata.album,
                       metadata.year, (" (%d artists)" % num_artists
                                       if num_artists > 1 else ''))
-
         taglib = TagLib(self, metadata.path, num_artists > 1)
         for query in self.create_queries(metadata):
             if not query.str:
                 continue
-
             try:
                 results, cached = query.dapr.cached_query(query)
             except NotImplementedError:
@@ -153,7 +142,6 @@ class WhatLastGenre(object):
                                   % (query.dapr.name, query.type, err),
                                   metadata.path, 1)
                 continue
-
             if not results:
                 query.dapr.stats['results_none'] += 1
                 if query.type == 'album' or num_artists == 1:
@@ -162,7 +150,6 @@ class WhatLastGenre(object):
                                       metadata.path)
                 self.verbose_status(query, cached, "no results")
                 continue
-
             # ask user if appropriated
             if len(results) > 1 and self.conf.args.interactive \
                     and self.conf.args.tag_release \
@@ -173,11 +160,9 @@ class WhatLastGenre(object):
                            if 'releasetype' in r]
                 if len(set(reltyps)) != 1:  # all the same anyway
                     results = ask_user(query, results)
-
             # merge multiple results
             if len(results) in range(2, 6):
                 results = self.merge_results(results)
-
             # too many results
             if len(results) > 1:
                 query.dapr.stats['results_many'] += 1
@@ -188,7 +173,6 @@ class WhatLastGenre(object):
                 self.verbose_status(query, cached,
                                     "%2d results" % len(results))
                 continue
-
             # unique result
             res = results[0]
             query.dapr.stats['results'] += 1
@@ -203,7 +187,6 @@ class WhatLastGenre(object):
             else:
                 status = "no    tags"
             self.verbose_status(query, cached, status)
-
         return taglib.get_genres(), taglib.get_releasetype()
 
     def create_queries(self, metadata):
@@ -336,11 +319,9 @@ class TagLib(object):
         '''
         good = 0
         for key, val in tags.iteritems():
-
             # resolve if not whitelisted
             if key not in self.wlg.whitelist:
                 key = self.resolve(key)
-
             # split if wasn't yet
             splitgood = 0
             if not split:
@@ -348,50 +329,40 @@ class TagLib(object):
                 if splitgood:
                     good += 1
                     val = base
-
             # filter unscored
             if val < .001:
                 self.log.debug('tag noscore %s', key)
                 continue
-
             self.log.debug('tag score   %s %.3f', key, val)
-
             # filter
             if key not in self.wlg.whitelist:
                 self.log.debug('tag filter  %s', key)
                 continue
-
             # was not good for splitting, but still good for itself
             # avoid counting as good multiple times due to splitting
             if not splitgood:
                 good += 1
-
             # add
             self.taggrps[group][key] += val
             self.log.debug('tag add     %s', key)
-
         return good
 
     def score(self, tags, scoremod):
         '''Score tags taking a scoremod into account.'''
         if not tags:
             return tags
-
         # tags with counts
         if any(tags.itervalues()):
             max_ = max(tags.itervalues()) * scoremod
             tags = {k: v / max_ for k, v in tags.iteritems()}
-
         # tags without counts
         else:
             val = max(1 / 3, .85 ** (len(tags) - 1)) * scoremod
             tags = {k: val for k in tags.iterkeys()}
-
         self.log.debug('tagscoring: num=%d, min=%.3f, max=%.3f, avg=%.3f',
                        len(tags), min(tags.itervalues()),
                        max(tags.itervalues()),
                        sum(tags.itervalues()) / len(tags))
-
         return tags
 
     def resolve(self, key):
@@ -410,7 +381,6 @@ class TagLib(object):
         # alias
         if alias(key):
             return self.wlg.tagsfile['aliases'][key]
-
         # regex
         if any(r[0].search(key) for r in self.wlg.tagsfile['regex']):
             for pat, repl in self.wlg.tagsfile['regex']:
@@ -419,13 +389,10 @@ class TagLib(object):
                     key = pat.sub(repl, key)
                     self.log.debug('tag replace %s -> %s (%s)',
                                    key_, key, pat.pattern)
-
             # key got replaced, try alias again
             if alias(key):
                 return self.wlg.tagsfile['aliases'][key]
-
             return key
-
         # match
         if self.wlg.conf.args.difflib:
             match = difflib.get_close_matches(key, self.wlg.whitelist, 1, .92)
@@ -435,7 +402,6 @@ class TagLib(object):
                     '%s = %s' % (key, match[0]))
                 self.log.debug('tag match   %s -> %s', key, match[0])
                 return match[0]
-
         return key
 
     def split(self, key, val, group):
@@ -446,11 +412,9 @@ class TagLib(object):
         flag = True
         # some exceptions (move dontsplit to tagsfile if it gets longer)
         dontsplit = ['vanity house']
-
         if '/' in key:  # all delimiters got replaced with / earlier
             keys = [k.strip() for k in key.split('/') if len(k.strip()) > 2]
             flag = False
-
         elif ' ' in key and key not in dontsplit \
                 and not (key in self.wlg.whitelist
                          and ('&' in key or key.startswith('nu '))):
@@ -464,15 +428,12 @@ class TagLib(object):
                         combis.append(' '.join(combi))
                 keys = combis
             base = val * self.wlg.conf.getfloat('scores', 'splitup')
-
         elif '-' in key and key not in self.wlg.whitelist:
             keys = [k.strip() for k in key.split('-') if len(k.strip()) > 2]
-
         # add the parts
         if keys:
             self.log.debug('tag split   %s -> %s', key, ', '.join(keys))
             good = self.add({k: val * .5 for k in keys}, group, flag)
-
         return good, base
 
     def merge(self):
@@ -511,30 +472,24 @@ class TagLib(object):
             if not self.taggrps[group]:
                 self.wlg.stat_message(
                     logging.INFO, 'No %s tags' % group, self.path, 1)
-
         # merge taggroups
         tags = self.merge()
-
         if not tags:
             self.wlg.stat_message(
                 logging.ERROR, 'No genres found', self.path, 1)
             return None
-
         # apply user score bonus
         for key in tags.iterkeys():
             if key in self.wlg.tagsfile['love']:
                 tags[key] *= 2.0
             elif key in self.wlg.tagsfile['hate']:
                 tags[key] *= 0.5
-
         # sort, limit and format
         tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
         tags = tags[:self.wlg.conf.args.tag_limit]
         tags = [self.format(k) for k, _ in tags]
-
         self.log.info(self)
         self.wlg.stats.genres.update(tags)
-
         return tags
 
     def get_releasetype(self):
@@ -547,10 +502,8 @@ class TagLib(object):
                 self.wlg.stat_message(
                     logging.ERROR, 'No releasetype found', self.path, 1)
             return None
-
         releasetype = self.releasetype
         self.wlg.stats.reltyps[releasetype] += 1
-
         return releasetype
 
     def __str__(self):
@@ -596,25 +549,20 @@ class Config(ConfigParser.SafeConfigParser):
         if not os.path.exists(self.path):
             os.makedirs(self.path)
         self.fullpath = os.path.join(self.path, 'config')
-
         # create default config if necessary
         if not os.path.exists(self.fullpath):
             self.create_default_config()
-
         self.read(self.fullpath)
 
     def create_default_config(self):
         '''Create a default configuration file.'''
-
         for sec, opt, val in self.conf:
             if not self.has_section(sec):
                 self.add_section(sec)
             self.set(sec, opt, str(val))
-
         # write config file
         with open(self.fullpath, 'w') as file_:
             self.write(file_)
-
         print('Please edit your config file: %s' % self.fullpath)
         exit()
 
@@ -684,13 +632,10 @@ def work_directory(wlg, path):
     except mediafile.AlbumError as err:
         wlg.stat_message(logging.ERROR, str(err), path, 1)
         return
-
     # read album metadata
     metadata = album.get_metadata()
-
     # query genres (and releasetype) for album metadata
     genres, releasetype = wlg.query_album(metadata)
-
     # update album metadata
     if genres:
         album.set_meta('genre', genres)
@@ -698,7 +643,6 @@ def work_directory(wlg, path):
     if releasetype and wlg.conf.args.tag_release:
         album.set_meta('releasetype', releasetype)
         print("RelTyp: %s" % releasetype)
-
     # save metadata to all tracks
     if wlg.conf.args.dry:
         print("DRY-RUN! Not saving metadata.")
