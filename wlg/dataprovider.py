@@ -380,8 +380,13 @@ class WhatCD(DataProvider):
         self.authkey = None  # also a logged-in-flag
         self.cred = {'username': conf.get('wlg', 'whatcduser'),
                      'password': conf.get('wlg', 'whatcdpass')}
-        if not all(self.cred.itervalues()):
-            raise DataProviderError('no credentials specified')
+        if not self.cred['username']:
+            raise DataProviderError('no username specified')
+        # saving password in config is optional
+        if not self.cred['password']:
+            from getpass import getpass
+            self.cred['password'] = getpass("WhatCD password: ")
+            self.login()
 
     def __del__(self):
         self.logout()
