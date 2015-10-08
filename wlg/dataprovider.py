@@ -146,8 +146,9 @@ class DataProviderError(Exception):
 class DataProvider(object):
     '''Base class for DataProviders.'''
 
+    log = logging.getLogger(__name__)
+
     def __init__(self):
-        self.log = logging.getLogger(__name__)
         self.name = self.__class__.__name__
         self.rate_limit = 1.0  # min. seconds between requests
         self.last_request = 0
@@ -162,14 +163,16 @@ class DataProvider(object):
         daprs = []
         cache = Cache(conf.path, conf.args.update_cache)
         for src in conf.get_list('wlg', 'sources'):
-            dapr = DataProvider.factory(src, conf)
-            if dapr:
+            try:
+                dapr = DataProvider.factory(src, conf)
                 dapr.cache = cache
                 daprs.append(dapr)
+            except DataProviderError as err:
+                cls.log.warn('%s: %s', src, err)
         if not daprs:
-            logging.getLogger(__name__).error(
-                'Where do you want to get your data from?\nAt least one '
-                'source must be activated! (multiple sources recommended)')
+            cls.log.critical('Where do you want to get your data from? At '
+                             'least one source must be activated! (multiple '
+                             'sources recommended)')
             exit()
         return daprs
 
@@ -183,9 +186,7 @@ class DataProvider(object):
             if all(cred.itervalues()):
                 dapr = WhatCD(cred)
             else:
-                logging.getLogger(__name__).warn(
-                    'No What.CD credentials specified. '
-                    'What.CD support disabled.')
+                raise DataProviderError('no credentials specified')
         elif name == 'lastfm':
             dapr = LastFM()
         elif name == 'discogs':
@@ -194,6 +195,8 @@ class DataProvider(object):
             dapr = MusicBrainz()
         elif name == 'echonest':
             dapr = EchoNest()
+        else:
+            raise DataProviderError('dataprovider not found')
         return dapr
 
     @classmethod
