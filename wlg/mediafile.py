@@ -177,14 +177,14 @@ class Track(object):
         if not key:
             return None
         if self.ext in ['flac', 'ogg']:
-            return key.upper()
-        if self.ext in ['mp3', 'm4a']:
+            key = key.upper()
+        elif self.ext == 'mp3' and key == 'albumartist':
+            key = 'performer'
+        elif self.ext in ['mp3', 'm4a']:
             if key == 'releasetype':
-                return 'musicbrainz_albumtype'
-            if key == 'musicbrainz_releasegroupid':
-                return None
-        if self.ext == 'mp3' and key == 'albumartist':
-            return 'performer'
+                key = 'musicbrainz_albumtype'
+            elif key == 'musicbrainz_releasegroupid':
+                key = None
         return key
 
     def get_meta(self, key):
