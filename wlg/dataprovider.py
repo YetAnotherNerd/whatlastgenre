@@ -181,12 +181,7 @@ class DataProvider(object):
         '''Factory method for DataProvider instances.'''
         dapr = None
         if name == 'whatcd':
-            cred = {'username': conf.get('wlg', 'whatcduser'),
-                    'password': conf.get('wlg', 'whatcdpass')}
-            if all(cred.itervalues()):
-                dapr = WhatCD(cred)
-            else:
-                raise DataProviderError('no credentials specified')
+            dapr = WhatCD(conf)
         elif name == 'lastfm':
             dapr = LastFM()
         elif name == 'discogs':
@@ -378,12 +373,15 @@ class DataProvider(object):
 class WhatCD(DataProvider):
     '''What.CD DataProvider'''
 
-    def __init__(self, cred):
+    def __init__(self, conf):
         super(WhatCD, self).__init__()
         # http://github.com/WhatCD/Gazelle/wiki/JSON-API-Documentation
         self.rate_limit = 2.0
-        self.cred = cred
         self.authkey = None  # also a logged-in-flag
+        self.cred = {'username': conf.get('wlg', 'whatcduser'),
+                     'password': conf.get('wlg', 'whatcdpass')}
+        if not all(self.cred.itervalues()):
+            raise DataProviderError('no credentials specified')
 
     def __del__(self):
         if self.authkey:
