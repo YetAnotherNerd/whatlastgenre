@@ -384,23 +384,26 @@ class WhatCD(DataProvider):
             raise DataProviderError('no credentials specified')
 
     def __del__(self):
-        if self.authkey:
-            self.logout()
+        self.logout()
 
     def login(self):
         '''Login to What.CD without using requests_cache.'''
 
-        self.log.debug('WhatCD login...')
-
         def login():
             '''Login to What.CD.'''
+            if self.authkey:
+                return
+            if not self.cred:
+                raise DataProviderError('login failed')
+            self.log.debug('WhatCD login...')
             try:
                 self._request('https://what.cd/login.php', self.cred, 'POST')
-                res = self._request_json(
-                    'https://what.cd/ajax.php', {'action': 'index'})
+                res = self._request_json('https://what.cd/ajax.php',
+                                         {'action': 'index'})
                 self.authkey = res['response']['authkey']
             except (DataProviderError, KeyError):
-                raise DataProviderError("login failed")
+                self.cred = None
+                raise DataProviderError('login failed')
 
         if requests_cache:
             with self.session.cache_disabled():
@@ -411,14 +414,13 @@ class WhatCD(DataProvider):
     def logout(self):
         '''Logout from What.CD without using requests_cache.'''
 
-        self.log.debug('WhatCD logout...')
-
         def logout():
             '''Logout from What.CD.'''
-            if self.authkey:
-                self._request('https://what.cd/logout.php',
-                              {'auth': self.authkey})
-                self.authkey = None
+            if not self.authkey:
+                return
+            self.log.debug('WhatCD logout...')
+            self._request('https://what.cd/logout.php', {'auth': self.authkey})
+            self.authkey = None
 
         if requests_cache:
             with self.session.cache_disabled():
