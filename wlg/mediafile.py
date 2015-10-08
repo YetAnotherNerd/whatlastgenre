@@ -54,6 +54,11 @@ def find_music_dirs(paths):
     return dirs
 
 
+def is_various_artists(name, mbid):
+    '''Check if given name or mbid represents 'Various Artists'.'''
+    return name and VA_PAT.match(name) or mbid == VA_MBID
+
+
 class AlbumError(Exception):
     '''If something went wrong while handling an Album.'''
     pass
@@ -86,20 +91,16 @@ class Album(object):
         for track in self.tracks:
             artist = (track.get_meta('artist'),
                       track.get_meta('musicbrainz_artistid'))
-            if artist[0] and not VA_PAT.match(artist[0]):
-                if artist[1] == VA_MBID:
-                    artists.append((artist[0], None))
-                else:
-                    artists.append(artist)
+            if artist[0] and not is_various_artists(*artist):
+                artists.append(artist)
         # album artist
         albumartist = (self.get_meta('albumartist'),
                        self.get_meta('musicbrainz_albumartistid'))
-        if not albumartist[0]:
+        if not albumartist[0] or is_various_artists(*albumartist):
             albumartist = (self.get_meta('artist'),
                            self.get_meta('musicbrainz_artistid'))
-        if albumartist[0] and VA_PAT.match(albumartist[0]) \
-                or albumartist[1] == VA_MBID:
-            albumartist = (None, VA_MBID)
+        if not albumartist[0] or is_various_artists(*albumartist):
+            albumartist = (None, None)
         return Metadata(
             path=self.path, type=self.type,
             artists=artists, albumartist=albumartist,
