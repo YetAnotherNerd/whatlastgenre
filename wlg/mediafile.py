@@ -95,7 +95,7 @@ class Album(object):
         albumartist = (self.get_meta('albumartist'),
                        self.get_meta('musicbrainz_albumartistid'))
         if not albumartist[0]:
-            albumartist = (self.get_meta('artist', lcp=True),
+            albumartist = (self.get_meta('artist'),
                            self.get_meta('musicbrainz_artistid'))
         if albumartist[0] and VA_PAT.match(albumartist[0]) \
                 or albumartist[1] == VA_MBID:
@@ -155,7 +155,7 @@ class TrackError(Exception):
 class Track(object):
     '''Class for managing tracks.'''
 
-    def __init__(self, path, filename, v23sep):
+    def __init__(self, path, filename, v23sep=None):
         self.fullpath = os.path.join(path, filename)
         self.filename = filename
         self.v23sep = v23sep

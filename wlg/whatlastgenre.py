@@ -694,13 +694,13 @@ def main():
     search for music directories, run the main loop on them
     and print out some statistics.
     '''
-    print("whatlastgenre v%s\n" % __version__)
+    print("whatlastgenre v%s" % __version__)
 
     args = get_args()
     wlg = WhatLastGenre(args)
     dirs = mediafile.find_music_dirs(args.path)
 
-    print("Found %d music directories!" % len(dirs))
+    print("\nFound %d music directories!" % len(dirs))
     if not dirs:
         return
 
