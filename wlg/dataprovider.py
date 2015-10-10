@@ -301,11 +301,13 @@ class DataProvider(object):
         # the optimal number of considerable tags and everything
         limit = 42
         if len(tags) > limit:
-            if any(tags.itervalues()):  # tags with scores
+            # tags with scores
+            if any(tags.itervalues()):
                 min_val = max(tags.itervalues()) / 3
                 tags = {k: v for k, v in tags.iteritems() if v >= min_val}
                 sort_key = operator.itemgetter(1)  # best tags
-            else:  # tags without scores
+            # tags without scores
+            else:
                 sort_key = len  # shortest tags
             tags = sorted(tags.iteritems(), key=sort_key, reverse=1)
             tags = {k: v for k, v in tags[:limit]}
@@ -495,8 +497,8 @@ class LastFM(DataProvider):
         '''Query Last.FM API.'''
         params.update({'format': 'json',
                        'api_key': '54bee5593b60d0a5bf379cedcad79052'})
-        result = self._request_json(
-            'http://ws.audioscrobbler.com/2.0/', params)
+        result = self._request_json('http://ws.audioscrobbler.com/2.0/',
+                                    params)
         if 'error' in result:
             self.log.debug('%-8s error: %s', self.name, result['message'])
             return None
@@ -585,8 +587,8 @@ class Discogs(DataProvider):
         params = {'release_title': album}
         if artist:
             params.update({'artist': artist})
-        result = self._request_json(
-            'https://api.discogs.com/database/search', params)
+        result = self._request_json('https://api.discogs.com/database/search',
+                                    params)
         if not result['results']:
             return None
         # merge all releases and masters
