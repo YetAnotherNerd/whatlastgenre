@@ -52,10 +52,10 @@ class WhatLastGenre(object):
     '''Main class featuring a docstring that needs to be written.'''
 
     def __init__(self, args, whitelist=None):
-        self.conf = Config(args)
         self.log = logging.getLogger('wlg')
         self.log.setLevel(30 - 10 * args.verbose)
         self.log.addHandler(logging.StreamHandler(sys.stdout))
+        self.conf = Config(args)
         self.log.debug('args:   %s', vars(args))
         self.log.debug('config: %s\n', self.conf.fullpath)
         self.stats = Stats(time=time.time(), messages=defaultdict(list),
@@ -545,9 +545,9 @@ class Config(ConfigParser.SafeConfigParser):
         ConfigParser.SafeConfigParser.__init__(self)
         self.args = args
         self.path = os.path.expanduser('~/.whatlastgenre')
+        self.fullpath = os.path.join(self.path, 'config')
         if not os.path.exists(self.path):
             os.makedirs(self.path)
-        self.fullpath = os.path.join(self.path, 'config')
         # create default config if necessary
         if not os.path.exists(self.fullpath):
             self.create_default_config()
