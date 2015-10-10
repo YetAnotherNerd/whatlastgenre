@@ -409,7 +409,7 @@ class TagLib(object):
         good = 0
         base = val
         flag = True
-        # some exceptions (move dontsplit to tagsfile if it gets longer)
+        # some exceptions (move to tagsfile if it gets longer)
         dontsplit = ['vanity house']
         if '/' in key:  # all delimiters got replaced with / earlier
             keys = [k.strip() for k in key.split('/') if len(k.strip()) > 2]
@@ -546,11 +546,13 @@ class Config(ConfigParser.SafeConfigParser):
         self.args = args
         self.path = os.path.expanduser('~/.whatlastgenre')
         self.fullpath = os.path.join(self.path, 'config')
+        # make sure directory exists
         if not os.path.exists(self.path):
             os.makedirs(self.path)
         # create default config if necessary
         if not os.path.exists(self.fullpath):
             self.create_default_config()
+        # read the config file
         self.read(self.fullpath)
 
     def create_default_config(self):

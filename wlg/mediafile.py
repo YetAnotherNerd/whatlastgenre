@@ -81,6 +81,7 @@ class Album(object):
 
     def get_metadata(self):
         '''Return a Metadata namedtuple.'''
+        # artists
         artists = []
         for track in self.tracks:
             artist = (track.get_meta('artist'),
@@ -90,6 +91,7 @@ class Album(object):
                     artists.append((artist[0], None))
                 else:
                     artists.append(artist)
+        # album artist
         albumartist = (self.get_meta('albumartist'),
                        self.get_meta('musicbrainz_albumartistid'))
         if not albumartist[0]:
