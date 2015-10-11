@@ -358,10 +358,10 @@ class TagLib(object):
         else:
             val = max(1 / 3, .85 ** (len(tags) - 1)) * scoremod
             tags = {k: val for k in tags.iterkeys()}
-        self.log.debug('tagscoring: num=%d, min=%.3f, max=%.3f, avg=%.3f',
-                       len(tags), min(tags.itervalues()),
-                       max(tags.itervalues()),
-                       sum(tags.itervalues()) / len(tags))
+        self.log.debug('tagscoring min/avg/max (num) = %.3f/%.3f/%.3f (%d)',
+                       min(tags.itervalues()),
+                       sum(tags.itervalues()) / len(tags),
+                       max(tags.itervalues()), len(tags))
         return tags
 
     def resolve(self, key):
