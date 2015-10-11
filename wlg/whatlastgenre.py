@@ -192,8 +192,7 @@ class WhatLastGenre(object):
     def create_queries(self, metadata):
         '''Create queries for all DataProviders based on metadata.'''
         artists = metadata.artists
-        num_artists = len(set(artists))
-        if num_artists > 42:
+        if len(set(artists)) > 42:
             self.log.warn('Too many artists for va-artist search')
             artists = []
         albumartist = searchstr(metadata.albumartist[0])
