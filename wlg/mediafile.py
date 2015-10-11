@@ -212,8 +212,11 @@ class Track(object):
             return None
         values = self.muta[key]
         # CSV tags
-        if len(set(values)) == 1 and self.ext == 'mp3' and self.v23sep:
-            values = split(values[0], self.v23sep)
+        if len(set(values)) == 1:
+            sep = [';', ',']
+            if self.v23sep:
+                sep = [self.v23sep]
+            values = split(values[0], sep)
         # date tags
         if key.lower() in ['date']:
             values = [split(v, ['/', '-'])[0] for v in values]
