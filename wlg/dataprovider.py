@@ -623,7 +623,7 @@ class MusicBrainz(DataProvider):
 
     def _query(self, path, params):
         '''Query MusicBrainz.'''
-        params.update({'fmt': 'json'})
+        params.update({'fmt': 'json', 'limit': 1})
         result = self._request_json(
             'http://musicbrainz.org/ws/2/' + path, params)
         if 'error' in result:
@@ -631,11 +631,6 @@ class MusicBrainz(DataProvider):
             return None
         if 'query' in params:
             result = result[path + 's']
-            # prefilter by score
-            if len(result) > 1:
-                min_ = max(int(r['score']) for r in result) - 5
-                result = [r for r in result if int(r['score']) > min_]
-
         else:  # by mbid
             result = [result]
         return [{'tags': {t['name']: int(t.get('count', 0))
