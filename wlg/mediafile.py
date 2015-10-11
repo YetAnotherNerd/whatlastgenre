@@ -59,6 +59,15 @@ def is_various_artists(name, mbid):
     return name and VA_PAT.match(name) or mbid == VA_MBID
 
 
+def get_first(iterable, default=None):
+    '''Get the first not None item from an iterable or default.'''
+    if iterable:
+        for item in iterable:
+            if item:
+                return item
+    return default
+
+
 class AlbumError(Exception):
     '''If something went wrong while handling an Album.'''
     pass
@@ -89,8 +98,8 @@ class Album(object):
         # artists
         artists = []
         for track in self.tracks:
-            artist = (track.get_meta('artist'),
-                      track.get_meta('musicbrainz_artistid'))
+            artist = (get_first(track.get_meta('artist')),
+                      get_first(track.get_meta('musicbrainz_artistid')))
             if artist[0] and not is_various_artists(*artist):
                 artists.append(artist)
         # album artist
@@ -118,14 +127,14 @@ class Album(object):
         :param key: metadata key
         :param lcp: use longest common prefix for some keys
         '''
-        vals = set(t.get_meta(key) for t in self.tracks)
+        values = [get_first(t.get_meta(key)) for t in self.tracks]
+        values = [v for v in values if v]
         # common for all tracks
-        if len(vals) == 1:
-            return vals.pop()
+        if len(set(values)) == 1:
+            return values[0]
         # use longest common prefix
-        if lcp and key in ['artist', 'albumartist', 'album']:
-            vals.discard(None)
-            val = os.path.commonprefix(vals)
+        if values and lcp and key in ['artist', 'albumartist', 'album']:
+            val = os.path.commonprefix(values).strip()
             if len(val) > 2:
                 return val
         # no common value for this key
@@ -201,11 +210,14 @@ class Track(object):
         key = self.map_key(key)
         if not key or key not in self.muta or not self.muta[key]:
             return None
-        val = self.muta[key][0]
+        values = self.muta[key]
+        # CSV tags
+        if len(set(values)) == 1 and self.ext == 'mp3' and self.v23sep:
+            values = split(values[0], self.v23sep)
         # date tags
         if key.lower() in ['date']:
-            val = split(val, ['/', '-'])[0]
-        return val
+            values = [split(v, ['/', '-'])[0] for v in values]
+        return values
 
     def set_meta(self, key, val):
         '''Set metadata of a given key to a given val.'''
@@ -221,11 +233,7 @@ class Track(object):
         if not isinstance(val, list):
             val = [val]
         # check for change
-        old = [o if isinstance(o, unicode) else o.decode('utf-8')
-               for o in self.muta.get(key, [])]
-        if self.ext == 'mp3' and self.v23sep and len(old) == 1:
-            old = [o.strip() for o in old[0].split(self.v23sep)]
-        if not old or set(old) != set(val):
+        if val != self.get_meta(key):
             self.muta[key] = val
             self.dirty = True
 
