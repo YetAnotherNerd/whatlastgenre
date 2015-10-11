@@ -190,16 +190,21 @@ class Track(object):
 
     def get_meta(self, key):
         '''Get metadata for a given key.'''
+
+        def split(value, separators):
+            '''Split value by some separators.'''
+            for sep in separators:
+                if sep in value:
+                    return [v.strip() for v in value.split(sep)]
+            return [value]
+
         key = self.map_key(key)
         if not key or key not in self.muta:
             return None
         try:
             val = self.muta[key][0].encode('utf-8')
             if key.lower() in ['date', 'tracknumber', 'discnumber']:
-                for sep in ['/', '-']:
-                    if sep in val:
-                        val = val.split(sep)[0].strip()
-                val = int(val)
+                val = int(split(val, ['/', '-'])[0])
             return val
         except ValueError:
             pass
