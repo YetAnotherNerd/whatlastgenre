@@ -199,16 +199,13 @@ class Track(object):
             return [value]
 
         key = self.map_key(key)
-        if not key or key not in self.muta:
+        if not key or key not in self.muta or not self.muta[key]:
             return None
-        try:
-            val = self.muta[key][0].encode('utf-8')
-            if key.lower() in ['date', 'tracknumber', 'discnumber']:
-                val = int(split(val, ['/', '-'])[0])
-            return val
-        except ValueError:
-            pass
-        return None
+        val = self.muta[key][0]
+        # date tags
+        if key.lower() in ['date']:
+            val = split(val, ['/', '-'])[0]
+        return val
 
     def set_meta(self, key, val):
         '''Set metadata of a given key to a given val.'''
