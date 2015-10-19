@@ -137,6 +137,9 @@ src_lastfm = 0.66
 src_mbrainz = 0.66
 src_rymusic = 1.33
 src_whatcd = 1.50
+[discogs]
+token =
+secret =
 ```
 
 ### Configuration options explained
@@ -245,6 +248,11 @@ a source, lower if the source provides many inaccurate or personal tags. If you
 don't want tags from a specific source remove it from the sources list option.
 
 Default `1.0`, see `sources` option above.
+
+#### dataprovider related sections
+
+##### discogs token and secret options
+Authentication information for discogs, will be set interactivly.
 
 
 ## Usage

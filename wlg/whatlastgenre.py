@@ -543,6 +543,8 @@ class Config(ConfigParser.SafeConfigParser):
             ('scores', 'src_mbrainz', '0.66'),
             ('scores', 'src_rymusic', '1.33'),
             ('scores', 'src_whatcd', '1.50'),
+            ('discogs', 'token', ''),
+            ('discogs', 'secret', ''),
             ]
 
     def __init__(self, args):

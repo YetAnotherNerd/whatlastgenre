@@ -185,7 +185,7 @@ class DataProvider(object):
         '''Factory method for DataProvider instances.'''
         dapr = None
         if name == 'discogs':
-            dapr = Discogs()
+            dapr = Discogs(conf)
         elif name == 'echonest':
             dapr = EchoNest()
         elif name == 'lastfm':
@@ -376,7 +376,7 @@ class Discogs(DataProvider):
     see https://github.com/reclosedev/requests-cache/pull/52
     '''
 
-    def __init__(self):
+    def __init__(self, conf):
         super(Discogs, self).__init__()
         # http://www.discogs.com/developers/#header:home-rate-limiting
         self.rate_limit = 3.0
@@ -388,33 +388,30 @@ class Discogs(DataProvider):
             request_token_url='https://api.discogs.com/oauth/request_token',
             access_token_url='https://api.discogs.com/oauth/access_token',
             authorize_url='https://www.discogs.com/oauth/authorize')
-        # load access token from file
-        token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
-        try:
-            with open(token_file) as file_:
-                data = json.load(file_)
-            acc_token = data['token']
-            acc_secret = data['secret']
-        except (IOError, KeyError, ValueError):
-            # get request token
+        # read token from config file
+        if conf.has_section('discogs'):
+            token = (conf.get('discogs', 'token'),
+                     conf.get('discogs', 'secret'))
+        # get from user
+        if not token or not all(token):
             req_token, req_secret = discogs.get_request_token(headers=HEADERS)
-            # get verifier from user
             print('Discogs requires authentication with your own account.\n'
                   'Disable discogs in the config file or use this link to '
                   'authenticate:\n%s' % discogs.get_authorize_url(req_token))
-            verifier = raw_input('Verification code: ')
-            # get access token
+            data = {'oauth_verifier': raw_input('Verification code: ')}
             try:
-                acc_token, acc_secret = discogs.get_access_token(
-                    req_token, req_secret, data={'oauth_verifier': verifier},
-                    headers=HEADERS)
+                token = discogs.get_access_token(req_token, req_secret,
+                                                 data=data, headers=HEADERS)
             except KeyError as err:
-                self.log.fatal(err.message)
+                self.log.critical(err.message)
                 exit()
-            # save access token to file
-            with open(token_file, 'w') as file_:
-                json.dump({'token': acc_token, 'secret': acc_secret}, file_)
-        self.session = discogs.get_session((acc_token, acc_secret))
+            # save token to config file
+            if not conf.has_section('discogs'):
+                conf.add_section('discogs')
+            conf.set('discogs', 'token', token[0])
+            conf.set('discogs', 'secret', token[1])
+            conf.save()
+        self.session = discogs.get_session(token)
         self.session.headers.update(HEADERS)
         # avoid filling cache with unusable entries
         if requests_cache \
