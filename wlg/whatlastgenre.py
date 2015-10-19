@@ -558,20 +558,24 @@ class Config(ConfigParser.SafeConfigParser):
             os.makedirs(self.path)
         # create default config if necessary
         if not os.path.exists(self.fullpath):
-            self.create_default_config()
-        # read the config file
+            self.set_defaults()
+            self.save()
         self.read(self.fullpath)
 
-    def create_default_config(self):
+    def set_defaults(self):
         '''Create a default configuration file.'''
         for sec, opt, val in self.conf:
             if not self.has_section(sec):
                 self.add_section(sec)
             self.set(sec, opt, str(val))
-        # write config file
+
+    def save(self):
+        '''Write the config file but backup the existing one.'''
+        if os.path.exists(self.fullpath):
+            os.rename(self.fullpath, self.fullpath + '~')
         with open(self.fullpath, 'w') as file_:
             self.write(file_)
-        print('Please edit your config file: %s' % self.fullpath)
+        print('Please review your config file: %s' % self.fullpath)
         exit()
 
     def get_list(self, sec, opt):
