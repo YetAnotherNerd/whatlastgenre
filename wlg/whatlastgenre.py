@@ -563,6 +563,21 @@ class Config(ConfigParser.SafeConfigParser):
             self.set_defaults()
             self.save()
         self.read(self.fullpath)
+        self.__compat()
+
+    def __compat(self):
+        '''Backward compatibility code.'''
+        discogs_token = os.path.expanduser('~/.whatlastgenre/discogs.json')
+        if os.path.exists(discogs_token):
+            import json
+            with open(discogs_token) as file_:
+                data = json.load(file_)
+            if not self.has_section('discogs'):
+                self.add_section('discogs')
+            self.set('discogs', 'token', data['token'])
+            self.set('discogs', 'secret', data['secret'])
+            os.remove(discogs_token)
+            self.save()
 
     def set_defaults(self):
         '''Create a default configuration file.'''
