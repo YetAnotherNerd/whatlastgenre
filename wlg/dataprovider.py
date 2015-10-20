@@ -23,6 +23,7 @@ music related sites (DataProviders) and a Cache for those.
 
 from __future__ import division, print_function
 
+import base64
 from collections import defaultdict
 from datetime import timedelta
 import json
@@ -255,6 +256,8 @@ class DataProvider(object):
                 res = self.session.post(url, data=params)
             else:
                 res = self.session.get(url, params=params)
+        except requests.exceptions.TooManyRedirects as err:
+            raise err
         except requests.exceptions.RequestException as err:
             self.log.debug(err)
             raise DataProviderError("request: %s" % err.message)
@@ -650,38 +653,33 @@ class WhatCD(DataProvider):
         super(WhatCD, self).__init__()
         # http://github.com/WhatCD/Gazelle/wiki/JSON-API-Documentation
         self.rate_limit = 2.0
-        self.authkey = None  # also a logged-in-flag
-        self.cred = {'username': conf.get('wlg', 'whatcduser'),
-                     'password': conf.get('wlg', 'whatcdpass')}
-        if not self.cred['username']:
-            raise DataProviderError('no username specified')
-        # saving password in config is optional
-        if not self.cred['password']:
-            from getpass import getpass
-            self.cred['password'] = getpass("WhatCD password: ")
-            self.login()
-
-    def __del__(self):
-        self.logout()
+        self.conf = conf
+        if conf.has_option('whatcd', 'session'):
+            cookie = base64.b64decode(conf.get('whatcd', 'session'))
+            self.session.cookies.set('session', cookie)
+        self.login()
 
     def login(self):
-        '''Login to What.CD without using requests_cache.'''
+        '''Login to What.CD if we don't have a cookie yet.
+
+        Ask user for credentials to receive a session cookie
+        and save it to config.
+        '''
 
         def login():
-            '''Login to What.CD.'''
-            if self.authkey:
-                return
-            if not self.cred:
-                raise DataProviderError('login failed')
-            self.log.debug('WhatCD login...')
-            try:
-                self._request('https://what.cd/login.php', self.cred, 'POST')
-                res = self._request_json('https://what.cd/ajax.php',
-                                         {'action': 'index'})
-                self.authkey = res['response']['authkey']
-            except (DataProviderError, KeyError):
-                self.cred = None
-                raise DataProviderError('login failed')
+            '''Send a login request with username and password.'''
+            self._request('https://what.cd/login.php',
+                          {'username': username, 'password': password}, 'POST')
+
+        if self.session.cookies.get('session', None):
+            return
+
+        from getpass import getpass
+        print('WhatCD requires authentication with your own account. '
+              'Disable whatcd\nin the config file or supply credentials '
+              'to receive a session cookie:')
+        username = raw_input('Username: ')
+        password = getpass("Password: ")
 
         if requests_cache:
             with self.session.cache_disabled():
@@ -689,32 +687,30 @@ class WhatCD(DataProvider):
         else:
             login()
 
-    def logout(self):
-        '''Logout from What.CD without using requests_cache.'''
-
-        def logout():
-            '''Logout from What.CD.'''
-            if not self.authkey:
-                return
-            self.log.debug('WhatCD logout...')
-            self._request('https://what.cd/logout.php', {'auth': self.authkey})
-            self.authkey = None
-
-        if requests_cache:
-            with self.session.cache_disabled():
-                logout()
-        else:
-            logout()
+        if not self.session.cookies.get('session', None):
+            self.log.critical('WhatCD login failed')
+            exit()
+        # save session cookie to config
+        if not self.conf.has_section('whatcd'):
+            self.conf.add_section('whatcd')
+        cookie = base64.b64encode(self.session.cookies['session'])
+        self.conf.set('whatcd', 'session', cookie)
+        self.conf.save()
 
     def _query(self, params):
         '''Query What.CD API.'''
-        if not self.authkey:
-            self.login()
-        result = self._request_json('https://what.cd/ajax.php', params)
+        self.login()
         try:
-            return result['response']
+            result = self._request_json('https://what.cd/ajax.php', params)
+        except requests.exceptions.TooManyRedirects:
+            # whatcd session expired
+            self.session.cookies.set('session', None)
+            self.login()
+        try:
+            response = result['response']
         except KeyError:
             raise DataProviderError('request failure')
+        return response
 
     def query_artist(self, artist):
         '''Query for artist data.'''

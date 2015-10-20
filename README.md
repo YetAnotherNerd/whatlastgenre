@@ -118,8 +118,6 @@ A configuration file with default values will be created at
 ```
 [wlg]
 sources = discogs, echonest, lastfm, mbrainz, whatcd
-whatcduser = whatusername
-whatcdpass = whatpassword
 whitelist =
 vaqueries = True
 id3v23_sep =
@@ -140,6 +138,8 @@ src_whatcd = 1.50
 [discogs]
 token =
 secret =
+[whatcd]
+session =
 ```
 
 ### Configuration options explained
@@ -163,10 +163,6 @@ home of mbids
 no real api (slow)
 * `whatcd` [[URL](https://what.cd)]
 well-kept tags from community, requires own account
-
-##### whatcduser and whatcdpass options
-Credentials for What.CD. Storing the password in the config file is optional,
-if you only set your username you will be asked for the password every run.
 
 ##### whitelist option
 Path to your custom whitelist. Use [shipped whitelist](wlg/data/genres.txt)
@@ -253,6 +249,9 @@ Default `1.0`, see `sources` option above.
 
 ##### discogs token and secret options
 Authentication information for discogs, will be set interactivly.
+
+##### whatcd session options
+Session cookie, will be received by interactively entering user credentials.
 
 
 ## Usage

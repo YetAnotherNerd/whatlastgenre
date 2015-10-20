@@ -526,8 +526,6 @@ class Config(ConfigParser.SafeConfigParser):
 
     # (section, option, value)
     conf = [('wlg', 'sources', 'discogs, echonest, lastfm, mbrainz, whatcd'),
-            ('wlg', 'whatcduser', ''),
-            ('wlg', 'whatcdpass', ''),
             ('wlg', 'whitelist', ''),
             ('wlg', 'vaqueries', 'true'),
             ('wlg', 'id3v23sep', ''),
@@ -545,6 +543,7 @@ class Config(ConfigParser.SafeConfigParser):
             ('scores', 'src_whatcd', '1.50'),
             ('discogs', 'token', ''),
             ('discogs', 'secret', ''),
+            ('whatcd', 'session', ''),
             ]
 
     def __init__(self, args):
