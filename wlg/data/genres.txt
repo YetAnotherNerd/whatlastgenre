@@ -210,8 +210,8 @@ jam rock
 jazz
 jazz fusion
 jazz-hop
-jungle
 jumpstyle
+jungle
 k-gothic
 k-hip-hop
 k-jazz
