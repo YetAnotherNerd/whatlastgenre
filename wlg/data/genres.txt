@@ -63,6 +63,7 @@ chamber pop
 chanson
 chant
 chicha
+children
 chillout
 chillwave
 chiptune
