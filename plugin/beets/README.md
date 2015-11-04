@@ -62,7 +62,7 @@ Make sure `auto: yes` is set in the `wlg` part of the beets configuration.
       -h, --help          show this help message and exit
       -v, --verbose       verbose output (-vv for debug)
       -f, --force         force overwrite existing genres
-      -u, --update-cache  force update cach
+      -u, --update-cache  force update cache
 
 
 ## Known issues / Differences to standalone
