@@ -6,17 +6,12 @@ Improve genre metadata of audio files based on tags from various music sites.
 * Feature Overview
   * Gets genre tags for artists and albums from music sites and finds the most
   eligible ones.
-    * Merges similar tags in different writings with aliases and regex
-    replacements to ensure consistent naming,
-    eg. DnB, D&B, Drum and Bass -> Drum & Bass;
-    Alt., Altern, Alterneitif -> Alternative
-    * Splits tags in various applicable ways, eg.
-    Jazz/Funk&Rock -> Jazz, Funk, Rock;
-    Alternative Rock -> Alternative, Rock
-    * Uses a whitelist to avoid crappy tags (see
-    [genres.txt](wlg/data/genres.txt))
+    * Merges similar tags in different writings to ensure consistent naming
+    via [aliases and regex](wlg/data/tags.txt)
+    * Splits tags in various applicable ways
+    * Uses a [whitelist](wlg/data/genres.txt) to avoid bad tags
     * Scores tags while taking personal preferences into account
-  * Caches all data received from music sites to make reruns super fast
+  * Caches all data received from music sites to speedup reruns
   * Uses MusicBrainz IDs for searching when available
   * Optional: gets release info from whatcd (with interactivity if ambiguous)
   * Can be used as plugin in other software, currently:
