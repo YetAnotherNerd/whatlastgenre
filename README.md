@@ -3,8 +3,7 @@
 Improve genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
-* Supported music sites: What.CD, Last.FM, Discogs, MusicBrainz, RateYourMusic,
-EchoNest
+* Supported music sites: Discogs, EchoNest, Last.FM, MusicBrainz, RateYourMusic, What.CD
 * Feature Overview
   * Gets genre tags for artists and albums from music sites and finds the most
   eligible ones.
@@ -39,13 +38,15 @@ multipliers to adjust the scoring to your needs and take your personal
 preferences into account. Please take a look at "Configuration options
 explained" below for more details.
 
-##### Tag scoring with count (What.CD artist, Last.FM, MusicBrainz, EchoNest terms)
+##### Tag scoring with count/weights
+    echonest terms, lastfm, mbrainz, whatcd artist
 If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of `1.0`, a tag having only half of the top tag's count gets
 a score of `0.5` and so on.
 
-##### Tag scoring without count (What.CD album, Discogs, RateYourMusic, EchoNest genres)
+##### Tag scoring without counts/weights
+     echonest genres, discogs, rymusic, whatcd album
 Tags supplied without a count will be scored `max(1/3, 0.85^(n-1))`, where `n`
 is the total number of tags supplied by this source. The more tags the lower
 the score for each tag will be. So if only one tag is supplied, it will get a
@@ -122,7 +123,7 @@ A configuration file with default values will be created at
 ### Example configuration file
 ```
 [wlg]
-sources = whatcd, lastfm, discogs, mbrainz, echonest
+sources = discogs, echonest, lastfm, mbrainz, whatcd
 whatcduser = whatusername
 whatcdpass = whatpassword
 whitelist =
@@ -135,12 +136,12 @@ hate = alternative, electronic, indie, pop, rock
 artist = 1.33
 various = 0.66
 splitup = 0.33
-src_whatcd = 1.50
-src_lastfm = 0.66
 src_discogs = 1.00
+src_echonest = 1.00
+src_lastfm = 0.66
 src_mbrainz = 0.66
 src_rymusic = 1.33
-src_echonest = 1.00
+src_whatcd = 1.50
 ```
 
 ### Configuration options explained
@@ -149,21 +150,21 @@ src_echonest = 1.00
 
 ##### sources option
 The music sites where to get the genre tags from.
-* `whatcd` [[URL](https://what.cd)]
-well-kept tags from community, requires own account
-* `lastfm` [[URL](http://last.fm)]
-many personal tags from users
 * `discogs` [[URL](http://discogs.com)]
 album only, fixed list of [genres and styles]
 (http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles),
 requires own account
+* `echonest` [[URL](http://echonest.com)]
+artist only, genres without counts and terms with counts (see
+[doc](http://developer.echonest.com/docs/v4/))
+* `lastfm` [[URL](http://last.fm)]
+many personal tags from users
 * `mbrainz` [[URL](http://musicbrainz.org)]
 home of mbids
 * `rymusic` [[URL](http://rateyourmusic.com)]
 no real api (slow)
-* `echonest` [[URL](http://echonest.com)]
-artist only, genres without counts and terms with counts (see
-[doc](http://developer.echonest.com/docs/v4/))
+* `whatcd` [[URL](https://what.cd)]
+well-kept tags from community, requires own account
 
 ##### whatcduser and whatcdpass options
 Credentials for What.CD. Storing the password in the config file is optional,

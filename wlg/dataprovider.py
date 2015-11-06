@@ -180,18 +180,18 @@ class DataProvider(object):
     def factory(cls, name, conf):
         '''Factory method for DataProvider instances.'''
         dapr = None
-        if name == 'whatcd':
-            dapr = WhatCD(conf)
+        if name == 'discogs':
+            dapr = Discogs()
+        elif name == 'echonest':
+            dapr = EchoNest()
         elif name == 'lastfm':
             dapr = LastFM()
-        elif name == 'discogs':
-            dapr = Discogs()
         elif name == 'mbrainz':
             dapr = MusicBrainz()
         elif name == 'rymusic':
             dapr = RateYourMusic()
-        elif name == 'echonest':
-            dapr = EchoNest()
+        elif name == 'whatcd':
+            dapr = WhatCD(conf)
         else:
             raise DataProviderError('dataprovider not found')
         return dapr
@@ -372,6 +372,281 @@ class DataProvider(object):
         raise NotImplementedError()
 
 
+class Discogs(DataProvider):
+    '''Discogs DataProvider
+
+    rauth requests can't be cached by requests_cache at this time,
+    see https://github.com/reclosedev/requests-cache/pull/52
+    '''
+
+    def __init__(self):
+        super(Discogs, self).__init__()
+        # http://www.discogs.com/developers/#header:home-rate-limiting
+        self.rate_limit = 3.0
+        # OAuth1 authentication
+        import rauth
+        discogs = rauth.OAuth1Service(
+            consumer_key='sYGBZLljMPsYUnmGOzTX',
+            consumer_secret='TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk',
+            request_token_url='https://api.discogs.com/oauth/request_token',
+            access_token_url='https://api.discogs.com/oauth/access_token',
+            authorize_url='https://www.discogs.com/oauth/authorize')
+        # load access token from file
+        token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
+        try:
+            with open(token_file) as file_:
+                data = json.load(file_)
+            acc_token = data['token']
+            acc_secret = data['secret']
+        except (IOError, KeyError, ValueError):
+            # get request token
+            req_token, req_secret = discogs.get_request_token(headers=HEADERS)
+            # get verifier from user
+            print('Discogs requires authentication with your own account.\n'
+                  'Disable discogs in the config file or use this link to '
+                  'authenticate:\n%s' % discogs.get_authorize_url(req_token))
+            verifier = raw_input('Verification code: ')
+            # get access token
+            try:
+                acc_token, acc_secret = discogs.get_access_token(
+                    req_token, req_secret, data={'oauth_verifier': verifier},
+                    headers=HEADERS)
+            except KeyError as err:
+                self.log.fatal(err.message)
+                exit()
+            # save access token to file
+            with open(token_file, 'w') as file_:
+                json.dump({'token': acc_token, 'secret': acc_secret}, file_)
+        self.session = discogs.get_session((acc_token, acc_secret))
+        self.session.headers.update(HEADERS)
+        if requests_cache:  # avoid filling cache with unusable entries
+            self.session._is_cache_disabled = True  # pylint: disable=W0212
+
+    def query_artist(self, artist):
+        '''Query for artist data.'''
+        raise NotImplementedError()
+
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        params = {'release_title': album}
+        if artist:
+            params.update({'artist': artist})
+        result = self._request_json('https://api.discogs.com/database/search',
+                                    params)
+        if not result['results']:
+            return None
+        # merge all releases and masters
+        tags = set()
+        for res in result['results']:
+            if res['type'] in ['master', 'release']:
+                for key in ['genre', 'style']:
+                    tags.update(res.get(key))
+        return [{'tags': {tag: 0 for tag in tags}}]
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        raise NotImplementedError()
+
+
+class EchoNest(DataProvider):
+    '''EchoNest DataProvider'''
+
+    def __init__(self):
+        super(EchoNest, self).__init__()
+        # http://developer.echonest.com/docs/v4#rate-limits
+        self.rate_limit = 3.0
+
+    def query_artist(self, artist):
+        '''Query for artist data.'''
+        result = self._request_json(
+            'http://developer.echonest.com/api/v4/artist/search',
+            [('api_key', 'ZS0LNJH7V6ML8AHW3'), ('format', 'json'),
+             ('results', 1), ('bucket', 'terms'), ('bucket', 'genre'),
+             ('name', artist)])
+        if not result['response']['artists']:
+            return None
+        result = result['response']['artists'][0]
+        terms = {tag['name']: float(tag['weight'] + tag['frequency']) * .5
+                 for tag in result['terms']}
+        genres = {tag['name']: 0 for tag in result['genres']}
+        # TODO: merge them instead of using just one, can't just be handled as
+        # separate results at this time since unscored tags with and without
+        # counts can't be auto-merged later
+        return [{'tags': terms or genres}]
+
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        raise NotImplementedError()
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        raise NotImplementedError()
+
+
+class LastFM(DataProvider):
+    '''Last.FM DataProvider'''
+
+    def __init__(self):
+        super(LastFM, self).__init__()
+        # http://lastfm.de/api/tos
+        self.rate_limit = .25
+
+    def _query(self, params):
+        '''Query Last.FM API.'''
+        params.update({'format': 'json',
+                       'api_key': '54bee5593b60d0a5bf379cedcad79052'})
+        result = self._request_json('http://ws.audioscrobbler.com/2.0/',
+                                    params)
+        if 'error' in result:
+            self.log.debug('%-8s error: %s', self.name, result['message'])
+            return None
+        tags = result['toptags'].get('tag')
+        if tags:
+            if not isinstance(tags, list):
+                tags = [tags]
+            tags = {t['name']: int(t.get('count', 0)) for t in tags}
+        return [{'tags': tags}]
+
+    def query_artist(self, artist):
+        '''Query for artist data.'''
+        return self._query({'method': 'artist.gettoptags', 'artist': artist})
+
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        return self._query({'method': 'album.gettoptags', 'album': album,
+                            'artist': artist or 'Various Artists'})
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        if entity == 'album':
+            # FIXME: seems broken at the moment,
+            # resolve later when lastfm finished migration
+            raise NotImplementedError()
+        self.log.debug("%-8s %-6s use mbid '%s'.", self.name, entity, mbid)
+        return self._query({'method': entity + '.gettoptags', 'mbid': mbid})
+
+
+class MusicBrainz(DataProvider):
+    '''MusicBrainz DataProvider'''
+
+    def __init__(self):
+        super(MusicBrainz, self).__init__()
+        # http://musicbrainz.org/doc/XML_Web_Service/Rate_Limiting
+        self.rate_limit = 1.0
+        self.name = 'MBrainz'
+
+    def _query(self, path, params):
+        '''Query MusicBrainz.'''
+        params.update({'fmt': 'json', 'limit': 1})
+        result = self._request_json(
+            'http://musicbrainz.org/ws/2/' + path, params)
+        if 'error' in result:
+            self.log.debug('%-8s error: %s', self.name, result['error'])
+            return None
+        if 'query' in params:
+            result = result[path + 's']
+        else:  # by mbid
+            result = [result]
+        return [{'tags': {t['name']: int(t.get('count', 0))
+                          for t in r.get('tags', {})}} for r in result]
+
+    def query_artist(self, artist):
+        '''Query for artist data.'''
+        return self._query('artist', {'query': 'artist: ' + artist})
+
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        qry = 'releasegroup: %s' % album
+        if artist:
+            qry += ' AND artist: %s' % artist
+        return self._query('release-group', {'query': qry})
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        self.log.debug("%-8s %-6s use mbid '%s'.", self.name, entity, mbid)
+        if entity == 'album':
+            entity = 'release-group'
+        return self._query(entity + '/' + mbid, {'inc': 'tags'})
+
+
+class RateYourMusic(DataProvider):
+    '''RateYourMusic DataProvider
+
+    see http://rateyourmusic.com/rymzilla/view?id=683
+    '''
+
+    def __init__(self):
+        super(RateYourMusic, self).__init__()
+        self.rate_limit = 3.0
+        self.name = 'RYMusic'
+
+    def _request_html(self, url, params, method='GET'):
+        '''Return a html response from a request.'''
+        from lxml import html
+        res = self._request(url, params, method=method)
+        if res.status_code == 404:
+            return None
+        try:
+            return html.fromstring(res.text)
+        except ValueError as err:
+            self.log.debug(res.text)
+            raise DataProviderError("html request: %s" % err.message)
+
+    def _scrap_url(self, path):
+        '''Scrap genres from an url.'''
+        tree = self._request_html('http://rateyourmusic.com/' + path, {})
+        if tree is not None:
+            tags = tree.xpath('//a[@class="genre"]/text()')
+            return [{'tags': {t: 0 for t in set(tags)}}]
+        return None
+
+    def _query(self, type_, searchterm):
+        '''Search RateYourMusic.'''
+
+        def match(str_a, str_b):
+            '''Return True if str_a and str_b are quite similar.'''
+            import difflib
+            return difflib.SequenceMatcher(
+                None, str_a.lower(), str_b.lower()).quick_ratio() > 0.9
+
+        tree = self._request_html(
+            'http://rateyourmusic.com/httprequest',
+            {'type': type_, 'searchterm': searchterm, 'rym_ajax_req': 1,
+             'page': 1, 'action': 'Search'}, method='POST')
+        # get first good enough result
+        for result in tree.xpath('//tr[@class="infobox"]'):
+            try:
+                name = result.xpath('.//a[@class="searchpage"]/text()')[0]
+                if type_ in 'ay' and not match(name, searchterm):
+                    continue
+                elif type_ == 'l':
+                    artist = result.xpath(
+                        './/td[2]//td[1]/a[@class="artist"]/text()')[0]
+                    if not match(artist + ' ' + name, searchterm):
+                        continue
+                url = result.xpath('.//a[@class="searchpage"]/@href')[0]
+            except IndexError:
+                continue
+            return self._scrap_url(url)
+        return None
+
+    def query_artist(self, artist):
+        '''Query for artist data.'''
+        # guess url (so much faster)
+        res = self._scrap_url('/artist/' + artist.replace(' ', '_'))
+        return res or self._query('a', artist)
+
+    def query_album(self, album, artist=None, year=None, reltyp=None):
+        '''Query for album data.'''
+        if artist:
+            return self._query('l', artist + ' ' + album)
+        return self._query('y', album)
+
+    def query_by_mbid(self, entity, mbid):
+        '''Query by mbid.'''
+        raise NotImplementedError()
+
+
 class WhatCD(DataProvider):
     '''What.CD DataProvider'''
 
@@ -489,281 +764,6 @@ class WhatCD(DataProvider):
                 result.update({'info': info})
             results.append(result)
         return results
-
-    def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
-        raise NotImplementedError()
-
-
-class LastFM(DataProvider):
-    '''Last.FM DataProvider'''
-
-    def __init__(self):
-        super(LastFM, self).__init__()
-        # http://lastfm.de/api/tos
-        self.rate_limit = .25
-
-    def _query(self, params):
-        '''Query Last.FM API.'''
-        params.update({'format': 'json',
-                       'api_key': '54bee5593b60d0a5bf379cedcad79052'})
-        result = self._request_json('http://ws.audioscrobbler.com/2.0/',
-                                    params)
-        if 'error' in result:
-            self.log.debug('%-8s error: %s', self.name, result['message'])
-            return None
-        tags = result['toptags'].get('tag')
-        if tags:
-            if not isinstance(tags, list):
-                tags = [tags]
-            tags = {t['name']: int(t.get('count', 0)) for t in tags}
-        return [{'tags': tags}]
-
-    def query_artist(self, artist):
-        '''Query for artist data.'''
-        return self._query({'method': 'artist.gettoptags', 'artist': artist})
-
-    def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
-        return self._query({'method': 'album.gettoptags', 'album': album,
-                            'artist': artist or 'Various Artists'})
-
-    def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
-        if entity == 'album':
-            # FIXME: seems broken at the moment,
-            # resolve later when lastfm finished migration
-            raise NotImplementedError()
-        self.log.debug("%-8s %-6s use mbid '%s'.", self.name, entity, mbid)
-        return self._query({'method': entity + '.gettoptags', 'mbid': mbid})
-
-
-class Discogs(DataProvider):
-    '''Discogs DataProvider
-
-    rauth requests can't be cached by requests_cache at this time,
-    see https://github.com/reclosedev/requests-cache/pull/52
-    '''
-
-    def __init__(self):
-        super(Discogs, self).__init__()
-        # http://www.discogs.com/developers/#header:home-rate-limiting
-        self.rate_limit = 3.0
-        # OAuth1 authentication
-        import rauth
-        discogs = rauth.OAuth1Service(
-            consumer_key='sYGBZLljMPsYUnmGOzTX',
-            consumer_secret='TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk',
-            request_token_url='https://api.discogs.com/oauth/request_token',
-            access_token_url='https://api.discogs.com/oauth/access_token',
-            authorize_url='https://www.discogs.com/oauth/authorize')
-        # load access token from file
-        token_file = os.path.expanduser('~/.whatlastgenre/discogs.json')
-        try:
-            with open(token_file) as file_:
-                data = json.load(file_)
-            acc_token = data['token']
-            acc_secret = data['secret']
-        except (IOError, KeyError, ValueError):
-            # get request token
-            req_token, req_secret = discogs.get_request_token(headers=HEADERS)
-            # get verifier from user
-            print('Discogs requires authentication with your own account.\n'
-                  'Disable discogs in the config file or use this link to '
-                  'authenticate:\n%s' % discogs.get_authorize_url(req_token))
-            verifier = raw_input('Verification code: ')
-            # get access token
-            try:
-                acc_token, acc_secret = discogs.get_access_token(
-                    req_token, req_secret, data={'oauth_verifier': verifier},
-                    headers=HEADERS)
-            except KeyError as err:
-                self.log.fatal(err.message)
-                exit()
-            # save access token to file
-            with open(token_file, 'w') as file_:
-                json.dump({'token': acc_token, 'secret': acc_secret}, file_)
-        self.session = discogs.get_session((acc_token, acc_secret))
-        self.session.headers.update(HEADERS)
-        if requests_cache:  # avoid filling cache with unusable entries
-            self.session._is_cache_disabled = True  # pylint: disable=W0212
-
-    def query_artist(self, artist):
-        '''Query for artist data.'''
-        raise NotImplementedError()
-
-    def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
-        params = {'release_title': album}
-        if artist:
-            params.update({'artist': artist})
-        result = self._request_json('https://api.discogs.com/database/search',
-                                    params)
-        if not result['results']:
-            return None
-        # merge all releases and masters
-        tags = set()
-        for res in result['results']:
-            if res['type'] in ['master', 'release']:
-                for key in ['genre', 'style']:
-                    tags.update(res.get(key))
-        return [{'tags': {tag: 0 for tag in tags}}]
-
-    def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
-        raise NotImplementedError()
-
-
-class MusicBrainz(DataProvider):
-    '''MusicBrainz DataProvider'''
-
-    def __init__(self):
-        super(MusicBrainz, self).__init__()
-        # http://musicbrainz.org/doc/XML_Web_Service/Rate_Limiting
-        self.rate_limit = 1.0
-        self.name = 'MBrainz'
-
-    def _query(self, path, params):
-        '''Query MusicBrainz.'''
-        params.update({'fmt': 'json', 'limit': 1})
-        result = self._request_json(
-            'http://musicbrainz.org/ws/2/' + path, params)
-        if 'error' in result:
-            self.log.debug('%-8s error: %s', self.name, result['error'])
-            return None
-        if 'query' in params:
-            result = result[path + 's']
-        else:  # by mbid
-            result = [result]
-        return [{'tags': {t['name']: int(t.get('count', 0))
-                          for t in r.get('tags', {})}} for r in result]
-
-    def query_artist(self, artist):
-        '''Query for artist data.'''
-        return self._query('artist', {'query': 'artist: ' + artist})
-
-    def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
-        qry = 'releasegroup: %s' % album
-        if artist:
-            qry += ' AND artist: %s' % artist
-        return self._query('release-group', {'query': qry})
-
-    def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
-        self.log.debug("%-8s %-6s use mbid '%s'.", self.name, entity, mbid)
-        if entity == 'album':
-            entity = 'release-group'
-        return self._query(entity + '/' + mbid, {'inc': 'tags'})
-
-
-class EchoNest(DataProvider):
-    '''EchoNest DataProvider'''
-
-    def __init__(self):
-        super(EchoNest, self).__init__()
-        # http://developer.echonest.com/docs/v4#rate-limits
-        self.rate_limit = 3.0
-
-    def query_artist(self, artist):
-        '''Query for artist data.'''
-        result = self._request_json(
-            'http://developer.echonest.com/api/v4/artist/search',
-            [('api_key', 'ZS0LNJH7V6ML8AHW3'), ('format', 'json'),
-             ('results', 1), ('bucket', 'terms'), ('bucket', 'genre'),
-             ('name', artist)])
-        if not result['response']['artists']:
-            return None
-        result = result['response']['artists'][0]
-        terms = {tag['name']: float(tag['weight'] + tag['frequency']) * .5
-                 for tag in result['terms']}
-        genres = {tag['name']: 0 for tag in result['genres']}
-        # TODO: merge them instead of using just one, can't just be handled as
-        # separate results at this time since unscored tags with and without
-        # counts can't be auto-merged later
-        return [{'tags': terms or genres}]
-
-    def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
-        raise NotImplementedError()
-
-    def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
-        raise NotImplementedError()
-
-
-class RateYourMusic(DataProvider):
-    '''RateYourMusic DataProvider
-
-    see http://rateyourmusic.com/rymzilla/view?id=683
-    '''
-
-    def __init__(self):
-        super(RateYourMusic, self).__init__()
-        self.rate_limit = 3.0
-        self.name = 'RYMusic'
-
-    def _request_html(self, url, params, method='GET'):
-        '''Return a html response from a request.'''
-        from lxml import html
-        res = self._request(url, params, method=method)
-        if res.status_code == 404:
-            return None
-        try:
-            return html.fromstring(res.text)
-        except ValueError as err:
-            self.log.debug(res.text)
-            raise DataProviderError("html request: %s" % err.message)
-
-    def _scrap_url(self, path):
-        '''Scrap genres from an url.'''
-        tree = self._request_html('http://rateyourmusic.com/' + path, {})
-        if tree is not None:
-            tags = tree.xpath('//a[@class="genre"]/text()')
-            return [{'tags': {t: 0 for t in set(tags)}}]
-        return None
-
-    def _query(self, type_, searchterm):
-        '''Search RateYourMusic.'''
-
-        def match(str_a, str_b):
-            '''Return True if str_a and str_b are quite similar.'''
-            import difflib
-            return difflib.SequenceMatcher(
-                None, str_a.lower(), str_b.lower()).quick_ratio() > 0.9
-
-        tree = self._request_html(
-            'http://rateyourmusic.com/httprequest',
-            {'type': type_, 'searchterm': searchterm, 'rym_ajax_req': 1,
-             'page': 1, 'action': 'Search'}, method='POST')
-        # get first good enough result
-        for result in tree.xpath('//tr[@class="infobox"]'):
-            try:
-                name = result.xpath('.//a[@class="searchpage"]/text()')[0]
-                if type_ in 'ay' and not match(name, searchterm):
-                    continue
-                elif type_ == 'l':
-                    artist = result.xpath(
-                        './/td[2]//td[1]/a[@class="artist"]/text()')[0]
-                    if not match(artist + ' ' + name, searchterm):
-                        continue
-                url = result.xpath('.//a[@class="searchpage"]/@href')[0]
-            except IndexError:
-                continue
-            return self._scrap_url(url)
-        return None
-
-    def query_artist(self, artist):
-        '''Query for artist data.'''
-        # guess url (so much faster)
-        res = self._scrap_url('/artist/' + artist.replace(' ', '_'))
-        return res or self._query('a', artist)
-
-    def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
-        if artist:
-            return self._query('l', artist + ' ' + album)
-        return self._query('y', album)
 
     def query_by_mbid(self, entity, mbid):
         '''Query by mbid.'''

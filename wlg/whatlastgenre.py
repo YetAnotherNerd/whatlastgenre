@@ -524,7 +524,7 @@ class Config(ConfigParser.SafeConfigParser):
     '''Read, maintain and write the configuration file.'''
 
     # (section, option, value)
-    conf = [('wlg', 'sources', 'whatcd, lastfm, discogs, mbrainz, echonest'),
+    conf = [('wlg', 'sources', 'discogs, echonest, lastfm, mbrainz, whatcd'),
             ('wlg', 'whatcduser', ''),
             ('wlg', 'whatcdpass', ''),
             ('wlg', 'whitelist', ''),
@@ -535,12 +535,13 @@ class Config(ConfigParser.SafeConfigParser):
             ('scores', 'artist', '1.33'),
             ('scores', 'various', '0.66'),
             ('scores', 'splitup', '0.33'),
-            ('scores', 'src_whatcd', '1.50'),
-            ('scores', 'src_lastfm', '0.66'),
             ('scores', 'src_discogs', '1.00'),
+            ('scores', 'src_echonest', '1.00'),
+            ('scores', 'src_lastfm', '0.66'),
             ('scores', 'src_mbrainz', '0.66'),
             ('scores', 'src_rymusic', '1.33'),
-            ('scores', 'src_echonest', '1.00')]
+            ('scores', 'src_whatcd', '1.50'),
+            ]
 
     def __init__(self, args):
         ConfigParser.SafeConfigParser.__init__(self)
