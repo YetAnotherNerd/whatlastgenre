@@ -148,22 +148,14 @@ session =
 #### whatlastgenre (wlg) section
 
 ##### sources option
-The music sites where to get the genre tags from.
-* `discogs` [[URL](http://discogs.com)]
-album only, fixed list of [genres and styles]
-(http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles),
-requires own account
-* `echonest` [[URL](http://echonest.com)]
-artist only, genres without counts and terms with counts (see
-[doc](http://developer.echonest.com/docs/v4/))
-* `lastfm` [[URL](http://last.fm)]
-many personal tags from users
-* `mbrainz` [[URL](http://musicbrainz.org)]
-home of mbids
-* `rymusic` [[URL](http://rateyourmusic.com)]
-no real api (slow)
-* `whatcd` [[URL](https://what.cd)]
-well-kept tags from community, requires own account
+Source | Artist | Album | Auth | ...
+-------|:------:|:-----:|:----:|-----
+[discogs](http://discogs.com) | 0 | 1 | 1 | fixed list of [genres and styles] (http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles)
+[echonest](http://echonest.com)| 1 | 0 | 0 | genres without counts and terms with counts (see [doc](http://developer.echonest.com/docs/v4/))
+[lastfm](http://last.fm)| 1 | 1 | 0 |  many personal tags from users
+[mbrainz](http://musicbrainz.org) | 1 | 1 | 0 | home of mbids
+[rymusic](http://rateyourmusic.com) | 1 | 1 | 0 | no real api (slow)
+[whatcd](https://what.cd) | 1 | 1 | 1 | well-kept tags from community
 
 ##### whitelist/tagsfile option
 Path to your custom whitelist and tagsfile. Use shipped
