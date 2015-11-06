@@ -149,7 +149,7 @@ class WhatLastGenre(object):
                 self.verbose_status(query, cached, "no results")
                 continue
             # ask user if appropriated
-            if len(results) > 1 and self.conf.args.interactive \
+            if len(results) > 1 and not self.conf.args.dry \
                     and self.conf.args.tag_release \
                     and query.dapr.name.lower() == 'whatcd' \
                     and query.type == 'album' \
@@ -680,8 +680,6 @@ def get_args():
                         help='max. number of genre tags')
     parser.add_argument('-r', '--tag-release', action='store_true',
                         help='tag release type (from What.CD)')
-    parser.add_argument('-i', '--interactive', action='store_true',
-                        help='interactive mode')
     parser.add_argument('-d', '--difflib', action='store_true',
                         help='enable difflib matching (slow)')
     return parser.parse_args()

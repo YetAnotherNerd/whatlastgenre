@@ -76,18 +76,12 @@ for details.
 However, if you don't want to use v2.4 tags you can use the `id3v23sep` config
 option explained below.
 
-##### Interactivity (while tagging releasetypes)
-Sometimes a dataprovider returns more than one result of tags (eg. different
-editions of the same album or album and single with the same name). This is not
-a problem since these results often contain very similar tags that can simply
-be merged together. However, to tag releasetypes it is necessary to know the
-right result, so some user input might be required when the results have
-different releasetypes, but several steps are taken to reduce needed
-interactivity, like filtering by snatched flag (make sure to enable 'Snatched
-torrents indicator' in your whatcd profile settings) or by year (if given).
-
-So, interactivity is only needed for setting proper releasetypes
-in some ambiguous cases.
+##### Releasetype tagging and interactitvity
+While tagging releasetypes user input might be required in ambigious cases.
+`-r` implies interactivity, `n` disables interactivity.
+However several steps are taken to reduce needed interactivity, like filtering
+by snatched flag (make sure to enable 'Snatched torrents indicator' in your
+whatcd profile settings) or by year (if given).
 
 
 ## Installation
@@ -247,7 +241,7 @@ Default `1.0`, see `sources` option above.
 
 ## Usage
 ```
-usage: whatlastgenre [-h] [-v] [-n] [-u] [-l N] [-r] [-i] [-d] path [path ...]
+usage: whatlastgenre [-h] [-v] [-n] [-u] [-l N] [-r] [-d] path [path ...]
 
 positional arguments:
   path                 path(s) to scan for albums
@@ -259,19 +253,14 @@ optional arguments:
   -u, --update-cache   force cache update (default: False)
   -l N, --tag-limit N  max. number of genre tags (default: 4)
   -r, --tag-release    tag release type (from What.CD) (default: False)
-  -i, --interactive    interactive mode (default: False)
   -d, --difflib        enable difflib matching (slow) (default: False)
 ```
 
-If you seriously want to tag releasetypes `-r` you should also enable
-interactive mode `-i`. I recommend first doing a dry-run to fill the cache and
-then doing a normal run with `-ri` enabled. This way you can choose the right
-results without much waiting time in between. You can use `-r` without `-i` but
-might get less releasetypes.
+If you want to tag releasetypes `-r`, you should do a dry-run beforehand to
+fill the cache and then be able to choose the right results without much
+waiting time in between.
 
 Remove the cache file to reset the cache or use `-u` to force cache updates.
-
-Don't waste your time running `-n` and `-i` together.
 
 whatlastgenre doesn't correct any other tags. If your music files are badly or
 not tagged it won't work well at all.
@@ -287,7 +276,7 @@ Tag up to 3 genre tags for all albums in /media/music and /home/user/music:
 
 Tag releasetypes and up to 4 genre tags for all albums in /media/music:
 
-	whatlastgenre -ri /media/music
+	whatlastgenre -r /media/music
 
 
 ## Plugins
