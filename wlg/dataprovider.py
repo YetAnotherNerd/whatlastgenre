@@ -301,11 +301,11 @@ class DataProvider(object):
             if any(tags.itervalues()):
                 min_val = max(tags.itervalues()) / 3
                 tags = {k: v for k, v in tags.iteritems() if v >= min_val}
-                sort_key = operator.itemgetter(1)  # best tags
+                tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
+                              reverse=1)  # best tags
             # tags without scores
             else:
-                sort_key = len  # shortest tags
-            tags = sorted(tags.iteritems(), key=sort_key, reverse=1)
+                tags = sorted(tags.iteritems(), key=len)  # shortest tags
             tags = {k: v for k, v in tags[:limit]}
         return tags
 
