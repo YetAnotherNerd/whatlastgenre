@@ -736,18 +736,17 @@ class WhatCD(DataProvider):
         # make sure to enable "Enable snatched torrents indicator" in
         # your whatcd profile settings
         if len(res) > 1:
-            res = self._prefilter_results(
-                res, 'snatched', True, lambda x: any(t['hasSnatched']
-                                                     for t in x['torrents']))
+            func = lambda x: any(t['hasSnatched'] for t in x['torrents'])
+            res = self._prefilter_results(res, 'snatched', True, func)
         # prefilter by reltyp
         if len(res) > 1 and reltyp:
+            func = lambda x: x.get('releaseType', '').lower()
             res = self._prefilter_results(
-                res, 'releasetype', reltyp.lower(),
-                lambda x: x.get('releaseType', '').lower())
+                res, 'releasetype', reltyp.lower(), func)
         # prefilter by year
         if len(res) > 1 and year:
-            res = self._prefilter_results(
-                res, 'year', int(year), lambda x: int(x.get('groupYear', 0)))
+            func = lambda x: int(x.get('groupYear', 0))
+            res = self._prefilter_results(res, 'year', int(year), func)
         results = []
         for res_ in res:
             tags = {t.replace('.', ' '): 0 for t in res_['tags']}
