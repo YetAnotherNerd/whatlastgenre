@@ -70,9 +70,9 @@ class WhatLastGenre(object):
                           'Release tagging disabled.\n')
             self.conf.args.tag_release = False
         # validate aliases
-        for key, val in self.tagsfile['aliases'].items():
+        for key, val in self.tags['alias'].items():
             if val not in self.whitelist:
-                del self.tagsfile['aliases'][key]
+                del self.tags['alias'][key]
                 self.stat_message(logging.WARN, 'alias not whitelisted',
                                   '%s -> %s' % (key, val), 2)
 
@@ -109,9 +109,9 @@ class WhatLastGenre(object):
             regex.append((re.compile(pat, re.I), repl))
         for pat, repl in tagsfile.items('regex', True):
             regex.append((re.compile(r'\b%s\b' % pat, re.I), repl))
-        self.tagsfile = {
+        self.tags = {
             'upper': dict(tagsfile.items('upper', True)).keys(),
-            'aliases': dict(tagsfile.items('alias', True)),
+            'alias': dict(tagsfile.items('alias', True)),
             'love': self.conf.get_list('genres', 'love'),
             'hate': self.conf.get_list('genres', 'hate'),
             'regex': regex}
@@ -368,18 +368,18 @@ class TagLib(object):
 
         def alias(key):
             '''Return whether a key got an alias and log it if True.'''
-            if key in self.wlg.tagsfile['aliases']:
+            if key in self.wlg.tags['alias']:
                 self.log.debug('tag alias   %s -> %s', key,
-                               self.wlg.tagsfile['aliases'][key])
+                               self.wlg.tags['alias'][key])
                 return True
             return False
 
         # alias
         if alias(key):
-            return self.wlg.tagsfile['aliases'][key]
+            return self.wlg.tags['alias'][key]
         # regex
-        if any(r[0].search(key) for r in self.wlg.tagsfile['regex']):
-            for pat, repl in self.wlg.tagsfile['regex']:
+        if any(r[0].search(key) for r in self.wlg.tags['regex']):
+            for pat, repl in self.wlg.tags['regex']:
                 if pat.search(key):
                     key_ = key
                     key = pat.sub(repl, key)
@@ -387,7 +387,7 @@ class TagLib(object):
                                    key_, key, pat.pattern)
             # key got replaced, try alias again
             if alias(key):
-                return self.wlg.tagsfile['aliases'][key]
+                return self.wlg.tags['alias'][key]
             return key
         # match
         if self.wlg.conf.args.difflib:
@@ -453,7 +453,7 @@ class TagLib(object):
         words = key.split(' ')
         for i, word in enumerate(words):
             if len(word) < 3 and word != 'nu' or \
-                    word in self.wlg.tagsfile['upper']:
+                    word in self.wlg.tags['upper']:
                 words[i] = word.upper()
             else:
                 words[i] = word.title()
@@ -476,9 +476,9 @@ class TagLib(object):
             return None
         # apply user score bonus
         for key in tags.iterkeys():
-            if key in self.wlg.tagsfile['love']:
+            if key in self.wlg.tags['love']:
                 tags[key] *= 2.0
-            elif key in self.wlg.tagsfile['hate']:
+            elif key in self.wlg.tags['hate']:
                 tags[key] *= 0.5
         # sort, limit and format
         tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
