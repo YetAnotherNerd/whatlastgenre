@@ -19,8 +19,7 @@ Improve genre metadata of audio files based on tags from various music sites.
     * Scores tags while taking personal preferences into account
   * Caches all data received from music sites to make reruns super fast
   * Uses MusicBrainz IDs for searching when available
-  * Optional: gets release type (Album, EP, Anthology, ...) from What.CD
-  (with interactivity mode for ambiguous results)
+  * Optional: gets release info from whatcd (with interactivity if ambiguous)
   * Can be used as plugin in other software, currently:
   [beets](https://github.com/sampsyo/beets)
   * Dry-mode for safe testing
@@ -76,12 +75,14 @@ for details.
 However, if you don't want to use v2.4 tags you can use the `id3v23sep` config
 option explained below.
 
-##### Releasetype tagging and interactitvity
-While tagging releasetypes user input might be required in ambigious cases.
-`-r` implies interactivity, `n` disables interactivity.
-However several steps are taken to reduce needed interactivity, like filtering
+##### Release info tagging and interactitvity
+    releasetype, year, label, catalog, edition, media
+Although several steps are taken to reduce needed interactivity, like filtering
 by snatched flag (make sure to enable 'Snatched torrents indicator' in your
-whatcd profile settings) or by year (if given).
+whatcd profile settings) or by year (if given), user input might be required
+while tagging releaseinfo in ambigious cases.
+`-r` implies interactivity, `n` disables interactivity. Be aware that `-r`
+saves the original release year into the `date` metadata field.
 
 
 ## Installation
@@ -267,7 +268,7 @@ optional arguments:
   -n, --dry            don't save metadata (default: False)
   -u, --update-cache   force cache update (default: False)
   -l N, --tag-limit N  max. number of genre tags (default: 4)
-  -r, --tag-release    tag release type (from What.CD) (default: False)
+  -r, --release        get release info from whatcd (default: False)
   -d, --difflib        enable difflib matching (slow) (default: False)
 ```
 
@@ -289,7 +290,7 @@ Tag up to 3 genre tags for all albums in /media/music and /home/user/music:
 
 	whatlastgenre -l 3 /media/music /home/user/music
 
-Tag releasetypes and up to 4 genre tags for all albums in /media/music:
+Tag releaseinfo and up to 4 genre tags for all albums in /media/music:
 
 	whatlastgenre -r /media/music
 

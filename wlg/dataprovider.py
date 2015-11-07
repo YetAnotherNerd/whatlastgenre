@@ -712,6 +712,25 @@ class WhatCD(DataProvider):
             raise DataProviderError('request failure')
         return response
 
+    def _query_release(self, torrent):
+        '''Query for release information'''
+        res = self._query({'action': 'torrent', 'id': torrent})
+        result = {'media': res['torrent']['media']}
+        if res['torrent']['remastered']:
+            year = str(res['torrent']['remasterYear'])
+            edition = res['torrent']['remasterTitle']
+            if year and year != str(res['group']['year']):
+                edition += ' %s' % year
+            result.update({
+                'label': res['torrent']['remasterRecordLabel'],
+                'catalog': res['torrent']['remasterCatalogueNumber'],
+                'edition': edition})
+        else:
+            result.update({
+                'label': res['group']['recordLabel'],
+                'catalog': res['group']['catalogueNumber']})
+        return {k: v.strip() for k, v in result.iteritems() if v}
+
     def query_artist(self, artist):
         '''Query for artist data.'''
         result = self._query({'action': 'artist', 'artistname': artist})
@@ -745,14 +764,19 @@ class WhatCD(DataProvider):
             res = self._prefilter_results(res, 'year', int(year), func)
         results = []
         for res_ in res:
-            tags = {t.replace('.', ' '): 0 for t in res_['tags']}
-            result = {'tags': tags, 'releasetype': res_['releaseType']}
+            result = {'tags': {t.replace('.', ' '): 0 for t in res_['tags']},
+                      'releasetype': res_['releaseType'],
+                      'date': str(res_['groupYear'])}
+            snatched = [t for t in res_['torrents'] if t['hasSnatched']]
+            if len(snatched) == 1 and self.conf.args.release:
+                # 2nd query needed at the moment, wcdthread#203596
+                result.update(self._query_release(snatched[0]['torrentId']))
             if len(res) > 1:
-                info = \
-                    '%s - %s (%s) [%s]: https://what.cd/torrents.php?id=%s' \
-                    % (res_['artist'], res_['groupName'], res_['groupYear'],
-                       res_['releaseType'], res_['groupId'])
-                result.update({'info': info})
+                result.update({'info': '%s - %s (%s) [%s]: '
+                               'https://what.cd/torrents.php?id=%s'
+                               % (res_['artist'], res_['groupName'],
+                                  res_['groupYear'], res_['releaseType'],
+                                  res_['groupId'])})
             results.append(result)
         return results
 

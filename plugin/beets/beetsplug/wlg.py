@@ -58,7 +58,7 @@ class WhatLastGenre(BeetsPlugin):
         self.wlg = whatlastgenre.WhatLastGenre(
             Namespace(update_cache=update_cache, verbose=verbose, dry=False,
                       tag_limit=self.config['count'].get(int), difflib=False,
-                      tag_release=False), whitelist)
+                      release=False), whitelist)
 
     def setdown(self):
         '''Since __del__s don't get called we need to do some stuff

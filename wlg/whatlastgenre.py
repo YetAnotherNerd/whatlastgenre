@@ -64,11 +64,11 @@ class WhatLastGenre(object):
         self.read_whitelist(whitelist)
         self.read_tagsfile()
         # validation
-        if self.conf.args.tag_release \
+        if args.release \
                 and 'whatcd' not in self.conf.get_list('wlg', 'sources'):
-            self.log.warn('Can\'t tag release with What.CD support disabled. '
-                          'Release tagging disabled.\n')
-            self.conf.args.tag_release = False
+            self.log.warning('Can\'t tag release with What.CD support '
+                             'disabled. Release tagging disabled.')
+            self.conf.args.release = False
         # validate aliases
         for key, val in self.tags['alias'].items():
             if val not in self.whitelist:
@@ -116,7 +116,7 @@ class WhatLastGenre(object):
 
     def query_album(self, metadata):
         '''Query for top genres of an album identified by metadata
-        and return them and the releasetype.'''
+        and return them and some releaseinfo.'''
         num_artists = 1
         if not metadata.albumartist[0]:
             num_artists = len(set(metadata.artists))
@@ -148,14 +148,14 @@ class WhatLastGenre(object):
                 continue
             # ask user if appropriated
             if len(results) > 1 and not self.conf.args.dry \
-                    and self.conf.args.tag_release \
+                    and self.conf.args.release \
                     and query.dapr.name.lower() == 'whatcd' \
                     and query.type == 'album' \
-                    and not query.releasetype:
-                reltyps = [r['releasetype'] for r in results
-                           if 'releasetype' in r]
-                if len(set(reltyps)) != 1:  # all the same anyway
-                    results = ask_user(query, results)
+                    and len(set(r.get('releasetype') for r in results)) > 1:
+                results = ask_user(query, results)
+                if len(results) == 1:
+                    query.dapr.cache.set(query.dapr.cache.cachekey(query),
+                                         results)
             # merge multiple results
             if len(results) in range(2, 6):
                 results = [self.merge_results(results)]
@@ -171,8 +171,9 @@ class WhatLastGenre(object):
                 continue
             # unique result
             query.dapr.stats['results'] += 1
-            if 'releasetype' in results[0] and results[0]['releasetype']:
-                taglib.releasetype = results[0]['releasetype']
+            if query.dapr.name.lower() == 'whatcd' and query.type == 'album':
+                taglib.release = {k: v for k, v in results[0].iteritems()
+                                  if k not in ['info', 'tags']}
             if 'tags' in results[0] and results[0]['tags']:
                 tags = taglib.score(results[0]['tags'], query.score)
                 good = taglib.add(tags, query.type)
@@ -182,7 +183,13 @@ class WhatLastGenre(object):
             else:
                 status = "no    tags"
             self.verbose_status(query, cached, status)
-        return taglib.get_genres(), taglib.get_releasetype()
+        if taglib.release and 'releasetype' in taglib.release \
+                and taglib.release['releasetype']:
+            self.stats.reltyps[taglib.release['releasetype']] += 1
+        elif self.conf.args.release:
+            self.stat_message(logging.ERROR, 'No releaseinfo found',
+                              metadata.path, 1)
+        return taglib.get_genres(), taglib.release
 
     def create_queries(self, metadata):
         '''Create queries for all DataProviders based on metadata.'''
@@ -237,9 +244,10 @@ class WhatLastGenre(object):
             for key, val in tags_.iteritems():
                 tags[key] += val
         result = {'tags': tags}
-        reltyps = [r['releasetype'] for r in results if 'releasetype' in r]
-        if len(set(reltyps)) == 1:
-            result.update({'releasetype': reltyps[0]})
+        for key in set(k for r in results for k in r.keys() if k != 'tags'):
+            vals = [r[key] for r in results if key in r and r[key]]
+            if len(set(vals)) == 1:
+                result.update({key: vals[0]})
         return result
 
     def verbose_status(self, query, cached, status):
@@ -267,7 +275,7 @@ class WhatLastGenre(object):
             print("\n%d different genres used this often:" % len(genres))
             print(tag_display(genres, "%4d %-20s"))
         # releasetypes
-        if self.conf.args.tag_release and self.stats.reltyps:
+        if self.conf.args.release and self.stats.reltyps:
             reltyps = self.stats.reltyps.most_common()
             print("\n%d different releasetypes used this often:"
                   % len(reltyps))
@@ -299,7 +307,7 @@ class TagLib(object):
         self.log = logging.getLogger(__name__)
         self.taggrps = {'artist': defaultdict(float),
                         'album': defaultdict(float)}
-        self.releasetype = None
+        self.release = None
 
     def add(self, tags, group, split=False):
         '''Add scored tags to a group of tags.
@@ -492,20 +500,6 @@ class TagLib(object):
         self.wlg.stats.genres.update(tags)
         return tags
 
-    def get_releasetype(self):
-        '''Return the formatted releasetype.
-
-        Record an error in the stats if appropriated.
-        '''
-        if not self.releasetype:
-            if self.wlg.conf.args.tag_release:
-                self.wlg.stat_message(
-                    logging.ERROR, 'No releasetype found', self.path, 1)
-            return None
-        releasetype = self.releasetype
-        self.wlg.stats.reltyps[releasetype] += 1
-        return releasetype
-
     def __str__(self):
         strs = []
         for group, tags in self.taggrps.iteritems():
@@ -663,14 +657,19 @@ def work_directory(wlg, path):
     # read album metadata
     metadata = album.get_metadata()
     # query genres (and releasetype) for album metadata
-    genres, releasetype = wlg.query_album(metadata)
+    genres, release = wlg.query_album(metadata)
     # update album metadata
     if genres:
         album.set_meta('genre', genres)
-        print("Genres: %s" % ', '.join(genres).encode('utf-8'))
-    if releasetype and wlg.conf.args.tag_release:
-        album.set_meta('releasetype', releasetype)
-        print("RelTyp: %s" % releasetype)
+        print("Genres:  %s" % ', '.join(genres).encode('utf-8'))
+    if release and wlg.conf.args.release:
+        out = []
+        for key in ['releasetype', 'date',
+                    'label', 'catalog', 'edition', 'media']:
+            if key in release and release[key]:
+                album.set_meta(key, release[key])
+                out.append(release[key])
+        print("Release: %s" % ' / '.join(out))
     # save metadata to all tracks
     if wlg.conf.args.dry:
         print("DRY-RUN! Not saving metadata.")
@@ -705,8 +704,8 @@ def get_args():
                         help='force cache update')
     parser.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
                         help='max. number of genre tags')
-    parser.add_argument('-r', '--tag-release', action='store_true',
-                        help='tag release type (from What.CD)')
+    parser.add_argument('-r', '--release', action='store_true',
+                        help='get release info from whatcd')
     parser.add_argument('-d', '--difflib', action='store_true',
                         help='enable difflib matching (slow)')
     return parser.parse_args()
