@@ -158,7 +158,7 @@ class WhatLastGenre(object):
                     results = ask_user(query, results)
             # merge multiple results
             if len(results) in range(2, 6):
-                results = self.merge_results(results)
+                results = [self.merge_results(results)]
             # too many results
             if len(results) > 1:
                 query.dapr.stats['results_many'] += 1
@@ -233,15 +233,14 @@ class WhatLastGenre(object):
     def merge_results(cls, results):
         '''Merge multiple results.'''
         tags = defaultdict(float)
-        for res in results:
-            if 'tags' in res and res['tags']:
-                for key, val in res['tags'].iteritems():
-                    tags[key] += val
+        for tags_ in [r['tags'] for r in results if 'tags' in r]:
+            for key, val in tags_.iteritems():
+                tags[key] += val
         result = {'tags': tags}
         reltyps = [r['releasetype'] for r in results if 'releasetype' in r]
         if len(set(reltyps)) == 1:
             result.update({'releasetype': reltyps[0]})
-        return [result]
+        return result
 
     def verbose_status(self, query, cached, status):
         '''Log a status line in verbose mode.'''
