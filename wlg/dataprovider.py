@@ -87,12 +87,6 @@ class Cache(object):
     def set(self, key, value):
         '''Set value for a given key.'''
         key = str(key)
-        if value:
-            keep = ['tags', 'releasetype']
-            if len(value) > 1:
-                keep.append('info')
-            value = [{k: v for k, v in val.iteritems() if k in keep}
-                     for val in value if val]
         self.cache[key] = (time.time(), value)
         if self.update_cache:
             self.new.add(key)
