@@ -172,12 +172,11 @@ class WhatLastGenre(object):
                                     "%2d results" % len(results))
                 continue
             # unique result
-            res = results[0]
             query.dapr.stats['results'] += 1
-            if 'releasetype' in res and res['releasetype']:
-                taglib.releasetype = res['releasetype']
-            if 'tags' in res and res['tags']:
-                tags = taglib.score(res['tags'], query.score)
+            if 'releasetype' in results[0] and results[0]['releasetype']:
+                taglib.releasetype = results[0]['releasetype']
+            if 'tags' in results[0] and results[0]['tags']:
+                tags = taglib.score(results[0]['tags'], query.score)
                 good = taglib.add(tags, query.type)
                 query.dapr.stats['tags'] += len(tags)
                 query.dapr.stats['goodtags'] += good
