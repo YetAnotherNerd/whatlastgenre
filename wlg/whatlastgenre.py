@@ -95,11 +95,11 @@ class WhatLastGenre(object):
 
     def read_tagsfile(self):
         '''Read tagsfile and return a dict of prepared data.'''
-        tagsfile = ConfigParser.SafeConfigParser(allow_no_value=True)
+        parser = ConfigParser.SafeConfigParser(allow_no_value=True)
         tfstr = pkgutil.get_data('wlg', 'data/tags.txt')
-        tagsfile.readfp(StringIO.StringIO(tfstr))
+        parser.readfp(StringIO.StringIO(tfstr))
         for sec in ['upper', 'alias', 'regex']:
-            if not tagsfile.has_section(sec):
+            if not parser.has_section(sec):
                 self.log.critical('Got no [%s] from tags.txt file.', sec)
                 exit()
         # regex replacements
@@ -107,11 +107,11 @@ class WhatLastGenre(object):
         for pat, repl in [(r'( *[,;.:\\/&_]+ *| and )+', '/'),
                           (r'[\'"]+', ''), (r'  +', ' ')]:
             regex.append((re.compile(pat, re.I), repl))
-        for pat, repl in tagsfile.items('regex', True):
+        for pat, repl in parser.items('regex', True):
             regex.append((re.compile(r'\b%s\b' % pat, re.I), repl))
         self.tags = {
-            'upper': dict(tagsfile.items('upper', True)).keys(),
-            'alias': dict(tagsfile.items('alias', True)),
+            'upper': dict(parser.items('upper', True)).keys(),
+            'alias': dict(parser.items('alias', True)),
             'love': self.conf.get_list('genres', 'love'),
             'hate': self.conf.get_list('genres', 'hate'),
             'regex': regex}
