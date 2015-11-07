@@ -694,14 +694,14 @@ def main():
     print("whatlastgenre v%s" % __version__)
     args = get_args()
     wlg = WhatLastGenre(args)
-    dirs = mediafile.find_music_dirs(args.path)
-    print("\nFound %d music directories!" % len(dirs))
-    if not dirs:
+    paths = mediafile.find_music_dirs(args.path)
+    print("\nFound %d music directories!" % len(paths))
+    if not paths:
         return
-    i = len(dirs)
+    i = 1
     try:
-        for i, path in enumerate(sorted(dirs), start=1):
-            print('\n' + progressbar(i, len(dirs)))
+        for i, path in enumerate(sorted(paths), start=1):
+            print('\n' + progressbar(i, len(paths)))
             print(path)
             work_directory(wlg, path)
         print('\n...all done!')
