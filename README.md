@@ -1,5 +1,4 @@
 # whatlastgenre
-
 Improve genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
@@ -298,7 +297,6 @@ Tag releaseinfo and up to 4 genre tags for all albums in /media/music:
 
 
 ## Plugins
-
 whatlastgenre can be used in other software via plugins.
 
 At the moment there is a [plugin for beets](plugin/beets).
