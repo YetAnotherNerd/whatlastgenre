@@ -101,6 +101,8 @@ class WhatLastGenre(object):
         '''
         parser = ConfigParser.SafeConfigParser(allow_no_value=True)
         paths = [(1, path)]
+        if self.conf.has_option('wlg', 'tagsfile'):
+            paths.append((1, self.conf.get('wlg', 'tagsfile')))
         for fail, path in paths:
             if path and (os.path.exists(path) or fail):
                 parser.read(path)
@@ -537,6 +539,7 @@ class Config(ConfigParser.SafeConfigParser):
     # (section, option, value)
     conf = [('wlg', 'sources', 'discogs, echonest, lastfm, mbrainz, whatcd'),
             ('wlg', 'whitelist', ''),
+            ('wlg', 'tagsfile', ''),
             ('wlg', 'vaqueries', 'true'),
             ('wlg', 'id3v23sep', ''),
             ('genres', 'love', ''),

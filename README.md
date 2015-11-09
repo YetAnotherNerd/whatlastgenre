@@ -120,6 +120,7 @@ A configuration file with default values will be created at
 [wlg]
 sources = discogs, echonest, lastfm, mbrainz, whatcd
 whitelist =
+tagsfile =
 vaqueries = True
 id3v23_sep =
 [genres]
@@ -165,10 +166,10 @@ no real api (slow)
 * `whatcd` [[URL](https://what.cd)]
 well-kept tags from community, requires own account
 
-##### whitelist option
-Path to your custom whitelist. Use [shipped whitelist](wlg/data/genres.txt)
-if empty (default). Make sure the aliases and replacements from
-[tags.txt](wlg/data/tags.txt) fit the used whitelist.
+##### whitelist/tagsfile option
+Path to your custom whitelist and tagsfile. Use shipped
+[whitelist](wlg/data/genres.txt)/[tagsfile](wlg/data/tags.txt)
+if empty (default).
 
 ##### vaqueries option
 Search for all artists if there is no albumartist on albums with various
