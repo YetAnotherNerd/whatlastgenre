@@ -112,8 +112,6 @@ class WhatLastGenre(object):
         self.tags = {
             'upper': dict(parser.items('upper', True)).keys(),
             'alias': dict(parser.items('alias', True)),
-            'love': self.conf.get_list('genres', 'love'),
-            'hate': self.conf.get_list('genres', 'hate'),
             'regex': regex}
 
     def query_album(self, metadata):
@@ -479,9 +477,9 @@ class TagLib(object):
             return None
         # apply user score bonus
         for key in tags.iterkeys():
-            if key in self.wlg.tags['love']:
+            if key in self.wlg.conf.get_list('genres', 'love'):
                 tags[key] *= 2.0
-            elif key in self.wlg.tags['hate']:
+            elif key in self.wlg.conf.get_list('genres', 'hate'):
                 tags[key] *= 0.5
         # filter low scored tags
         tags = {k: v for k, v in tags.iteritems()
