@@ -51,7 +51,7 @@ Stats = namedtuple('Stats', ['time', 'messages', 'genres', 'reltyps'])
 class WhatLastGenre(object):
     '''Main class featuring a docstring that needs to be written.'''
 
-    def __init__(self, args, whitelist=None):
+    def __init__(self, args, whitelist=None, tagsfile=None):
         self.log = logging.getLogger('wlg')
         self.log.setLevel(30 - 10 * args.verbose)
         self.log.addHandler(logging.StreamHandler(sys.stdout))
@@ -62,19 +62,13 @@ class WhatLastGenre(object):
                            reltyps=Counter())
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
         self.whitelist = self.read_whitelist(whitelist)
-        self.read_tagsfile()
+        self.tags = self.read_tagsfile(tagsfile)
         # validation
         if args.release \
                 and 'whatcd' not in self.conf.get_list('wlg', 'sources'):
             self.log.warning('Can\'t tag release with What.CD support '
                              'disabled. Release tagging disabled.')
             self.conf.args.release = False
-        # validate aliases
-        for key, val in self.tags['alias'].items():
-            if val not in self.whitelist:
-                del self.tags['alias'][key]
-                self.stat_message(logging.WARN, 'alias not whitelisted',
-                                  '%s -> %s' % (key, val), 2)
 
     def read_whitelist(self, path=None):
         '''Read the whitelist trying different paths.
@@ -100,26 +94,41 @@ class WhatLastGenre(object):
         self.log.debug('whitelist: %s (%d items)', path, len(whitelist))
         return whitelist
 
-    def read_tagsfile(self):
-        '''Read tagsfile and return a dict of prepared data.'''
+    def read_tagsfile(self, path=None):
+        '''Read the tagsfile trying different paths.
+
+        Return a dict of prepared data from the tagsfile.
+        '''
         parser = ConfigParser.SafeConfigParser(allow_no_value=True)
-        tfstr = pkgutil.get_data('wlg', 'data/tags.txt')
-        parser.readfp(StringIO.StringIO(tfstr))
-        for sec in ['upper', 'alias', 'regex']:
-            if not parser.has_section(sec):
-                self.log.critical('Got no [%s] from tags.txt file.', sec)
-                exit()
-        # regex replacements
+        paths = [(1, path)]
+        for fail, path in paths:
+            if path and (os.path.exists(path) or fail):
+                parser.read(path)
+                break
+        else:
+            path = 'shipped data/tags.txt'
+            strio = StringIO.StringIO(pkgutil.get_data('wlg', 'data/tags.txt'))
+            parser.readfp(strio)
+        if any(not parser.has_section(s) for s in ['upper', 'alias', 'regex']):
+            self.log.critical('missing sections in tagsfile: %s', path)
+            exit()
+        aliases = dict(parser.items('alias', True))
+        for key, val in aliases.iteritems():
+            if val not in self.whitelist:
+                self.stat_message(logging.WARN, 'alias not whitelisted',
+                                  '%s -> %s' % (key, val), 2)
         regex = []  # list of tuples instead of dict because order matters
         for pat, repl in [(r'( *[,;.:\\/&_]+ *| and )+', '/'),
                           (r'[\'"]+', ''), (r'  +', ' ')]:
             regex.append((re.compile(pat, re.I), repl))
         for pat, repl in parser.items('regex', True):
             regex.append((re.compile(r'\b%s\b' % pat, re.I), repl))
-        self.tags = {
-            'upper': dict(parser.items('upper', True)).keys(),
-            'alias': dict(parser.items('alias', True)),
-            'regex': regex}
+        self.log.debug('tagsfile:  %s (%d items)', path,
+                       sum(len(parser.items(s, True))
+                           for s in parser.sections()))
+        return {'upper': dict(parser.items('upper', True)).keys(),
+                'alias': aliases,
+                'regex': regex}
 
     def query_album(self, metadata):
         '''Query for top genres of an album identified by metadata
