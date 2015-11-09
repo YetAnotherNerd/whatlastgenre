@@ -78,6 +78,7 @@ class WhatLastGenre(object):
         paths = [(1, path)]
         if self.conf.has_option('wlg', 'whitelist'):
             paths.append((1, self.conf.get('wlg', 'whitelist')))
+        paths.append((0, os.path.join(self.conf.path, 'genres.txt')))
         for fail, path in paths:
             if path and (os.path.exists(path) or fail):
                 with open(path, b'r') as file_:
@@ -103,6 +104,7 @@ class WhatLastGenre(object):
         paths = [(1, path)]
         if self.conf.has_option('wlg', 'tagsfile'):
             paths.append((1, self.conf.get('wlg', 'tagsfile')))
+        paths.append((0, os.path.join(self.conf.path, 'tags.txt')))
         for fail, path in paths:
             if path and (os.path.exists(path) or fail):
                 parser.read(path)

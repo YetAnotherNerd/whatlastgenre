@@ -169,7 +169,8 @@ well-kept tags from community, requires own account
 ##### whitelist/tagsfile option
 Path to your custom whitelist and tagsfile. Use shipped
 [whitelist](wlg/data/genres.txt)/[tagsfile](wlg/data/tags.txt)
-if empty (default).
+if empty (default). Instead of setting the path here, you can also put the
+files in your config directory and they should get recognized (see debug log).
 
 ##### vaqueries option
 Search for all artists if there is no albumartist on albums with various
