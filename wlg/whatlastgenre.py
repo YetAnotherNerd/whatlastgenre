@@ -61,7 +61,7 @@ class WhatLastGenre(object):
                            genres=Counter(),
                            reltyps=Counter())
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
-        self.read_whitelist(whitelist)
+        self.whitelist = self.read_whitelist(whitelist)
         self.read_tagsfile()
         # validation
         if args.release \
@@ -77,21 +77,28 @@ class WhatLastGenre(object):
                                   '%s -> %s' % (key, val), 2)
 
     def read_whitelist(self, path=None):
-        '''Read whitelist file and store its contents as set.'''
-        path = path or self.conf.get('wlg', 'whitelist')
-        if path:
-            with open(path, b'r') as file_:
-                wlstr = u'\n'.join([l.decode('utf8') for l in file_])
+        '''Read the whitelist trying different paths.
+
+        Return a set of whitelist entries.
+        '''
+        paths = [(1, path)]
+        if self.conf.has_option('wlg', 'whitelist'):
+            paths.append((1, self.conf.get('wlg', 'whitelist')))
+        for fail, path in paths:
+            if path and (os.path.exists(path) or fail):
+                with open(path, b'r') as file_:
+                    lines = file_.read().splitlines()
+                    break
         else:
-            wlstr = pkgutil.get_data('wlg', 'data/genres.txt').decode('utf8')
-        self.whitelist = set()
-        for line in wlstr.split(u'\n'):
-            line = line.strip().lower()
-            if line and not line.startswith(u'#'):
-                self.whitelist.add(line)
-        if not self.whitelist:
+            path = 'shipped data/genres.txt'
+            lines = pkgutil.get_data('wlg', 'data/genres.txt').split('\n')
+        whitelist = set(l.strip().lower() for l in lines
+                        if l and not l.startswith('#'))
+        if not whitelist:
             self.log.critical('empty whitelist: %s', path)
             exit()
+        self.log.debug('whitelist: %s (%d items)', path, len(whitelist))
+        return whitelist
 
     def read_tagsfile(self):
         '''Read tagsfile and return a dict of prepared data.'''
