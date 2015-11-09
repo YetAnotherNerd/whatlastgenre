@@ -56,8 +56,6 @@ class WhatLastGenre(object):
         self.log.setLevel(30 - 10 * args.verbose)
         self.log.addHandler(logging.StreamHandler(sys.stdout))
         self.conf = Config(args)
-        self.log.debug('args:   %s', vars(args))
-        self.log.debug('config: %s\n', self.conf.fullpath)
         self.stats = Stats(time=time.time(), messages=defaultdict(list),
                            genres=Counter(), reltyps=Counter())
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
@@ -542,9 +540,12 @@ class Config(ConfigParser.SafeConfigParser):
 
     def __init__(self, args):
         ConfigParser.SafeConfigParser.__init__(self)
+        self.log = logging.getLogger(__name__)
         self.args = args
         self.path = os.path.expanduser('~/.whatlastgenre')
         self.fullpath = os.path.join(self.path, 'config')
+        self.log.debug('args:      %s', vars(args))
+        self.log.debug('conf.path: %s', self.fullpath)
         # make sure directory exists
         if not os.path.exists(self.path):
             os.makedirs(self.path)
