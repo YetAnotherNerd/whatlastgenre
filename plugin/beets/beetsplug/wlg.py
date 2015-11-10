@@ -64,13 +64,7 @@ class WhatLastGenre(BeetsPlugin):
         '''Since __del__s don't get called we need to do some stuff
         manually.
         '''
-        # save cache
         self.wlg.daprs[0].cache.save()
-        # logout from whatcd to avoid ghost sessions
-        for dapr in self.wlg.daprs:
-            if isinstance(dapr, whatlastgenre.dataprovider.WhatCD):
-                dapr.logout()
-                break
 
     def commands(self):
         cmds = Subcommand('wlg', help='get genres with whatlastgenre')
