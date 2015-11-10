@@ -216,7 +216,7 @@ class Track(object):
         values = self.muta[key]
         # CSV tags
         if len(set(values)) == 1:
-            sep = [self.v23sep] if self.v23sep else [';', ',']
+            sep = [self.v23sep] if self.v23sep else [';', '\n', '\\']
             values = split(values[0], sep)
         # date tags
         if key.lower() in ['date']:
