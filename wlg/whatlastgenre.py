@@ -266,9 +266,9 @@ class WhatLastGenre(object):
         '''Print some statistics.'''
         # genres
         if self.stats.genres:
-            tags = self.stats.genres.most_common()
-            print("\n%d different tags used this often:" % len(tags))
-            print(tag_display(tags, "%4d %-20s"))
+            genres = self.stats.genres.most_common()
+            print("\n%d different genres used this often:" % len(genres))
+            print(tag_display(genres, "%4d %-20s"))
         # releasetypes
         if self.conf.args.tag_release and self.stats.reltyps:
             reltyps = self.stats.reltyps.most_common()
