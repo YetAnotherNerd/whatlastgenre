@@ -697,15 +697,12 @@ def main():
     and print out some statistics.
     '''
     print("whatlastgenre v%s" % __version__)
-
     args = get_args()
     wlg = WhatLastGenre(args)
     dirs = mediafile.find_music_dirs(args.path)
-
     print("\nFound %d music directories!" % len(dirs))
     if not dirs:
         return
-
     i = len(dirs)
     try:  # main loop
         for i, path in enumerate(sorted(dirs), start=1):
