@@ -61,7 +61,7 @@ class WhatLastGenre(object):
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
         self.read_whitelist(whitelist)
         self.read_tagsfile()
-        # validate tag_release arg
+        # validation
         if self.conf.args.tag_release \
                 and 'whatcd' not in self.conf.get_list('wlg', 'sources'):
             self.log.warn('Can\'t tag release with What.CD support disabled. '
@@ -466,7 +466,7 @@ class TagLib(object):
             if not self.taggrps[group]:
                 self.wlg.stat_message(
                     logging.INFO, 'No %s tags' % group, self.path, 1)
-        # merge taggroups
+        # merge tag groups
         tags = self.merge()
         if not tags:
             self.wlg.stat_message(
