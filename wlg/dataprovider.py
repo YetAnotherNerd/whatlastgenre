@@ -392,9 +392,7 @@ class Discogs(DataProvider):
             access_token_url='https://api.discogs.com/oauth/access_token',
             authorize_url='https://www.discogs.com/oauth/authorize')
         # read token from config file
-        if conf.has_section('discogs'):
-            token = (conf.get('discogs', 'token'),
-                     conf.get('discogs', 'secret'))
+        token = (conf.get('discogs', 'token'), conf.get('discogs', 'secret'))
         # get from user
         if not token or not all(token):
             req_token, req_secret = discogs.get_request_token(headers=HEADERS)
@@ -654,9 +652,8 @@ class WhatCD(DataProvider):
         # http://github.com/WhatCD/Gazelle/wiki/JSON-API-Documentation
         self.rate_limit = 2.0
         self.conf = conf
-        if conf.has_option('whatcd', 'session'):
-            cookie = base64.b64decode(conf.get('whatcd', 'session'))
-            self.session.cookies.set('session', cookie)
+        cookie = base64.b64decode(conf.get('whatcd', 'session'))
+        self.session.cookies.set('session', cookie)
         self.login()
 
     def login(self):

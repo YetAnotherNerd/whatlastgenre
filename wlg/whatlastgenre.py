@@ -76,8 +76,7 @@ class WhatLastGenre(object):
         Return a set of whitelist entries.
         '''
         paths = [(1, path)]
-        if self.conf.has_option('wlg', 'whitelist'):
-            paths.append((1, self.conf.get('wlg', 'whitelist')))
+        paths.append((1, self.conf.get('wlg', 'whitelist')))
         paths.append((0, os.path.join(self.conf.path, 'genres.txt')))
         for fail, path in paths:
             if path and (os.path.exists(path) or fail):
@@ -102,8 +101,7 @@ class WhatLastGenre(object):
         '''
         parser = ConfigParser.SafeConfigParser(allow_no_value=True)
         paths = [(1, path)]
-        if self.conf.has_option('wlg', 'tagsfile'):
-            paths.append((1, self.conf.get('wlg', 'tagsfile')))
+        paths.append((1, self.conf.get('wlg', 'tagsfile')))
         paths.append((0, os.path.join(self.conf.path, 'tags.txt')))
         for fail, path in paths:
             if path and (os.path.exists(path) or fail):
@@ -608,6 +606,15 @@ class Config(ConfigParser.SafeConfigParser):
             self.write(file_)
         print('Please review your config file: %s' % self.fullpath)
         exit()
+
+    def get(self, section, option, raw=False, vars_=None):
+        '''Fallback to default for non-existing option.'''
+        if not self.has_option(section, option):
+            for sec, opt, val in self.conf:
+                if sec == section and opt == option:
+                    return val
+        return ConfigParser.SafeConfigParser.get(self, section, option,
+                                                 raw=raw, vars=vars_)
 
     def get_list(self, sec, opt):
         '''Gets a csv-string as list.'''
