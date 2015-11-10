@@ -130,6 +130,7 @@ hate = alternative, electronic, indie, pop, rock
 artist = 1.33
 various = 0.66
 splitup = 0.33
+minimum = 0.10
 src_discogs = 1.00
 src_echonest = 1.00
 src_lastfm = 0.66
@@ -228,6 +229,13 @@ Default `0.33`
 * `= 0.0` forget about the base tags
 * `< 1.0` reduce score of base tags
 * `= 1.0` leave score unmodified
+
+##### minimum option
+Minimum score for final filtering.
+
+Default `0.10`
+* `= 0.0` no minimum score
+* `= 1.0` same effect as `--tag-limit 1`
 
 ##### src_* options
 Every source has its own score multiplier, so music sites that generally

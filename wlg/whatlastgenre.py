@@ -445,6 +445,9 @@ class TagLib(object):
             max_ = max(tags.itervalues())
             for key, val in tags.iteritems():
                 mergedtags[key] += val / max_ * scoremod
+        if mergedtags:  # normalize tag scores
+            max_ = max(mergedtags.itervalues())
+            mergedtags = {k: v / max_ for k, v in mergedtags.iteritems()}
         return mergedtags
 
     def format(self, key):
@@ -479,6 +482,9 @@ class TagLib(object):
                 tags[key] *= 2.0
             elif key in self.wlg.tags['hate']:
                 tags[key] *= 0.5
+        # filter low scored tags
+        tags = {k: v for k, v in tags.iteritems()
+                if v >= self.wlg.conf.getfloat('scores', 'minimum')}
         # sort, limit and format
         tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
         tags = tags[:self.wlg.conf.args.tag_limit]
@@ -531,6 +537,7 @@ class Config(ConfigParser.SafeConfigParser):
             ('scores', 'artist', '1.33'),
             ('scores', 'various', '0.66'),
             ('scores', 'splitup', '0.33'),
+            ('scores', 'minimum', '0.10'),
             ('scores', 'src_discogs', '1.00'),
             ('scores', 'src_echonest', '1.00'),
             ('scores', 'src_lastfm', '0.66'),
