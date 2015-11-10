@@ -56,8 +56,10 @@ class WhatLastGenre(object):
         self.log.setLevel(30 - 10 * args.verbose)
         self.log.addHandler(logging.StreamHandler(sys.stdout))
         self.conf = Config(args)
-        self.stats = Stats(time=time.time(), messages=defaultdict(list),
-                           genres=Counter(), reltyps=Counter())
+        self.stats = Stats(time=time.time(),
+                           messages=defaultdict(list),
+                           genres=Counter(),
+                           reltyps=Counter())
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
         self.read_whitelist(whitelist)
         self.read_tagsfile()
