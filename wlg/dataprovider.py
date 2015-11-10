@@ -291,11 +291,7 @@ class DataProvider(object):
         '''
         if not tags:
             return tags
-        # strip and lower case tags
         tags = {k.strip().lower(): v for k, v in tags.iteritems()}
-        # filter by length
-        # 64 is not valid for a single tag, but it could be a
-        # composition of tags for splitting
         tags = {k: v for k, v in tags.iteritems() if len(k) in range(2, 64)}
         # answer to the ultimate question of life, the universe,
         # the optimal number of considerable tags and everything

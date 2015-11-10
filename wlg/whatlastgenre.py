@@ -60,9 +60,7 @@ class WhatLastGenre(object):
         self.log.debug('config: %s\n', self.conf.fullpath)
         self.stats = Stats(time=time.time(), messages=defaultdict(list),
                            genres=Counter(), reltyps=Counter())
-        # dataproviders
         self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
-        # whitelist and tagsfile
         self.read_whitelist(whitelist)
         self.read_tagsfile()
         # validate tag_release arg
@@ -704,7 +702,7 @@ def main():
     if not dirs:
         return
     i = len(dirs)
-    try:  # main loop
+    try:
         for i, path in enumerate(sorted(dirs), start=1):
             print('\n' + progressbar(i, len(dirs)))
             print(path)
