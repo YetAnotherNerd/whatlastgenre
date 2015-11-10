@@ -43,7 +43,9 @@ try:  # use optional requests_cache if available
         os.path.expanduser('~/.whatlastgenre/reqcache'),
         expire_after=timedelta(days=180),
         allowable_codes=(200, 404),
-        allowable_methods=('GET', 'POST'))
+        allowable_methods=('GET', 'POST'),
+        ignored_parameters=['oauth_timestamp', 'oauth_nonce',
+                            'oauth_signature'])
 except ImportError:
     requests_cache = None
 
@@ -409,7 +411,9 @@ class Discogs(DataProvider):
                 json.dump({'token': acc_token, 'secret': acc_secret}, file_)
         self.session = discogs.get_session((acc_token, acc_secret))
         self.session.headers.update(HEADERS)
-        if requests_cache:  # avoid filling cache with unusable entries
+        # avoid filling cache with unusable entries
+        if requests_cache \
+                and not hasattr(self.session.cache, '_ignored_parameters'):
             self.session._is_cache_disabled = True  # pylint: disable=W0212
 
     def query_artist(self, artist):
