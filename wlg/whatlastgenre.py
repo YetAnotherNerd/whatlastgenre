@@ -442,6 +442,7 @@ class TagLib(object):
                 if self.various:
                     group = 'various'
                 scoremod = self.wlg.conf.getfloat('scores', group)
+            tags = {k: min(1.5, v) for k, v in tags.iteritems()}
             max_ = max(tags.itervalues())
             for key, val in tags.iteritems():
                 mergedtags[key] += val / max_ * scoremod
