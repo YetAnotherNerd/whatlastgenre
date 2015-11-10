@@ -72,6 +72,14 @@ class Cache(object):
         except (IOError, ValueError):
             pass
 
+    @classmethod
+    def cachekey(cls, query):
+        '''Return the cachekey for a query.'''
+        cachekey = query.artist
+        if query.type == 'album':
+            cachekey += query.album
+        return (query.dapr.name.lower(), query.type, cachekey.replace(' ', ''))
+
     def __del__(self):
         self.save()
 
@@ -307,10 +315,7 @@ class DataProvider(object):
 
     def cached_query(self, query):
         '''Perform a cached DataProvider query.'''
-        cachekey = query.artist
-        if query.type == 'album':
-            cachekey += query.album
-        cachekey = (self.name.lower(), query.type, cachekey.replace(' ', ''))
+        cachekey = self.cache.cachekey(query)
         # check cache
         res = self.cache.get(cachekey)
         if res:
