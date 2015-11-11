@@ -653,7 +653,8 @@ class WhatCD(DataProvider):
         self.rate_limit = 2.0
         self.conf = conf
         cookie = base64.b64decode(conf.get('whatcd', 'session'))
-        self.session.cookies.set('session', cookie)
+        if cookie:
+            self.session.cookies.set('session', cookie)
         self.login()
 
     def login(self):
