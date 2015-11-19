@@ -40,7 +40,7 @@ tag gets a score of `1.0`, a tag having only half of the top tag's count gets
 a score of `0.5` and so on.
 
 ##### Tag scoring without counts/weights
-     echonest genres, discogs, rymusic, whatcd album
+     discogs, echonest genres, rymusic, whatcd album
 Tags supplied without a count will be scored `max(1/3, 0.85^(n-1))`, where `n`
 is the total number of tags supplied by this source. The more tags the lower
 the score for each tag will be. So if only one tag is supplied, it will get a
