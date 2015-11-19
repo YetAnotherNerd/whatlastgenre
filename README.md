@@ -70,14 +70,14 @@ for details.
 However, if you don't want to use v2.4 tags you can use the `id3v23sep` config
 option explained below.
 
-##### Release info tagging and interactitvity
+##### Release info tagging and interactivity
     releasetype, year, label, catalog, edition, media
-Although several steps are taken to reduce needed interactivity, like filtering
-by snatched flag (make sure to enable 'Snatched torrents indicator' in your
-whatcd profile settings) or by year (if given), user input might be required
-while tagging releaseinfo in ambigious cases.
-`-r` implies interactivity, `n` disables interactivity. Be aware that `-r`
-saves the original release year into the `date` metadata field.
+Releaseinfo can be tagged for snatched torrents (make sure to enable 'Snatched
+torrents indicator' in your whatcd profile settings). Although prefiltering
+tries to minimize needed user input, some might be required in ambiguous cases
+while tagging releaseinfo. `-r` implies interactivity, `-n` disables
+interactivity. Be aware that `-r` saves the original release year into the
+`date` metadata field.
 
 
 ## Installation
