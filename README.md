@@ -147,7 +147,7 @@ session =
 Source | Artist | Album | Auth | ...
 -------|:------:|:-----:|:----:|-----
 [discogs](http://discogs.com) | 0 | 1 | 1 | fixed list of [genres and styles] (http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles)
-[echonest](http://echonest.com)| 1 | 0 | 0 | genres without counts and terms with counts (see [doc](http://developer.echonest.com/docs/v4/))
+[echonest](http://echonest.com)| 1 | 0 | 0 | [genres/terms](http://developer.echonest.com/docs/v4/) with and w/o counts
 [lastfm](http://last.fm)| 1 | 1 | 0 |  many personal tags from users
 [mbrainz](http://musicbrainz.org) | 1 | 1 | 0 | home of mbids
 [rymusic](http://rateyourmusic.com) | 1 | 1 | 0 | no real api (slow)
