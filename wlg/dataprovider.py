@@ -35,7 +35,7 @@ import time
 
 import requests
 
-from wlg import __version__
+from . import __version__
 
 
 try:  # use optional requests_cache if available

@@ -38,7 +38,7 @@ import re
 import sys
 import time
 
-from wlg import __version__, dataprovider, mediafile
+from . import __version__, dataprovider, mediafile
 
 
 Query = namedtuple(
