@@ -641,16 +641,22 @@ def searchstr(str_):
 
 
 def tag_display(tags, pattern):
-    """Return a string of tags formatted with pattern in 3 columns.
+    """Return a string of tags formatted with pattern in columns.
 
     :param tags: list of tuples containing tags name and count/score
     :param pattern: should not exceed (80-2)/3 = 26 chars length.
     """
-    len_ = int(math.ceil(len(tags) / 3))
-    lines = [u' '.join([pattern % tuple(reversed(tags[i]))
-                        for i in [l + len_ * j for j in range(3)]
-                        if i < len(tags)]) for l in range(len_)]
-    return u'\n'.join(lines).encode('utf-8')
+    columns = 3
+    num_lines = -(-len(tags) // columns)  # math.ceil()
+    lines = []
+    for line in range(num_lines):
+        values = []
+        for column in range(columns):
+            index = line + columns * column
+            if index < len(tags):
+                values.append(pattern % tuple(reversed(tags[index])))
+        lines.append(' '.join(values))
+    return '\n'.join(lines)
 
 
 def ask_user(query, results):
