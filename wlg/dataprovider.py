@@ -45,7 +45,8 @@ try:  # use optional requests_cache if available
         expire_after=timedelta(days=180),
         allowable_codes=(200, 404),
         allowable_methods=('GET', 'POST'),
-        ignored_parameters=['oauth_timestamp', 'oauth_nonce',
+        ignored_parameters=['oauth_timestamp',
+                            'oauth_nonce',
                             'oauth_signature'])
 except ImportError:
     requests_cache = None
@@ -402,8 +403,8 @@ class Discogs(DataProvider):
                   'authenticate:\n%s' % discogs.get_authorize_url(req_token))
             data = {'oauth_verifier': raw_input('Verification code: ')}
             try:
-                token = discogs.get_access_token(req_token, req_secret,
-                                                 data=data, headers=HEADERS)
+                token = discogs.get_access_token(
+                    req_token, req_secret, data=data, headers=HEADERS)
             except KeyError as err:
                 self.log.critical(err.message)
                 exit()

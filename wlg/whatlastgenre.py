@@ -434,9 +434,9 @@ class TagLib(object):
         if '/' in key:  # all delimiters got replaced with / earlier
             keys = [k.strip() for k in key.split('/') if len(k.strip()) > 2]
             flag = False
-        elif ' ' in key and key not in dontsplit \
-                and not (key in self.wlg.whitelist
-                         and ('&' in key or key.startswith('nu '))):
+        elif ' ' in key and key not in dontsplit and not \
+                (key in self.wlg.whitelist and
+                 ('&' in key or key.startswith('nu '))):
             keys = [k.strip() for k in key.split(' ') if len(k.strip()) > 2]
             if len(keys) > 2:
                 # build all combinations with length 1 to 3, requires
@@ -714,9 +714,9 @@ def progressbar(current, total):
     prog = current / total
     done = int(size * prog)
     return u'(%2d/%d) [' % (current, total) \
-        + u'#' * done \
-        + u'-' * (size - done) \
-        + u'] %2.0f%%' % math.floor(100 * prog)
+           + u'#' * done \
+           + u'-' * (size - done) \
+           + u'] %2.0f%%' % math.floor(100 * prog)
 
 
 def get_args():
