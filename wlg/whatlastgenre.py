@@ -73,19 +73,15 @@ class WhatLastGenre(object):
 
         Return a set of whitelist entries.
         """
-        paths = [(1, path)]
-        paths.append((1, self.conf.get('wlg', 'whitelist')))
-        paths.append((0, os.path.join(self.conf.path, 'genres.txt')))
-        for fail, path in paths:
-            if path and (os.path.exists(path) or fail):
-                with open(path, b'r') as file_:
-                    lines = file_.read().splitlines()
-                    break
-        else:
-            path = 'shipped data/genres.txt'
-            lines = pkgutil.get_data('wlg', 'data/genres.txt').split('\n')
-        whitelist = set(l.strip().lower() for l in lines
-                        if l and not l.startswith('#'))
+        if not path:
+            if self.conf.has_option('wlg', 'whitelist') \
+                    and self.conf.get('wlg', 'whitelist'):
+                path = self.conf.get('wlg', 'whitelist')
+            elif os.path.exists(os.path.join(self.conf.path, 'genres.txt')):
+                path = os.path.join(self.conf.path, 'genres.txt')
+            else:
+                path = 'data/genres.txt'
+        whitelist = set(read_datafile(path))
         if not whitelist:
             self.log.critical('empty whitelist: %s', path)
             exit()
@@ -97,21 +93,17 @@ class WhatLastGenre(object):
 
         Return a dict of prepared data from the tagsfile.
         """
-        paths = [(1, path)]
-        paths.append((1, self.conf.get('wlg', 'tagsfile')))
-        paths.append((0, os.path.join(self.conf.path, 'tags.txt')))
-        for fail, path in paths:
-            if path and (os.path.exists(path) or fail):
-                with open(path, b'r') as file_:
-                    lines = file_.read().splitlines()
-                    break
-        else:
-            path = 'shipped data/tags.txt'
-            lines = pkgutil.get_data('wlg', 'data/tags.txt').split('\n')
-
+        if not path:
+            if self.conf.has_option('wlg', 'tagsfile') \
+                    and self.conf.get('wlg', 'tagsfile'):
+                path = self.conf.get('wlg', 'tagsfile')
+            elif os.path.exists(os.path.join(self.conf.path, 'tags.txt')):
+                path = os.path.join(self.conf.path, 'tags.txt')
+            else:
+                path = 'data/tags.txt'
         tagsfile = {}
         section = None
-        for line in lines:
+        for line in read_datafile(path):
             line = line.strip().lower()
             if line.startswith('[') and line.endswith(']'):
                 section = line[1:-1]
@@ -122,7 +114,7 @@ class WhatLastGenre(object):
                 tagsfile[section].append(line)
         if any(s not in tagsfile.iterkeys()
                for s in ['upper', 'alias', 'regex']):
-            self.log.critical('missing sections in tagsfile: %s', path)
+            self.log.critical('missing section in tagsfile: %s', path)
             exit()
         for key, val in tagsfile['alias']:
             if val not in self.whitelist:
@@ -731,6 +723,16 @@ def progressbar(current, total):
            + '#' * done \
            + '-' * (size - done) \
            + '] %2.0f%%' % math.floor(100 * prog)
+
+
+def read_datafile(path):
+    """Read a file that might be package data."""
+    if path.startswith('data/'):
+        lines = pkgutil.get_data('wlg', path).split('\n')
+    else:
+        with open(path, b'r') as file_:
+            lines = file_.read().splitlines()
+    return [l.strip().lower() for l in lines if l.strip()]
 
 
 def get_args():
