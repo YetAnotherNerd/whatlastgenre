@@ -28,10 +28,6 @@ import re
 
 import mutagen
 
-Metadata = namedtuple(
-    'Metadata', ['path', 'type', 'artists', 'albumartist', 'album',
-                 'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])
-
 # supported extensions
 EXTENSIONS = ['.flac', '.ogg', '.mp3', '.m4a']
 
@@ -58,6 +54,10 @@ MAPPING = {
         'releasetype': 'musicbrainz_albumtype',
     },
 }
+
+Metadata = namedtuple(
+    'Metadata', ['path', 'type', 'artists', 'albumartist', 'album',
+                 'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])
 
 
 def find_music_dirs(paths):
