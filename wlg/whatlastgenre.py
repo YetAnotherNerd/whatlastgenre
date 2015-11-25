@@ -528,9 +528,9 @@ class TagLib(object):
                     if v / max_ >= .01}
             tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
                           reverse=1)
-            strs.append(u'Best %-6s genres (%d):' % (group, len(tags)))
-            strs.append(tag_display(tags[:9], u'%4.2f %-20s'))
-        return u'\n'.join(strs)
+            strs.append('Best %-6s genres (%d):' % (group, len(tags)))
+            strs.append(tag_display(tags[:9], '%4.2f %-20s'))
+        return '\n'.join(strs)
 
 
 class Config(ConfigParser.SafeConfigParser):
@@ -719,10 +719,10 @@ def progressbar(current, total):
     size = 60
     prog = current / total
     done = int(size * prog)
-    return u'(%2d/%d) [' % (current, total) \
-           + u'#' * done \
-           + u'-' * (size - done) \
-           + u'] %2.0f%%' % math.floor(100 * prog)
+    return '(%2d/%d) [' % (current, total) \
+           + '#' * done \
+           + '-' * (size - done) \
+           + '] %2.0f%%' % math.floor(100 * prog)
 
 
 def get_args():
