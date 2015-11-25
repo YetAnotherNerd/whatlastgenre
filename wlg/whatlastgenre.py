@@ -23,7 +23,6 @@ https://github.com/YetAnotherNerd/whatlastgenre
 from __future__ import division, print_function
 
 import ConfigParser
-import StringIO
 import argparse
 from collections import defaultdict, Counter, namedtuple
 from datetime import timedelta
@@ -98,38 +97,47 @@ class WhatLastGenre(object):
 
         Return a dict of prepared data from the tagsfile.
         """
-        parser = ConfigParser.SafeConfigParser(allow_no_value=True)
         paths = [(1, path)]
         paths.append((1, self.conf.get('wlg', 'tagsfile')))
         paths.append((0, os.path.join(self.conf.path, 'tags.txt')))
         for fail, path in paths:
             if path and (os.path.exists(path) or fail):
-                parser.read(path)
-                break
+                with open(path, b'r') as file_:
+                    lines = file_.read().splitlines()
+                    break
         else:
             path = 'shipped data/tags.txt'
-            strio = StringIO.StringIO(pkgutil.get_data('wlg', 'data/tags.txt'))
-            parser.readfp(strio)
-        if any(not parser.has_section(s) for s in ['upper', 'alias', 'regex']):
+            lines = pkgutil.get_data('wlg', 'data/tags.txt').split('\n')
+
+        tagsfile = {}
+        section = None
+        for line in lines:
+            line = line.strip().lower()
+            if line.startswith('[') and line.endswith(']'):
+                section = line[1:-1]
+                tagsfile[section] = []
+            elif line and not line.startswith('#') and section:
+                if ' = ' in line:
+                    line = tuple(line.split(' = ', 2))
+                tagsfile[section].append(line)
+        if any(s not in tagsfile.iterkeys()
+               for s in ['upper', 'alias', 'regex']):
             self.log.critical('missing sections in tagsfile: %s', path)
             exit()
-        aliases = dict(parser.items('alias', True))
-        for key, val in aliases.iteritems():
+        for key, val in tagsfile['alias']:
             if val not in self.whitelist:
                 self.stat_message(logging.WARN, 'alias not whitelisted',
                                   '%s -> %s' % (key, val), 2)
-        regex = []  # list of tuples instead of dict because order matters
+        regex = []
         for pat, repl in [(r'( *[,;.:\\/&_]+ *| and )+', '/'),
                           (r'[\'"]+', ''), (r'  +', ' ')]:
             regex.append((re.compile(pat, re.I), repl))
-        for pat, repl in parser.items('regex', True):
+        for pat, repl in tagsfile['regex']:
             regex.append((re.compile(r'\b%s\b' % pat, re.I), repl))
+        tagsfile['regex'] = regex
         self.log.debug('tagsfile:  %s (%d items)', path,
-                       sum(len(parser.items(s, True))
-                           for s in parser.sections()))
-        return {'upper': dict(parser.items('upper', True)).keys(),
-                'alias': aliases,
-                'regex': regex}
+                       sum(len(v) for v in tagsfile.values()))
+        return tagsfile
 
     def query_album(self, metadata):
         """Query for top genres of an album identified by metadata
