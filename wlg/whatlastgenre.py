@@ -203,9 +203,6 @@ class WhatLastGenre(object):
                 continue
             # unique result
             query.dapr.stats['results'] += 1
-            if query.dapr.name.lower() == 'whatcd' and query.type == 'album':
-                taglib.release = {k: v for k, v in results[0].iteritems()
-                                  if k not in ['info', 'tags']}
             if 'tags' in results[0] and results[0]['tags']:
                 tags = taglib.score(results[0]['tags'], query.score)
                 good = taglib.add(tags, query.type)
@@ -214,13 +211,15 @@ class WhatLastGenre(object):
                 status = "%2d of %2d tags" % (good, len(tags))
             else:
                 status = "no    tags"
+            if query.dapr.name.lower() == 'whatcd' and query.type == 'album':
+                if 'releasetype' in results[0] and results[0]['releasetype']:
+                    self.stats.reltyps[results[0]['releasetype']] += 1
+                    taglib.release = {k: v for k, v in results[0].iteritems()
+                                      if k not in ['info', 'tags']}
+                elif self.conf.args.release:
+                    self.stat_message(logging.ERROR, 'No releaseinfo found',
+                                      metadata.path, 1)
             self.verbose_status(query, cached, status)
-        if taglib.release and 'releasetype' in taglib.release \
-                and taglib.release['releasetype']:
-            self.stats.reltyps[taglib.release['releasetype']] += 1
-        elif self.conf.args.release:
-            self.stat_message(logging.ERROR, 'No releaseinfo found',
-                              metadata.path, 1)
         return taglib.get_genres(), taglib.release
 
     def cached_query(self, query):
