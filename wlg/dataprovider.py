@@ -185,7 +185,6 @@ class DataProvider(object):
     @classmethod
     def factory(cls, name, conf):
         """Factory method for DataProvider instances."""
-        dapr = None
         if name == 'discogs':
             dapr = Discogs(conf)
         elif name == 'echonest':
