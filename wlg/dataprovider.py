@@ -80,7 +80,7 @@ class Cache(object):
         cachekey = query.artist
         if query.type == 'album':
             cachekey += query.album
-        return (query.dapr.name.lower(), query.type, cachekey.replace(' ', ''))
+        return query.dapr.name.lower(), query.type, cachekey.replace(' ', '')
 
     def __del__(self):
         self.save()
