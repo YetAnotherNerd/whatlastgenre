@@ -15,11 +15,11 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-'''whatlastgenre dataprovider
+"""whatlastgenre dataprovider
 
 Contains classes for requesting genre data from APIs of some
 music related sites (DataProviders) and a Cache for those.
-'''
+"""
 
 from __future__ import division, print_function
 
@@ -56,7 +56,7 @@ HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 
 
 class Cache(object):
-    '''Load/save a dict as json from/to a file.'''
+    """Load/save a dict as json from/to a file."""
 
     def __init__(self, path, update_cache):
         self.fullpath = os.path.join(path, 'cache')
@@ -76,7 +76,7 @@ class Cache(object):
 
     @classmethod
     def cachekey(cls, query):
-        '''Return the cachekey for a query.'''
+        """Return the cachekey for a query."""
         cachekey = query.artist
         if query.type == 'album':
             cachekey += query.album
@@ -86,9 +86,9 @@ class Cache(object):
         self.save()
 
     def get(self, key):
-        '''Return a (time, value) tuple for a given key
+        """Return a (time, value) tuple for a given key
         or None if the key wasn't found.
-        '''
+        """
         key = str(key)
         if key in self.cache \
                 and time.time() < self.cache[key][0] + self.expire_after \
@@ -97,7 +97,7 @@ class Cache(object):
         return None
 
     def set(self, key, value):
-        '''Set value for a given key.'''
+        """Set value for a given key."""
         key = str(key)
         self.cache[key] = (time.time(), value)
         if self.update_cache:
@@ -105,7 +105,7 @@ class Cache(object):
         self.dirty = True
 
     def clean(self):
-        '''Clean up expired entries.'''
+        """Clean up expired entries."""
         print("Cleaning cache... ", end='')
         size = len(self.cache)
         for key, val in self.cache.items():
@@ -115,11 +115,11 @@ class Cache(object):
         print("done! (%d entries removed)" % (size - len(self.cache)))
 
     def save(self):
-        '''Save the cache dict as json string to a file.
+        """Save the cache dict as json string to a file.
 
         Clean expired entries before saving and use a temporary
         file to avoid data loss on interruption.
-        '''
+        """
         if not self.dirty:
             return
         self.clean()
@@ -145,12 +145,12 @@ class Cache(object):
 
 
 class DataProviderError(Exception):
-    '''If something went wrong with DataProviders.'''
+    """If something went wrong with DataProviders."""
     pass
 
 
 class DataProvider(object):
-    '''Base class for DataProviders.'''
+    """Base class for DataProviders."""
 
     log = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ class DataProvider(object):
 
     @classmethod
     def init_dataproviders(cls, conf):
-        '''Initializes the DataProviders activated in the conf file.'''
+        """Initializes the DataProviders activated in the conf file."""
         daprs = []
         cache = Cache(conf.path, conf.args.update_cache)
         for src in conf.get_list('wlg', 'sources'):
@@ -184,7 +184,7 @@ class DataProvider(object):
 
     @classmethod
     def factory(cls, name, conf):
-        '''Factory method for DataProvider instances.'''
+        """Factory method for DataProvider instances."""
         dapr = None
         if name == 'discogs':
             dapr = Discogs(conf)
@@ -204,7 +204,7 @@ class DataProvider(object):
 
     @classmethod
     def print_stats(cls, daprs):
-        '''Print some DataProvider statistics.'''
+        """Print some DataProvider statistics."""
         print("\nSource stats  ", ''.join("| %-8s " % d.name for d in daprs),
               "\n", "-" * 14, "+----------" * len(daprs), sep='')
         for key in ['reqs_err', 'reqs_web', 'reqs_cache', 'reqs_lowcache',
@@ -236,20 +236,20 @@ class DataProvider(object):
                 print("%-13s " % key, ''.join(pat % v for v in vals), sep='')
 
     def _wait_rate_limit(self):
-        '''Wait for the rate limit.'''
+        """Wait for the rate limit."""
         while time.time() - self.last_request < self.rate_limit:
             self.stats['time_wait'] += .1
             time.sleep(.1)
 
     def _request(self, url, params, method='GET'):
-        '''Send a request.
+        """Send a request.
 
         Honor rate limits and record some timings for stats.
 
         :param url: url string
         :param params: dict of call parameters
         :param method: request method
-        '''
+        """
         self._wait_rate_limit()
         time_ = time.time()
         try:
@@ -274,7 +274,7 @@ class DataProvider(object):
         return res
 
     def _request_json(self, url, params, method='GET'):
-        '''Return a json response from a request.'''
+        """Return a json response from a request."""
         res = self._request(url, params, method=method)
         try:
             return res.json()
@@ -283,7 +283,7 @@ class DataProvider(object):
             raise DataProviderError("json request: %s" % err.message)
 
     def _prefilter_results(self, results, name, value, func):
-        '''Try to prefilter results.'''
+        """Try to prefilter results."""
         res = [r for r in results if func(r) == value]
         if res and len(res) < len(results):
             self.log.info('prefilter %d of %d results by %s',
@@ -293,10 +293,10 @@ class DataProvider(object):
 
     @classmethod
     def _preprocess_tags(cls, tags):
-        '''Preprocess tags slightly to reduce the amount and don't
+        """Preprocess tags slightly to reduce the amount and don't
         pollute the cache with tags that obviously don't get used
         anyway.
-        '''
+        """
         if not tags:
             return tags
         tags = {k.strip().lower(): v for k, v in tags.iteritems()}
@@ -319,7 +319,7 @@ class DataProvider(object):
         return tags
 
     def cached_query(self, query):
-        '''Perform a cached DataProvider query.'''
+        """Perform a cached DataProvider query."""
         cachekey = self.cache.cachekey(query)
         # check cache
         res = self.cache.get(cachekey)
@@ -335,7 +335,7 @@ class DataProvider(object):
         return res, False
 
     def query(self, query):
-        '''Perform a real DataProvider query.'''
+        """Perform a real DataProvider query."""
         res = None
         if query.type == 'artist':
             try:  # query by mbid
@@ -362,24 +362,24 @@ class DataProvider(object):
         return res
 
     def query_artist(self, artist):
-        '''Query for artist data.'''
+        """Query for artist data."""
         raise NotImplementedError()
 
     def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
+        """Query for album data."""
         raise NotImplementedError()
 
     def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
+        """Query by mbid."""
         raise NotImplementedError()
 
 
 class Discogs(DataProvider):
-    '''Discogs DataProvider
+    """Discogs DataProvider
 
     rauth requests can't be cached by requests_cache at this time,
     see https://github.com/reclosedev/requests-cache/pull/52
-    '''
+    """
 
     def __init__(self, conf):
         super(Discogs, self).__init__()
@@ -422,11 +422,11 @@ class Discogs(DataProvider):
             self.session._is_cache_disabled = True  # pylint: disable=W0212
 
     def query_artist(self, artist):
-        '''Query for artist data.'''
+        """Query for artist data."""
         raise NotImplementedError()
 
     def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
+        """Query for album data."""
         params = {'release_title': album}
         if artist:
             params.update({'artist': artist})
@@ -443,12 +443,12 @@ class Discogs(DataProvider):
         return [{'tags': {tag: 0 for tag in tags}}]
 
     def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
+        """Query by mbid."""
         raise NotImplementedError()
 
 
 class EchoNest(DataProvider):
-    '''EchoNest DataProvider'''
+    """EchoNest DataProvider"""
 
     def __init__(self):
         super(EchoNest, self).__init__()
@@ -456,7 +456,7 @@ class EchoNest(DataProvider):
         self.rate_limit = 3.0
 
     def query_artist(self, artist):
-        '''Query for artist data.'''
+        """Query for artist data."""
         result = self._request_json(
             'http://developer.echonest.com/api/v4/artist/search',
             [('api_key', 'ZS0LNJH7V6ML8AHW3'), ('format', 'json'),
@@ -474,16 +474,16 @@ class EchoNest(DataProvider):
         return [{'tags': terms or genres}]
 
     def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
+        """Query for album data."""
         raise NotImplementedError()
 
     def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
+        """Query by mbid."""
         raise NotImplementedError()
 
 
 class LastFM(DataProvider):
-    '''Last.FM DataProvider'''
+    """Last.FM DataProvider"""
 
     def __init__(self):
         super(LastFM, self).__init__()
@@ -491,7 +491,7 @@ class LastFM(DataProvider):
         self.rate_limit = .25
 
     def _query(self, params):
-        '''Query Last.FM API.'''
+        """Query Last.FM API."""
         params.update({'format': 'json',
                        'api_key': '54bee5593b60d0a5bf379cedcad79052'})
         result = self._request_json('http://ws.audioscrobbler.com/2.0/',
@@ -507,16 +507,16 @@ class LastFM(DataProvider):
         return [{'tags': tags}]
 
     def query_artist(self, artist):
-        '''Query for artist data.'''
+        """Query for artist data."""
         return self._query({'method': 'artist.gettoptags', 'artist': artist})
 
     def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
+        """Query for album data."""
         return self._query({'method': 'album.gettoptags', 'album': album,
                             'artist': artist or 'Various Artists'})
 
     def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
+        """Query by mbid."""
         if entity == 'album':
             # FIXME: seems broken at the moment,
             # resolve later when lastfm finished migration
@@ -526,7 +526,7 @@ class LastFM(DataProvider):
 
 
 class MusicBrainz(DataProvider):
-    '''MusicBrainz DataProvider'''
+    """MusicBrainz DataProvider"""
 
     def __init__(self):
         super(MusicBrainz, self).__init__()
@@ -535,7 +535,7 @@ class MusicBrainz(DataProvider):
         self.name = 'MBrainz'
 
     def _query(self, path, params):
-        '''Query MusicBrainz.'''
+        """Query MusicBrainz."""
         params.update({'fmt': 'json', 'limit': 1})
         result = self._request_json(
             'http://musicbrainz.org/ws/2/' + path, params)
@@ -550,18 +550,18 @@ class MusicBrainz(DataProvider):
                           for t in r.get('tags', {})}} for r in result]
 
     def query_artist(self, artist):
-        '''Query for artist data.'''
+        """Query for artist data."""
         return self._query('artist', {'query': 'artist: ' + artist})
 
     def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
+        """Query for album data."""
         qry = 'releasegroup: %s' % album
         if artist:
             qry += ' AND artist: %s' % artist
         return self._query('release-group', {'query': qry})
 
     def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
+        """Query by mbid."""
         self.log.debug("%-8s %-6s use mbid '%s'.", self.name, entity, mbid)
         if entity == 'album':
             entity = 'release-group'
@@ -569,10 +569,10 @@ class MusicBrainz(DataProvider):
 
 
 class RateYourMusic(DataProvider):
-    '''RateYourMusic DataProvider
+    """RateYourMusic DataProvider
 
     see http://rateyourmusic.com/rymzilla/view?id=683
-    '''
+    """
 
     def __init__(self):
         super(RateYourMusic, self).__init__()
@@ -580,7 +580,7 @@ class RateYourMusic(DataProvider):
         self.name = 'RYMusic'
 
     def _request_html(self, url, params, method='GET'):
-        '''Return a html response from a request.'''
+        """Return a html response from a request."""
         from lxml import html
         res = self._request(url, params, method=method)
         if res.status_code == 404:
@@ -592,7 +592,7 @@ class RateYourMusic(DataProvider):
             raise DataProviderError("html request: %s" % err.message)
 
     def _scrap_url(self, path):
-        '''Scrap genres from an url.'''
+        """Scrap genres from an url."""
         tree = self._request_html('http://rateyourmusic.com/' + path, {})
         if tree is not None:
             tags = tree.xpath('//a[@class="genre"]/text()')
@@ -600,10 +600,10 @@ class RateYourMusic(DataProvider):
         return None
 
     def _query(self, type_, searchterm):
-        '''Search RateYourMusic.'''
+        """Search RateYourMusic."""
 
         def match(str_a, str_b):
-            '''Return True if str_a and str_b are quite similar.'''
+            """Return True if str_a and str_b are quite similar."""
             import difflib
             return difflib.SequenceMatcher(
                 None, str_a.lower(), str_b.lower()).quick_ratio() > 0.9
@@ -630,24 +630,24 @@ class RateYourMusic(DataProvider):
         return None
 
     def query_artist(self, artist):
-        '''Query for artist data.'''
+        """Query for artist data."""
         # guess url (so much faster)
         res = self._scrap_url('/artist/' + artist.replace(' ', '_'))
         return res or self._query('a', artist)
 
     def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
+        """Query for album data."""
         if artist:
             return self._query('l', artist + ' ' + album)
         return self._query('y', album)
 
     def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
+        """Query by mbid."""
         raise NotImplementedError()
 
 
 class WhatCD(DataProvider):
-    '''What.CD DataProvider'''
+    """What.CD DataProvider"""
 
     def __init__(self, conf):
         super(WhatCD, self).__init__()
@@ -660,14 +660,14 @@ class WhatCD(DataProvider):
         self.login()
 
     def login(self):
-        '''Login to What.CD if we don't have a cookie yet.
+        """Login to What.CD if we don't have a cookie yet.
 
         Ask user for credentials to receive a session cookie
         and save it to config.
-        '''
+        """
 
         def login():
-            '''Send a login request with username and password.'''
+            """Send a login request with username and password."""
             self._request('https://what.cd/login.php',
                           {'username': username, 'password': password}, 'POST')
 
@@ -698,7 +698,7 @@ class WhatCD(DataProvider):
         self.conf.save()
 
     def _query(self, params):
-        '''Query What.CD API.'''
+        """Query What.CD API."""
         self.login()
         try:
             result = self._request_json('https://what.cd/ajax.php', params)
@@ -713,7 +713,7 @@ class WhatCD(DataProvider):
         return response
 
     def _query_release(self, torrent):
-        '''Query for release information'''
+        """Query for release information"""
         res = self._query({'action': 'torrent', 'id': torrent})
         result = {'media': res['torrent']['media']}
         if res['torrent']['remastered']:
@@ -732,7 +732,7 @@ class WhatCD(DataProvider):
         return {k: v.strip() for k, v in result.iteritems() if v}
 
     def query_artist(self, artist):
-        '''Query for artist data.'''
+        """Query for artist data."""
         result = self._query({'action': 'artist', 'artistname': artist})
         if not result:
             return None
@@ -741,7 +741,7 @@ class WhatCD(DataProvider):
         return [{'tags': tags}]
 
     def query_album(self, album, artist=None, year=None, reltyp=None):
-        '''Query for album data.'''
+        """Query for album data."""
         res = self._query({'action': 'browse', 'filter_cat[1]': 1,
                            'artistname': artist, 'groupname': album})
         if not res['results']:
@@ -781,5 +781,5 @@ class WhatCD(DataProvider):
         return results
 
     def query_by_mbid(self, entity, mbid):
-        '''Query by mbid.'''
+        """Query by mbid."""
         raise NotImplementedError()

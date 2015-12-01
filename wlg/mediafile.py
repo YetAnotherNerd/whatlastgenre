@@ -15,10 +15,10 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-'''whatlastgenre mediafile
+"""whatlastgenre mediafile
 
 Read and write metadata of audio files using mutagen.
-'''
+"""
 
 from __future__ import print_function
 
@@ -44,7 +44,7 @@ VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
 
 def find_music_dirs(paths):
-    '''Scan paths for directories containing supported music files.'''
+    """Scan paths for directories containing supported music files."""
     dirs = []
     for path in paths:
         for root, _, files in os.walk(path):
@@ -55,12 +55,12 @@ def find_music_dirs(paths):
 
 
 def is_various_artists(name, mbid):
-    '''Check if given name or mbid represents 'Various Artists'.'''
+    """Check if given name or mbid represents 'Various Artists'."""
     return name and VA_PAT.match(name) or mbid == VA_MBID
 
 
 def get_first(iterable, default=None):
-    '''Get the first not None item from an iterable or default.'''
+    """Get the first not None item from an iterable or default."""
     if iterable:
         for item in iterable:
             if item:
@@ -69,12 +69,12 @@ def get_first(iterable, default=None):
 
 
 class AlbumError(Exception):
-    '''If something went wrong while handling an Album.'''
+    """If something went wrong while handling an Album."""
     pass
 
 
 class Album(object):
-    '''Class for managing albums.'''
+    """Class for managing albums."""
 
     def __init__(self, path, v23sep=None):
         if not os.path.exists(path):
@@ -94,7 +94,7 @@ class Album(object):
         self.type = ','.join(set(t.ext for t in self.tracks)).upper()
 
     def get_metadata(self):
-        '''Return a Metadata namedtuple.'''
+        """Return a Metadata namedtuple."""
         # artists
         artists = []
         for track in self.tracks:
@@ -120,13 +120,13 @@ class Album(object):
             releasetype=self.get_meta('releasetype'))
 
     def get_meta(self, key, lcp=True):
-        '''Get metadata that all tracks have in common.
+        """Get metadata that all tracks have in common.
 
         Return the common value (if any) for the given metadata key.
 
         :param key: metadata key
         :param lcp: use longest common prefix for some keys
-        '''
+        """
         values = [get_first(t.get_meta(key)) for t in self.tracks]
         values = [v for v in values if v]
         # common for all tracks
@@ -141,12 +141,12 @@ class Album(object):
         return None
 
     def set_meta(self, key, val):
-        '''Set metadata for all tracks.'''
+        """Set metadata for all tracks."""
         for track in self.tracks:
             track.set_meta(key, val)
 
     def save(self):
-        '''Save all tracks.'''
+        """Save all tracks."""
         print("Saving metadata... ", end='')
         dirty = False
         for track in self.tracks:
@@ -158,12 +158,12 @@ class Album(object):
 
 
 class TrackError(Exception):
-    '''If something went wrong while handling a Track.'''
+    """If something went wrong while handling a Track."""
     pass
 
 
 class Track(object):
-    '''Class for managing tracks.'''
+    """Class for managing tracks."""
 
     def __init__(self, path, filename, v23sep=None):
         self.fullpath = os.path.join(path, filename)
@@ -180,10 +180,10 @@ class Track(object):
             raise TrackError('unknown mutagen error')
 
     def map_key(self, key):
-        '''Map a general metadata key to an ext-specific metadata key.
+        """Map a general metadata key to an ext-specific metadata key.
 
         :param key: metadata key name string
-        '''
+        """
         if not key or self.ext in ['m4a'] \
                 and key in ('label', 'catalog', 'edition', 'media',
                             'musicbrainz_releasegroupid'):
@@ -203,10 +203,10 @@ class Track(object):
         return key
 
     def get_meta(self, key):
-        '''Get metadata for a given key.'''
+        """Get metadata for a given key."""
 
         def split(value, separators):
-            '''Split value by some separators.'''
+            """Split value by some separators."""
             for sep in separators:
                 if sep in value:
                     return [v.strip() for v in value.split(sep)]
@@ -226,7 +226,7 @@ class Track(object):
         return values
 
     def set_meta(self, key, val):
-        '''Set metadata of a given key to a given val.'''
+        """Set metadata of a given key to a given val."""
         key = self.map_key(key)
         if not key:
             return
@@ -244,12 +244,12 @@ class Track(object):
             self.dirty = True
 
     def save(self):
-        '''Save the track.
+        """Save the track.
 
         Preserve the file modification time,
         return True if changes have been saved,
         return False if no changes were made.
-        '''
+        """
         if not self.dirty:
             return False
         try:

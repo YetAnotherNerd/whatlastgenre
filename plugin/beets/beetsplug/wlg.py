@@ -15,7 +15,7 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-'''whatlastgenre beets plugin'''
+"""whatlastgenre beets plugin"""
 
 from __future__ import absolute_import
 
@@ -31,7 +31,7 @@ from wlg.mediafile import Metadata
 
 
 class WhatLastGenre(BeetsPlugin):
-    '''whatlastgenre plugin for beets.'''
+    """whatlastgenre plugin for beets."""
 
     def __init__(self):
         super(WhatLastGenre, self).__init__()
@@ -48,7 +48,7 @@ class WhatLastGenre(BeetsPlugin):
         self.wlg = None
 
     def setup(self, update_cache=False, verbose=0):
-        '''Set up the WhatLastGenre object.'''
+        """Set up the WhatLastGenre object."""
         whitelist = self.config['whitelist'].get()
         if whitelist == 'wlg':
             whitelist = None
@@ -61,9 +61,9 @@ class WhatLastGenre(BeetsPlugin):
                       release=False), whitelist)
 
     def setdown(self):
-        '''Since __del__s don't get called we need to do some stuff
+        """Since __del__s don't get called we need to do some stuff
         manually.
-        '''
+        """
         self.wlg.daprs[0].cache.save()
 
     def commands(self):
@@ -81,7 +81,7 @@ class WhatLastGenre(BeetsPlugin):
         return [cmds]
 
     def commanded(self, lib, opts, args):
-        '''wlg as command'''
+        """wlg as command"""
         if not self.wlg:
             self.setup(opts.cache, opts.verbose)
 
@@ -109,7 +109,7 @@ class WhatLastGenre(BeetsPlugin):
         self.setdown()
 
     def imported(self, _, task):
-        '''wlg during import'''
+        """wlg during import"""
         if not self.wlg:
             self.setup()
 
@@ -123,9 +123,9 @@ class WhatLastGenre(BeetsPlugin):
                     item.store()
 
     def genres(self, album):
-        '''Return the current genres of an album if they exist and
+        """Return the current genres of an album if they exist and
         the force option is not set or get genres from whatlastgenre.
-        '''
+        """
         if album.genre and not self.config['force']:
             self._log.info(u'not forcing genre update for album {0}', album)
             return album.genre

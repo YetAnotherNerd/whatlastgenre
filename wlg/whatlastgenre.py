@@ -15,10 +15,10 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-'''whatlastgenre
+"""whatlastgenre
 
 https://github.com/YetAnotherNerd/whatlastgenre
-'''
+"""
 
 from __future__ import division, print_function
 
@@ -49,7 +49,7 @@ Stats = namedtuple('Stats', ['time', 'messages', 'genres', 'reltyps'])
 
 
 class WhatLastGenre(object):
-    '''Main class featuring a docstring that needs to be written.'''
+    """Main class featuring a docstring that needs to be written."""
 
     def __init__(self, args, whitelist=None, tagsfile=None):
         self.log = logging.getLogger('wlg')
@@ -71,10 +71,10 @@ class WhatLastGenre(object):
             self.conf.args.release = False
 
     def read_whitelist(self, path=None):
-        '''Read the whitelist trying different paths.
+        """Read the whitelist trying different paths.
 
         Return a set of whitelist entries.
-        '''
+        """
         paths = [(1, path)]
         paths.append((1, self.conf.get('wlg', 'whitelist')))
         paths.append((0, os.path.join(self.conf.path, 'genres.txt')))
@@ -95,10 +95,10 @@ class WhatLastGenre(object):
         return whitelist
 
     def read_tagsfile(self, path=None):
-        '''Read the tagsfile trying different paths.
+        """Read the tagsfile trying different paths.
 
         Return a dict of prepared data from the tagsfile.
-        '''
+        """
         parser = ConfigParser.SafeConfigParser(allow_no_value=True)
         paths = [(1, path)]
         paths.append((1, self.conf.get('wlg', 'tagsfile')))
@@ -133,8 +133,8 @@ class WhatLastGenre(object):
                 'regex': regex}
 
     def query_album(self, metadata):
-        '''Query for top genres of an album identified by metadata
-        and return them and some releaseinfo.'''
+        """Query for top genres of an album identified by metadata
+        and return them and some releaseinfo."""
         num_artists = 1
         if not metadata.albumartist[0]:
             num_artists = len(set(metadata.artists))
@@ -210,7 +210,7 @@ class WhatLastGenre(object):
         return taglib.get_genres(), taglib.release
 
     def create_queries(self, metadata):
-        '''Create queries for all DataProviders based on metadata.'''
+        """Create queries for all DataProviders based on metadata."""
         artists = metadata.artists
         if len(set(artists)) > 42:
             self.log.warn('Too many artists for va-artist search')
@@ -256,7 +256,7 @@ class WhatLastGenre(object):
 
     @classmethod
     def merge_results(cls, results):
-        '''Merge multiple results.'''
+        """Merge multiple results."""
         tags = defaultdict(float)
         for tags_ in [r['tags'] for r in results if 'tags' in r]:
             for key, val in tags_.iteritems():
@@ -269,7 +269,7 @@ class WhatLastGenre(object):
         return result
 
     def verbose_status(self, query, cached, status):
-        '''Log a status line in verbose mode.'''
+        """Log a status line in verbose mode."""
         qry = query.artist
         if query.type == 'album':
             qry += ' ' + query.album
@@ -278,7 +278,7 @@ class WhatLastGenre(object):
                       " (cached)" if cached else '')
 
     def stat_message(self, level, message, item, log=None):
-        '''Record a message in the stats and optionally log it.'''
+        """Record a message in the stats and optionally log it."""
         self.stats.messages[(level, message)].append(item)
         if log:
             if log > 1:
@@ -286,7 +286,7 @@ class WhatLastGenre(object):
             self.log.log(level, message)
 
     def print_stats(self, num_dirs):
-        '''Print some statistics.'''
+        """Print some statistics."""
         # genres
         if self.stats.genres:
             genres = self.stats.genres.most_common()
@@ -316,7 +316,7 @@ class WhatLastGenre(object):
 
 
 class TagLib(object):
-    '''Class to handle tags.'''
+    """Class to handle tags."""
 
     def __init__(self, wlg, path, various):
         self.wlg = wlg
@@ -328,14 +328,14 @@ class TagLib(object):
         self.release = None
 
     def add(self, tags, group, split=False):
-        '''Add scored tags to a group of tags.
+        """Add scored tags to a group of tags.
 
         Return the number of good (used) tags.
 
         :param tags: dict of tag names and tag scores
         :param group: name of the tag group (artist or album)
         :param split: was split already
-        '''
+        """
         good = 0
         for key, val in tags.iteritems():
             # resolve if not whitelisted
@@ -367,7 +367,7 @@ class TagLib(object):
         return good
 
     def score(self, tags, scoremod):
-        '''Score tags taking a scoremod into account.'''
+        """Score tags taking a scoremod into account."""
         if not tags:
             return tags
         # tags with counts
@@ -385,12 +385,12 @@ class TagLib(object):
         return tags
 
     def resolve(self, key):
-        '''Try to resolve a tag to a valid whitelisted tag by using
+        """Try to resolve a tag to a valid whitelisted tag by using
         aliases, regex replacements and optional difflib matching.
-        '''
+        """
 
         def alias(key):
-            '''Return whether a key got an alias and log it if True.'''
+            """Return whether a key got an alias and log it if True."""
             if key in self.wlg.tags['alias']:
                 self.log.debug('tag alias   %s -> %s', key,
                                self.wlg.tags['alias'][key])
@@ -424,7 +424,7 @@ class TagLib(object):
         return key
 
     def split(self, key, val, group):
-        '''Split a tag into its parts and add them.'''
+        """Split a tag into its parts and add them."""
         keys = []
         good = 0
         base = val
@@ -456,7 +456,7 @@ class TagLib(object):
         return good, base
 
     def merge(self):
-        '''Merge all tag groups using different score modifiers.'''
+        """Merge all tag groups using different score modifiers."""
         mergedtags = defaultdict(float)
         for group, tags in self.taggrps.iteritems():
             if not tags:
@@ -476,7 +476,7 @@ class TagLib(object):
         return mergedtags
 
     def format(self, key):
-        '''Format a tag to correct case.'''
+        """Format a tag to correct case."""
         words = key.split(' ')
         for i, word in enumerate(words):
             if len(word) < 3 and word != 'nu' or \
@@ -487,10 +487,10 @@ class TagLib(object):
         return ' '.join(words)
 
     def get_genres(self):
-        '''Return the formatted names of the limited top genres.
+        """Return the formatted names of the limited top genres.
 
         Record messages in the stats if appropriated.
-        '''
+        """
         for group in ['artist', 'album']:
             if not self.taggrps[group]:
                 self.wlg.stat_message(
@@ -534,7 +534,7 @@ class TagLib(object):
 
 
 class Config(ConfigParser.SafeConfigParser):
-    '''Read, maintain and write the configuration file.'''
+    """Read, maintain and write the configuration file."""
 
     # (section, option, value)
     conf = [('wlg', 'sources', 'discogs, echonest, lastfm, mbrainz, whatcd'),
@@ -578,7 +578,7 @@ class Config(ConfigParser.SafeConfigParser):
         self.__compat()
 
     def __compat(self):
-        '''Backward compatibility code.'''
+        """Backward compatibility code."""
         discogs_token = os.path.expanduser('~/.whatlastgenre/discogs.json')
         if os.path.exists(discogs_token):
             import json
@@ -592,14 +592,14 @@ class Config(ConfigParser.SafeConfigParser):
             self.save()
 
     def set_defaults(self):
-        '''Create a default configuration file.'''
+        """Create a default configuration file."""
         for sec, opt, val in self.conf:
             if not self.has_section(sec):
                 self.add_section(sec)
             self.set(sec, opt, str(val))
 
     def save(self):
-        '''Write the config file but backup the existing one.'''
+        """Write the config file but backup the existing one."""
         backup_path = self.fullpath + '~'
         if os.path.exists(self.fullpath):
             if os.name == 'nt' and os.path.isfile(backup_path):
@@ -611,7 +611,7 @@ class Config(ConfigParser.SafeConfigParser):
         exit()
 
     def get(self, section, option, raw=False, vars_=None):
-        '''Fallback to default for non-existing option.'''
+        """Fallback to default for non-existing option."""
         if not self.has_option(section, option):
             for sec, opt, val in self.conf:
                 if sec == section and opt == option:
@@ -620,13 +620,13 @@ class Config(ConfigParser.SafeConfigParser):
                                                  raw=raw, vars=vars_)
 
     def get_list(self, sec, opt):
-        '''Gets a csv-string as list.'''
+        """Gets a csv-string as list."""
         list_ = self.get(sec, opt).lower().split(',')
         return [x.strip() for x in list_ if x.strip()]
 
 
 def searchstr(str_):
-    '''Clean up a string for use in searching.'''
+    """Clean up a string for use in searching."""
     if not str_:
         return ''
     str_ = str_.lower()
@@ -641,11 +641,11 @@ def searchstr(str_):
 
 
 def tag_display(tags, pattern):
-    '''Return a string of tags formatted with pattern in 3 columns.
+    """Return a string of tags formatted with pattern in 3 columns.
 
     :param tags: list of tuples containing tags name and count/score
     :param pattern: should not exceed (80-2)/3 = 26 chars length.
-    '''
+    """
     len_ = int(math.ceil(len(tags) / 3))
     lines = [u' '.join([pattern % tuple(reversed(tags[i]))
                         for i in [l + len_ * j for j in range(3)]
@@ -654,7 +654,7 @@ def tag_display(tags, pattern):
 
 
 def ask_user(query, results):
-    '''Ask the user to choose from a list of results.'''
+    """Ask the user to choose from a list of results."""
     print("%-8s %-6s got    %2d results. Which is it?"
           % (query.dapr.name, query.type, len(results)))
     for i, result in enumerate(results, start=1):
@@ -675,10 +675,10 @@ def ask_user(query, results):
 
 
 def work_directory(wlg, path):
-    '''Create an Album object for a directory given by path to read and
+    """Create an Album object for a directory given by path to read and
     write metadata from/to.  Query top genre tags by album metadata,
     update metadata with results and save the album (its tracks).
-    '''
+    """
     # create album object to read and write metadata
     try:
         album = mediafile.Album(path, wlg.conf.get('wlg', 'id3v23sep'))
@@ -709,7 +709,7 @@ def work_directory(wlg, path):
 
 
 def progressbar(current, total):
-    '''Return a progressbar string.'''
+    """Return a progressbar string."""
     size = 60
     prog = current / total
     done = int(size * prog)
@@ -720,7 +720,7 @@ def progressbar(current, total):
 
 
 def get_args():
-    '''Get the cmdline arguments from ArgumentParser.'''
+    """Get the cmdline arguments from ArgumentParser."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Improve genre metadata of audio files '
@@ -743,12 +743,12 @@ def get_args():
 
 
 def main():
-    '''main function of whatlastgenre.
+    """main function of whatlastgenre.
 
     Get arguments, set up WhatLastGenre object,
     search for music directories, run the main loop on them
     and print out some statistics.
-    '''
+    """
     print("whatlastgenre v%s" % __version__)
     args = get_args()
     wlg = WhatLastGenre(args)
