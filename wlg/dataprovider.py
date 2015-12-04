@@ -53,6 +53,26 @@ except ImportError:
 HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 
 
+def get_stats(daprs):
+    """Print some DataProvider statistics."""
+    result = ['\n', 'Source stats  ',
+              ''.join('| %-8s ' % d.name for d in daprs),
+              '\n', '-' * 14, ('+' + '-' * 10) * len(daprs),
+              '\n']
+    for key in ['reqs_err', 'reqs_web', 'reqs_cache', 'reqs_lowcache',
+                'results', 'results_none', 'results_many', 'results/req',
+                'tags', 'tags/result', 'goodtags', 'goodtags/tag',
+                'time_resp_avg', 'time_wait_avg']:
+        stats = [d.get_stats(key) for d in daprs]
+        if all(stats):
+            result.append('%-13s ' % key)
+            for val in stats:
+                pat = '| %8d ' if val.is_integer() else '| %8.2f '
+                result.append(pat % val)
+            result.append('\n')
+    return ''.join(result)
+
+
 class Cache(object):
     """Load/save a dict as json from/to a file."""
 
@@ -195,39 +215,6 @@ class DataProvider(object):
             raise DataProviderError('dataprovider not found')
         return dapr
 
-    @classmethod
-    def print_stats(cls, daprs):
-        """Print some DataProvider statistics."""
-        print("\nSource stats  ", ''.join("| %-8s " % d.name for d in daprs),
-              "\n", "-" * 14, "+----------" * len(daprs), sep='')
-        for key in ['reqs_err', 'reqs_web', 'reqs_cache', 'reqs_lowcache',
-                    'results', 'results_none', 'results_many', 'results/req',
-                    'tags', 'tags/result', 'goodtags', 'goodtags/tag',
-                    'time_resp_avg', 'time_wait_avg']:
-            vals = []
-            for dapr in daprs:
-                num_req_web = dapr.stats['reqs_web']
-                num_req = sum((num_req_web, dapr.stats['reqs_cache'],
-                               dapr.stats['reqs_lowcache']))
-                if key == 'results/req' and num_req > 0:
-                    vals.append(dapr.stats['results'] / num_req)
-                elif key == 'time_resp_avg' and num_req_web:
-                    vals.append(dapr.stats['time_resp'] / num_req_web)
-                elif key == 'time_wait_avg' and num_req_web:
-                    vals.append(dapr.stats['time_wait'] / num_req_web)
-                elif key == 'tags/result' and dapr.stats['results']:
-                    vals.append(dapr.stats['tags'] / dapr.stats['results'])
-                elif key == 'goodtags/tag' and dapr.stats['tags']:
-                    vals.append(dapr.stats['goodtags'] / dapr.stats['tags'])
-                elif key in dapr.stats:
-                    vals.append(dapr.stats[key])
-                else:
-                    vals.append(.0)
-            if any(v for v in vals):
-                pat = "| %8d " if all(v.is_integer() for v in vals) \
-                    else "| %8.2f "
-                print("%-13s " % key, ''.join(pat % v for v in vals), sep='')
-
     def _wait_rate_limit(self):
         """Wait for the rate limit."""
         while time.time() - self.last_request < self.rate_limit:
@@ -353,6 +340,25 @@ class DataProvider(object):
         for result in res or []:
             result['tags'] = self._preprocess_tags(result['tags'])
         return res
+
+    def get_stats(self, key):
+        """Return stats by key."""
+        value = None
+        if key in self.stats:
+            value = self.stats[key]
+        elif key == 'reqs_total':
+            value = sum([self.stats['reqs_web'],
+                         self.stats['reqs_cache'],
+                         self.stats['reqs_lowcache']])
+        elif key == 'results/req' and self.get_stats('reqs_total'):
+            value = self.stats['results'] / self.get_stats('reqs_total')
+        elif key.startswith('time_') and self.stats['reqs_web']:
+            value = self.stats[key[:-3]] / self.stats['reqs_web']
+        elif key == 'tags/result' and self.stats['results']:
+            value = self.stats['tags'] / self.stats['results']
+        elif key == 'goodtags/tag' and self.stats['tags']:
+            value = self.stats['goodtags'] / self.stats['tags']
+        return value
 
     def query_artist(self, artist):
         """Query for artist data."""

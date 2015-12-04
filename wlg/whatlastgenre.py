@@ -306,8 +306,7 @@ class WhatLastGenre(object):
                 print("\n%s (%d):\n  %s"
                       % (msg, len(items), '\n  '.join(items)))
         # dataprovider
-        if self.log.level <= logging.INFO:
-            dataprovider.DataProvider.print_stats(self.daprs)
+        self.log.info(dataprovider.get_stats(self.daprs))
         # time
         diff = time.time() - self.stats.time
         print("\nTime elapsed: %s (%s per directory)\n"
