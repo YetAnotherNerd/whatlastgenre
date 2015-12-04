@@ -63,7 +63,7 @@ class WhatLastGenre(BeetsPlugin):
         """Since __del__s don't get called we need to do some stuff
         manually.
         """
-        self.wlg.daprs[0].cache.save()
+        self.wlg.cache.save()
 
     def commands(self):
         cmds = Subcommand('wlg', help='get genres with whatlastgenre')

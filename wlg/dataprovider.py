@@ -26,13 +26,12 @@ import base64
 from collections import defaultdict
 from datetime import timedelta
 import logging
-import operator
 import os.path
 import time
 
 import requests
 
-from . import __version__, cache
+from . import __version__
 
 try:  # use optional requests_cache if available
     import requests_cache
@@ -93,35 +92,14 @@ class DataProviderError(Exception):
 class DataProvider(object):
     """Base class for DataProviders."""
 
-    log = logging.getLogger(__name__)
-
     def __init__(self):
+        self.log = logging.getLogger(__name__)
         self.name = self.__class__.__name__
         self.rate_limit = 1.0  # min. seconds between requests
         self.last_request = 0
-        self.cache = None
         self.stats = defaultdict(float)
         self.session = requests.Session()
         self.session.headers.update(HEADERS)
-
-    @classmethod
-    def init_dataproviders(cls, conf):
-        """Initializes the DataProviders activated in the conf file."""
-        daprs = []
-        cache_ = cache.Cache(conf.path, conf.args.update_cache)
-        for src in conf.get_list('wlg', 'sources'):
-            try:
-                dapr = factory(src, conf)
-                dapr.cache = cache_
-                daprs.append(dapr)
-            except DataProviderError as err:
-                cls.log.warn('%s: %s', src, err)
-        if not daprs:
-            cls.log.critical('Where do you want to get your data from? At '
-                             'least one source must be activated! (multiple '
-                             'sources recommended)')
-            exit()
-        return daprs
 
     def _wait_rate_limit(self):
         """Wait for the rate limit."""
@@ -178,76 +156,6 @@ class DataProvider(object):
                           len(results) - len(res), len(results), name)
             results = res
         return results
-
-    @classmethod
-    def _preprocess_tags(cls, tags):
-        """Preprocess tags slightly to reduce the amount and don't
-        pollute the cache with tags that obviously don't get used
-        anyway.
-        """
-        if not tags:
-            return tags
-        tags = {k.strip().lower(): v for k, v in tags.iteritems()}
-        tags = {k: v for k, v in tags.iteritems()
-                if len(k) in range(2, 64) and v >= 0}
-        # answer to the ultimate question of life, the universe,
-        # the optimal number of considerable tags and everything
-        limit = 42
-        if len(tags) > limit:
-            # tags with scores
-            if any(tags.itervalues()):
-                min_val = max(tags.itervalues()) / 3
-                tags = {k: v for k, v in tags.iteritems() if v >= min_val}
-                tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
-                              reverse=1)  # best tags
-            # tags without scores
-            else:
-                tags = sorted(tags.iteritems(), key=len)  # shortest tags
-            tags = {k: v for k, v in tags[:limit]}
-        return tags
-
-    def cached_query(self, query):
-        """Perform a cached DataProvider query."""
-        cachekey = self.cache.cachekey(query)
-        # check cache
-        res = self.cache.get(cachekey)
-        if res:
-            self.stats['reqs_cache'] += 1
-            return res[1], True
-        # no cache hit
-        res = self.query(query)
-        self.cache.set(cachekey, res)
-        # save cache periodically
-        if time.time() - self.cache.time > 600:
-            self.cache.save()
-        return res, False
-
-    def query(self, query):
-        """Perform a real DataProvider query."""
-        res = None
-        if query.type == 'artist':
-            try:  # query by mbid
-                if query.mbid_artist:
-                    res = self.query_by_mbid(query.type, query.mbid_artist)
-            except NotImplementedError:
-                pass
-            if not res:
-                res = self.query_artist(query.artist)
-        elif query.type == 'album':
-            try:  # query by mbid
-                if query.mbid_relgrp:
-                    res = self.query_by_mbid(query.type, query.mbid_relgrp)
-                if not res and query.mbid_album:
-                    res = self.query_by_mbid(query.type, query.mbid_album)
-            except NotImplementedError:
-                pass
-            if not res:
-                res = self.query_album(query.album, query.artist,
-                                       query.year, query.releasetype)
-        # preprocess tags
-        for result in res or []:
-            result['tags'] = self._preprocess_tags(result['tags'])
-        return res
 
     def get_stats(self, key):
         """Return stats by key."""

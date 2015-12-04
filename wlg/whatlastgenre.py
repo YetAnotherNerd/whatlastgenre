@@ -37,7 +37,7 @@ import re
 import sys
 import time
 
-from . import __version__, dataprovider, mediafile
+from . import __version__, cache, dataprovider, mediafile
 
 Query = namedtuple(
     'Query', ['dapr', 'type', 'str', 'score', 'artist', 'mbid_artist',
@@ -53,12 +53,13 @@ class WhatLastGenre(object):
         self.log = logging.getLogger('wlg')
         self.log.setLevel(30 - 10 * args.verbose)
         self.log.addHandler(logging.StreamHandler(sys.stdout))
-        self.conf = Config(args)
         self.stats = Stats(time=time.time(),
                            messages=defaultdict(list),
                            genres=Counter(),
                            reltyps=Counter())
-        self.daprs = dataprovider.DataProvider.init_dataproviders(self.conf)
+        self.conf = Config(args)
+        self.cache = cache.Cache(self.conf.path, args.update_cache)
+        self.daprs = self.init_dataproviders()
         self.whitelist = self.read_whitelist(whitelist)
         self.tags = self.read_tagsfile(tagsfile)
         # validation
@@ -131,6 +132,21 @@ class WhatLastGenre(object):
                        sum(len(v) for v in tagsfile.values()))
         return tagsfile
 
+    def init_dataproviders(self):
+        """Initializes the DataProviders activated in the conf file."""
+        daprs = []
+        for dapr in self.conf.get_list('wlg', 'sources'):
+            try:
+                daprs.append(dataprovider.factory(dapr, self.conf))
+            except dataprovider.DataProviderError as err:
+                self.log.warn('%s: %s', dapr, err)
+        if not daprs:
+            self.log.critical(
+                'Where do you want to get your data from? At least one source '
+                'must be activated! (multiple sources recommended)')
+            exit()
+        return daprs
+
     def query_album(self, metadata):
         """Query for top genres of an album identified by metadata
         and return them and some releaseinfo."""
@@ -146,7 +162,7 @@ class WhatLastGenre(object):
             if not query.str:
                 continue
             try:
-                results, cached = query.dapr.cached_query(query)
+                results, cached = self.cached_query(query)
             except NotImplementedError:
                 continue
             except dataprovider.DataProviderError as err:
@@ -171,8 +187,7 @@ class WhatLastGenre(object):
                     and len(set(r.get('releasetype') for r in results)) > 1:
                 results = ask_user(query.dapr.name, query.type, results)
                 if len(results) == 1:
-                    query.dapr.cache.set(query.dapr.cache.cachekey(query),
-                                         results)
+                    self.cache.set(self.cache.cachekey(query), results)
             # merge multiple results
             if len(results) in range(2, 6):
                 results = [self.merge_results(results)]
@@ -207,6 +222,52 @@ class WhatLastGenre(object):
             self.stat_message(logging.ERROR, 'No releaseinfo found',
                               metadata.path, 1)
         return taglib.get_genres(), taglib.release
+
+    def cached_query(self, query):
+        """Perform a cached DataProvider query."""
+        cachekey = self.cache.cachekey(query)
+        # check cache
+        res = self.cache.get(cachekey)
+        if res:
+            query.dapr.stats['reqs_cache'] += 1
+            return res[1], True
+        # no cache hit
+        res = self.query(query)
+        self.cache.set(cachekey, res)
+        # save cache periodically
+        if time.time() - self.cache.time > 600:
+            self.cache.save()
+        return res, False
+
+    def query(self, query):
+        """Perform a real DataProvider query."""
+        res = None
+        if query.type == 'artist':
+            try:  # query by mbid
+                if query.mbid_artist:
+                    res = query.dapr.query_by_mbid(query.type,
+                                                   query.mbid_artist)
+            except NotImplementedError:
+                pass
+            if not res:
+                res = query.dapr.query_artist(query.artist)
+        elif query.type == 'album':
+            try:  # query by mbid
+                if query.mbid_relgrp:
+                    res = query.dapr.query_by_mbid(query.type,
+                                                   query.mbid_relgrp)
+                if not res and query.mbid_album:
+                    res = query.dapr.query_by_mbid(query.type,
+                                                   query.mbid_album)
+            except NotImplementedError:
+                pass
+            if not res:
+                res = query.dapr.query_album(query.album, query.artist,
+                                             query.year, query.releasetype)
+        # preprocess tags
+        for result in res or []:
+            result['tags'] = preprocess_tags(result['tags'])
+        return res
 
     def create_queries(self, metadata):
         """Create queries for all DataProviders based on metadata."""
@@ -621,6 +682,33 @@ class Config(ConfigParser.SafeConfigParser):
         """Gets a csv-string as list."""
         list_ = self.get(sec, opt).lower().split(',')
         return [x.strip() for x in list_ if x.strip()]
+
+
+def preprocess_tags(tags):
+    """Preprocess tags slightly to reduce the amount and don't
+    pollute the cache with tags that obviously don't get used
+    anyway.
+    """
+    if not tags:
+        return tags
+    tags = {k.strip().lower(): v for k, v in tags.iteritems()}
+    tags = {k: v for k, v in tags.iteritems()
+            if len(k) in range(2, 64) and v >= 0}
+    # answer to the ultimate question of life, the universe,
+    # the optimal number of considerable tags and everything
+    limit = 42
+    if len(tags) > limit:
+        # tags with scores
+        if any(tags.itervalues()):
+            min_val = max(tags.itervalues()) / 3
+            tags = {k: v for k, v in tags.iteritems() if v >= min_val}
+            tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
+                          reverse=1)  # best tags
+        # tags without scores
+        else:
+            tags = sorted(tags.iteritems(), key=len)  # shortest tags
+        tags = {k: v for k, v in tags[:limit]}
+    return tags
 
 
 def searchstr(str_):
