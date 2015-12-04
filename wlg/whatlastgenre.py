@@ -694,13 +694,13 @@ def work_directory(wlg, path):
         album.set_meta('genre', genres)
         print("Genres:  %s" % ', '.join(genres).encode('utf-8'))
     if release and wlg.conf.args.release:
-        out = []
+        release_info = []
         for key in ['releasetype', 'date',
                     'label', 'catalog', 'edition', 'media']:
             if key in release and release[key]:
                 album.set_meta(key, release[key])
-                out.append(release[key])
-        print("Release: %s" % ' / '.join(out))
+                release_info.append(release[key])
+        print("Release: %s" % ' / '.join(release_info))
     # save metadata to all tracks
     if wlg.conf.args.dry:
         print("DRY-RUN! Not saving metadata.")
