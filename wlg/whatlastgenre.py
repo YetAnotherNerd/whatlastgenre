@@ -290,13 +290,13 @@ class WhatLastGenre(object):
         if self.stats.genres:
             genres = self.stats.genres.most_common()
             print("\n%d different genres used this often:" % len(genres))
-            print(tag_display(genres, "%4d %-20s"))
+            print(tag_display(genres))
         # releasetypes
         if self.conf.args.release and self.stats.reltyps:
             reltyps = self.stats.reltyps.most_common()
             print("\n%d different releasetypes used this often:"
                   % len(reltyps))
-            print(tag_display(reltyps, "%4d %-20s"))
+            print(tag_display(reltyps))
         # messages
         messages = sorted(self.stats.messages.iteritems(),
                           key=lambda x: (x[0][0], len(x[1])), reverse=True)
@@ -528,7 +528,7 @@ class TagLib(object):
             tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
                           reverse=1)
             strs.append('Best %-6s genres (%d):' % (group, len(tags)))
-            strs.append(tag_display(tags[:9], '%4.2f %-20s'))
+            strs.append(tag_display(tags[:9]))
         return '\n'.join(strs)
 
 
@@ -639,14 +639,15 @@ def searchstr(str_):
     return str_
 
 
-def tag_display(tags, pattern):
-    """Return a string of tags formatted with pattern in columns.
-
-    :param tags: list of tuples containing tags name and count/score
-    :param pattern: should not exceed (80-2)/3 = 26 chars length.
-    """
+def tag_display(tags):
+    """Return a string of tags formatted in columns."""
     columns = 3
     num_lines = -(-len(tags) // columns)  # math.ceil()
+    # pattern should not exceed (80-2)/3=26 chars length
+    if all(float(t[1]).is_integer() for t in tags):
+        pattern = '%4d %-20s'
+    else:
+        pattern = '%4.2f %-20s'
     lines = []
     for line in range(num_lines):
         values = []
