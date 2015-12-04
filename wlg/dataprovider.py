@@ -50,6 +50,21 @@ except ImportError:
 HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 
 
+def factory(name, conf):
+    """Factory for DataProviders."""
+    if name == 'discogs':
+        dapr = Discogs(conf)
+    elif name == 'lastfm':
+        dapr = LastFM()
+    elif name == 'mbrainz':
+        dapr = MusicBrainz()
+    elif name == 'whatcd':
+        dapr = WhatCD(conf)
+    else:
+        raise DataProviderError('unknown dataprovider: %s' % name)
+    return dapr
+
+
 def get_stats(daprs):
     """Print some DataProvider statistics."""
     result = ['\n', 'Source stats  ',
@@ -96,7 +111,7 @@ class DataProvider(object):
         cache_ = cache.Cache(conf.path, conf.args.update_cache)
         for src in conf.get_list('wlg', 'sources'):
             try:
-                dapr = DataProvider.factory(src, conf)
+                dapr = factory(src, conf)
                 dapr.cache = cache_
                 daprs.append(dapr)
             except DataProviderError as err:
@@ -107,21 +122,6 @@ class DataProvider(object):
                              'sources recommended)')
             exit()
         return daprs
-
-    @classmethod
-    def factory(cls, name, conf):
-        """Factory method for DataProvider instances."""
-        if name == 'discogs':
-            dapr = Discogs(conf)
-        elif name == 'lastfm':
-            dapr = LastFM()
-        elif name == 'mbrainz':
-            dapr = MusicBrainz()
-        elif name == 'whatcd':
-            dapr = WhatCD(conf)
-        else:
-            raise DataProviderError('dataprovider not found')
-        return dapr
 
     def _wait_rate_limit(self):
         """Wait for the rate limit."""
