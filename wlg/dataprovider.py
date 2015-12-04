@@ -17,8 +17,7 @@
 
 """whatlastgenre dataprovider
 
-Contains classes for requesting genre data from APIs of some
-music related sites (DataProviders) and a Cache for those.
+Contains classes for querying APIs of some music related sites.
 """
 
 from __future__ import division, print_function
@@ -26,16 +25,14 @@ from __future__ import division, print_function
 import base64
 from collections import defaultdict
 from datetime import timedelta
-import json
 import logging
 import operator
 import os.path
-from tempfile import NamedTemporaryFile
 import time
 
 import requests
 
-from . import __version__
+from . import __version__, cache
 
 try:  # use optional requests_cache if available
     import requests_cache
@@ -73,95 +70,6 @@ def get_stats(daprs):
     return ''.join(result)
 
 
-class Cache(object):
-    """Load/save a dict as json from/to a file."""
-
-    def __init__(self, path, update_cache):
-        self.fullpath = os.path.join(path, 'cache')
-        self.update_cache = update_cache
-        self.expire_after = timedelta(days=180).total_seconds()
-        self.time = time.time()
-        self.dirty = False
-        self.cache = {}
-        # this new set is to avoid doing the same query multiple
-        # times during the same run while using update_cache
-        self.new = set()
-        try:
-            with open(self.fullpath) as file_:
-                self.cache = json.load(file_)
-        except (IOError, ValueError):
-            pass
-
-    @classmethod
-    def cachekey(cls, query):
-        """Return the cachekey for a query."""
-        cachekey = query.artist
-        if query.type == 'album':
-            cachekey += query.album
-        return query.dapr.name.lower(), query.type, cachekey.replace(' ', '')
-
-    def __del__(self):
-        self.save()
-
-    def get(self, key):
-        """Return a (time, value) tuple for a given key
-        or None if the key wasn't found.
-        """
-        key = str(key)
-        if key in self.cache \
-                and time.time() < self.cache[key][0] + self.expire_after \
-                and (not self.update_cache or key in self.new):
-            return self.cache[key]
-        return None
-
-    def set(self, key, value):
-        """Set value for a given key."""
-        key = str(key)
-        self.cache[key] = (time.time(), value)
-        if self.update_cache:
-            self.new.add(key)
-        self.dirty = True
-
-    def clean(self):
-        """Clean up expired entries."""
-        print("Cleaning cache... ", end='')
-        size = len(self.cache)
-        for key, val in self.cache.items():
-            if time.time() > val[0] + self.expire_after:
-                del self.cache[key]
-                self.dirty = True
-        print("done! (%d entries removed)" % (size - len(self.cache)))
-
-    def save(self):
-        """Save the cache dict as json string to a file.
-
-        Clean expired entries before saving and use a temporary
-        file to avoid data loss on interruption.
-        """
-        if not self.dirty:
-            return
-        self.clean()
-        print("Saving cache... ", end='')
-        dirname, basename = os.path.split(self.fullpath)
-        try:
-            with NamedTemporaryFile(prefix=basename + '.tmp_',
-                                    dir=dirname, delete=False) as tmpfile:
-                tmpfile.write(json.dumps(self.cache))
-                os.fsync(tmpfile)
-            # seems atomic rename here is not possible on windows
-            # http://docs.python.org/2/library/os.html#os.rename
-            if os.name == 'nt' and os.path.isfile(self.fullpath):
-                os.remove(self.fullpath)
-            os.rename(tmpfile.name, self.fullpath)
-            self.time = time.time()
-            self.dirty = False
-            size_mb = os.path.getsize(self.fullpath) / 2 ** 20
-            print("  done! (%d entries, %.2f MB)" % (len(self.cache), size_mb))
-        except KeyboardInterrupt:
-            if os.path.isfile(tmpfile.name):
-                os.remove(tmpfile.name)
-
-
 class DataProviderError(Exception):
     """If something went wrong with DataProviders."""
     pass
@@ -185,11 +93,11 @@ class DataProvider(object):
     def init_dataproviders(cls, conf):
         """Initializes the DataProviders activated in the conf file."""
         daprs = []
-        cache = Cache(conf.path, conf.args.update_cache)
+        cache_ = cache.Cache(conf.path, conf.args.update_cache)
         for src in conf.get_list('wlg', 'sources'):
             try:
                 dapr = DataProvider.factory(src, conf)
-                dapr.cache = cache
+                dapr.cache = cache_
                 daprs.append(dapr)
             except DataProviderError as err:
                 cls.log.warn('%s: %s', src, err)
