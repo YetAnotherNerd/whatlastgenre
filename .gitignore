@@ -1,7 +1,8 @@
 *.egg-info/
 *.pyc
-.project
-.pydevproject
+.coverage
+.idea/
 .settings/
+.tox/
 build/
 dist/
