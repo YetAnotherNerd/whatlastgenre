@@ -169,7 +169,7 @@ class WhatLastGenre(object):
                     and query.dapr.name.lower() == 'whatcd' \
                     and query.type == 'album' \
                     and len(set(r.get('releasetype') for r in results)) > 1:
-                results = ask_user(query, results)
+                results = ask_user(query.dapr.name, query.type, results)
                 if len(results) == 1:
                     query.dapr.cache.set(query.dapr.cache.cachekey(query),
                                          results)
@@ -659,10 +659,10 @@ def tag_display(tags):
     return '\n'.join(lines)
 
 
-def ask_user(query, results):
+def ask_user(dapr_name, query_type, results):
     """Ask the user to choose from a list of results."""
     print("%-8s %-6s got    %2d results. Which is it?"
-          % (query.dapr.name, query.type, len(results)))
+          % (dapr_name, query_type, len(results)))
     for i, result in enumerate(results, start=1):
         info = result['info'].encode(sys.stdout.encoding, errors='replace')
         print("#%2d: %s" % (i, info))
