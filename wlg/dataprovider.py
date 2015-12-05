@@ -191,11 +191,7 @@ class DataProvider(object):
 
 
 class Discogs(DataProvider):
-    """Discogs DataProvider
-
-    rauth requests can't be cached by requests_cache at this time,
-    see https://github.com/reclosedev/requests-cache/pull/52
-    """
+    """Discogs DataProvider"""
 
     def __init__(self, conf):
         super(Discogs, self).__init__()
