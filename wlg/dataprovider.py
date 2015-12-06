@@ -299,7 +299,8 @@ class DataProvider(object):
         if not tags:
             return tags
         tags = {k.strip().lower(): v for k, v in tags.iteritems()}
-        tags = {k: v for k, v in tags.iteritems() if len(k) in range(2, 64)}
+        tags = {k: v for k, v in tags.iteritems()
+                if len(k) in range(2, 64) and v >= 0}
         # answer to the ultimate question of life, the universe,
         # the optimal number of considerable tags and everything
         limit = 42
