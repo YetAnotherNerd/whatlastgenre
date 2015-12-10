@@ -17,7 +17,7 @@ Improve genre metadata of audio files based on tags from various music sites.
   * Can be used as plugin in other software, currently:
   [beets](https://github.com/sampsyo/beets)
   * Dry-mode for safe testing
-  * [Example output](https://gist.github.com/YetAnotherNerd/3e59c4d02f1930d9e52e)
+* [Example output](https://gist.github.com/YetAnotherNerd/3e59c4d02f1930d9e52e)
 
 
 ## How it works
