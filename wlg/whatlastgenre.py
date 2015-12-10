@@ -572,6 +572,8 @@ class Config(ConfigParser.SafeConfigParser):
         if not os.path.exists(self.fullpath):
             self.set_defaults()
             self.save()
+            print('Please review your config file: %s' % self.fullpath)
+            exit()
         self.read(self.fullpath)
         self.__compat()
 
@@ -605,8 +607,6 @@ class Config(ConfigParser.SafeConfigParser):
             os.rename(self.fullpath, backup_path)
         with open(self.fullpath, 'w') as file_:
             self.write(file_)
-        print('Please review your config file: %s' % self.fullpath)
-        exit()
 
     def get(self, section, option, raw=False, vars_=None):
         """Fallback to default for non-existing option."""
