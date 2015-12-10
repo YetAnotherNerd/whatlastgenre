@@ -32,7 +32,7 @@ multipliers to adjust the scoring to your needs and take your personal
 preferences into account. Please take a look at "Configuration options
 explained" below for more details.
 
-##### Tag scoring with count/weights
+##### Tag scoring with counts/weights
     echonest terms, lastfm, mbrainz, whatcd artist
 If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
@@ -167,11 +167,11 @@ See `various` score option below.
 
 ##### id3v23sep option
 By (mutagen) default all id3 v2.3 tags will be upgraded to v2.4. Since v2.3
-can't store multiple value metadata you need to set a seperator if you intend
+can't store multiple value metadata you need to set a separator if you intend
 to use old v2.3 tags (not recommended).
 Setting this to a non-empty value (for example `,`) will downgrade all id3 tags
-to v2.3 and store all genres in one tag seperated by `id3v23sep` instead of
-using v2.4 tags that can have multiple values. Empty by defaut.
+to v2.3 and store all genres in one tag separated by `id3v23sep` instead of
+using v2.4 tags that can have multiple values. Empty by default.
 You should upgrade your other software to support id3v24 instead of using this.
 
 #### genres section
@@ -238,7 +238,7 @@ Default `1.0`, see `sources` option above.
 #### dataprovider related sections
 
 ##### discogs token and secret options
-Authentication information for discogs, will be set interactivly.
+Authentication information for discogs, will be set interactively.
 
 ##### whatcd session options
 Session cookie, will be received by interactively entering user credentials.
@@ -320,7 +320,7 @@ Use the results to add missing whitelist entries, aliases or replaces.
 Feel free to share your improvements to the [data/*.txt](wlg/data) files or
 send me your logfile so i can use it for debugging myself.
 
-Another way to find possbile aliases is using the difflib `-d` argument.
+Another way to find possible aliases is using the difflib `-d` argument.
 
 
 Please report any bugs and errors, i would like to fix them :)
