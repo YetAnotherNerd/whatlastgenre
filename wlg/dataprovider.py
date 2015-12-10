@@ -195,46 +195,71 @@ class Discogs(DataProvider):
 
     def __init__(self, conf):
         super(Discogs, self).__init__()
+        import rauth
         # http://www.discogs.com/developers/#header:home-rate-limiting
         self.rate_limit = 3.0
-        # OAuth1 authentication
-        import rauth
-        discogs = rauth.OAuth1Service(
+        self.conf = conf
+        self.discogs = rauth.OAuth1Service(
             consumer_key='sYGBZLljMPsYUnmGOzTX',
             consumer_secret='TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk',
             request_token_url='https://api.discogs.com/oauth/request_token',
             access_token_url='https://api.discogs.com/oauth/access_token',
             authorize_url='https://www.discogs.com/oauth/authorize')
-        # read token from config file
-        try:
-            token = (conf.get('discogs', 'token'),
-                     conf.get('discogs', 'secret'))
-        except (NoSectionError, NoOptionError):
-            token = (None, None)
-        # get from user
-        if not all(token):
-            req_token, req_secret = discogs.get_request_token(headers=HEADERS)
-            print('Discogs requires authentication with your own account.\n'
-                  'Disable discogs in the config file or use this link to '
-                  'authenticate:\n%s' % discogs.get_authorize_url(req_token))
-            data = {'oauth_verifier': raw_input('Verification code: ')}
-            try:
-                token = discogs.get_access_token(
-                    req_token, req_secret, data=data, headers=HEADERS)
-            except KeyError as err:
-                raise RuntimeError(err.message)
-            # save token to config file
-            if not conf.has_section('discogs'):
-                conf.add_section('discogs')
-            conf.set('discogs', 'token', token[0])
-            conf.set('discogs', 'secret', token[1])
-            conf.save()
-        self.session = discogs.get_session(token)
+        token = self._get_token_from_config()
+        if not token or not all(token):
+            token = self._get_token_from_user()
+            self._save_token_to_config(token)
+        self.session = self.discogs.get_session(token)
         self.session.headers.update(HEADERS)
         # avoid filling cache with unusable entries
         if requests_cache \
                 and not hasattr(self.session.cache, '_ignored_parameters'):
             self.session._is_cache_disabled = True  # pylint: disable=W0212
+
+    def _get_token_from_user(self):
+        """Get token from user without requests_cache."""
+
+        def get_token_from_user():
+            """Get token from user."""
+            req_token, req_secret = self.discogs.get_request_token(
+                headers=HEADERS)
+            print('Discogs requires authentication with your own account.\n'
+                  'Disable discogs in the config file or use this link to '
+                  'authenticate:\n%s'
+                  % self.discogs.get_authorize_url(req_token))
+            oauth_verifier = raw_input('Verification code: ')
+            try:
+                token = self.discogs.get_access_token(
+                    req_token, req_secret,
+                    data={'oauth_verifier': oauth_verifier},
+                    headers=HEADERS)
+            except KeyError as err:
+                raise RuntimeError(err.message)
+            return token
+
+        if requests_cache:
+            with self.discogs.get_session().cache_disabled():
+                return get_token_from_user()
+        else:
+            return get_token_from_user()
+
+    def _get_token_from_config(self):
+        """Get token from config file."""
+        token = None
+        try:
+            token = (self.conf.get('discogs', 'token'),
+                     self.conf.get('discogs', 'secret'))
+        except (NoSectionError, NoOptionError):
+            pass
+        return token
+
+    def _save_token_to_config(self, token):
+        """Save token to config file."""
+        if not self.conf.has_section('discogs'):
+            self.conf.add_section('discogs')
+        self.conf.set('discogs', 'token', token[0])
+        self.conf.set('discogs', 'secret', token[1])
+        self.conf.save()
 
     def query_artist(self, artist):
         """Query for artist data."""
