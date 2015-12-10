@@ -600,8 +600,11 @@ class Config(ConfigParser.SafeConfigParser):
 
     def save(self):
         '''Write the config file but backup the existing one.'''
+        backup_path = self.fullpath + '~'
         if os.path.exists(self.fullpath):
-            os.rename(self.fullpath, self.fullpath + '~')
+            if os.name == 'nt' and os.path.isfile(backup_path):
+                os.remove(backup_path)
+            os.rename(self.fullpath, backup_path)
         with open(self.fullpath, 'w') as file_:
             self.write(file_)
         print('Please review your config file: %s' % self.fullpath)
