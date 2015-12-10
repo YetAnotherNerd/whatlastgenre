@@ -180,7 +180,7 @@ class WhatLastGenre(object):
                       metadata.type, metadata.albumartist[0], metadata.album,
                       metadata.year, (" (%d artists)" % num_artists
                                       if num_artists > 1 else ''))
-        taglib = TagLib(self, metadata.path, num_artists > 1)
+        taglib = TagLib(self, metadata.path)
         for query in self.create_queries(metadata):
             if not query.str:
                 continue
@@ -251,7 +251,7 @@ class WhatLastGenre(object):
                     self.stat_message(logging.ERROR, 'No releaseinfo found',
                                       metadata.path, 1)
             self.verbose_status(query, cached, status)
-        return taglib.get_genres(), taglib.release
+        return taglib.get_genres(num_artists > 1), taglib.release
 
     def cached_query(self, query):
         """Perform a cached DataProvider query."""
@@ -407,10 +407,9 @@ class WhatLastGenre(object):
 class TagLib(object):
     """Class to handle tags."""
 
-    def __init__(self, wlg, path, various):
+    def __init__(self, wlg, path):
         self.wlg = wlg
         self.path = path
-        self.various = various
         self.log = logging.getLogger(__name__)
         self.taggrps = {'artist': defaultdict(float),
                         'album': defaultdict(float)}
@@ -552,7 +551,7 @@ class TagLib(object):
             good = self.add({k: val * .5 for k in keys}, group, flag)
         return good, base
 
-    def merge(self):
+    def merge(self, various):
         """Merge all tag groups using different score modifiers."""
         mergedtags = defaultdict(float)
         for group, tags in self.taggrps.iteritems():
@@ -560,7 +559,7 @@ class TagLib(object):
                 continue
             scoremod = 1
             if group == 'artist':
-                if self.various:
+                if various:
                     group = 'various'
                 scoremod = self.wlg.conf.getfloat('scores', group)
             tags = {k: min(1.5, v) for k, v in tags.iteritems()}
@@ -583,7 +582,7 @@ class TagLib(object):
                 words[i] = word.title()
         return ' '.join(words)
 
-    def get_genres(self):
+    def get_genres(self, various):
         """Return the formatted names of the limited top genres.
 
         Record messages in the stats if appropriated.
@@ -593,7 +592,7 @@ class TagLib(object):
                 self.wlg.stat_message(
                     logging.INFO, 'No %s tags' % group, self.path, 1)
         # merge tag groups
-        tags = self.merge()
+        tags = self.merge(various)
         if not tags:
             self.wlg.stat_message(
                 logging.ERROR, 'No genres found', self.path, 1)
