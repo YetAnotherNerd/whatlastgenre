@@ -180,7 +180,7 @@ class WhatLastGenre(object):
                       metadata.type, metadata.albumartist[0], metadata.album,
                       metadata.year, (" (%d artists)" % num_artists
                                       if num_artists > 1 else ''))
-        taglib = TagLib(self, metadata.path)
+        taglib = TagLib(self)
         for query in self.create_queries(metadata):
             if not query.str:
                 continue
@@ -251,6 +251,14 @@ class WhatLastGenre(object):
                     self.stat_message(logging.ERROR, 'No releaseinfo found',
                                       metadata.path, 1)
             self.verbose_status(query, cached, status)
+
+        for group in ['artist', 'album']:
+            if not taglib.taggrps[group]:
+                self.stat_message(logging.INFO, 'No %s tags' % group,
+                                  metadata.path, 1)
+        if not tags:
+            self.stat_message(logging.ERROR, 'No genres found',
+                              metadata.path, 1)
         return taglib.get_genres(num_artists > 1), taglib.release
 
     def cached_query(self, query):
@@ -407,9 +415,8 @@ class WhatLastGenre(object):
 class TagLib(object):
     """Class to handle tags."""
 
-    def __init__(self, wlg, path):
+    def __init__(self, wlg):
         self.wlg = wlg
-        self.path = path
         self.log = logging.getLogger(__name__)
         self.taggrps = {'artist': defaultdict(float),
                         'album': defaultdict(float)}
@@ -587,16 +594,8 @@ class TagLib(object):
 
         Record messages in the stats if appropriated.
         """
-        for group in ['artist', 'album']:
-            if not self.taggrps[group]:
-                self.wlg.stat_message(
-                    logging.INFO, 'No %s tags' % group, self.path, 1)
         # merge tag groups
         tags = self.merge(various)
-        if not tags:
-            self.wlg.stat_message(
-                logging.ERROR, 'No genres found', self.path, 1)
-            return None
         # apply user score bonus
         for key in tags.iterkeys():
             if self.conf.has_option('genres', 'love') \
