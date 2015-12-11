@@ -26,7 +26,6 @@ import ConfigParser
 import argparse
 from collections import defaultdict, Counter, namedtuple
 from datetime import timedelta
-import difflib
 import itertools
 import logging
 import math
@@ -230,6 +229,14 @@ class WhatLastGenre(object):
             if 'tags' in results[0] and results[0]['tags']:
                 tags = taglib.score(results[0]['tags'], query.score)
                 good = taglib.add(tags, query.type)
+                if self.conf.args.difflib:
+                    matched = {}
+                    for old, new in taglib.difflib_matching(tags):
+                        self.stat_message(
+                            logging.WARN, 'possible aliases found by difflib',
+                            '%s = %s' % (old, new))
+                        matched.update({new: tags[old]})
+                    good += taglib.add(matched, query.type)
                 query.dapr.stats['tags'] += len(tags)
                 query.dapr.stats['goodtags'] += good
                 status = "%2d of %2d tags" % (good, len(tags))
@@ -494,16 +501,17 @@ class TagLib(object):
             if alias(key):
                 return self.wlg.tags['alias'][key]
             return key
-        # match
-        if self.wlg.conf.args.difflib:
-            match = difflib.get_close_matches(key, self.wlg.whitelist, 1, .92)
-            if match:
-                self.wlg.stat_message(
-                    logging.WARN, 'possible aliases found by difflib',
-                    '%s = %s' % (key, match[0]))
-                self.log.debug('tag match   %s -> %s', key, match[0])
-                return match[0]
         return key
+
+    def difflib_matching(self, tags):
+        """Use difflib to find some whitelist matches."""
+        from difflib import get_close_matches
+        for key in tags.iterkeys():
+            if key not in self.whitelist and key not in self.aliases:
+                match = get_close_matches(key, self.whitelist, 1, .92)
+                if match:
+                    self.log.debug('tag match   %s -> %s', key, match[0])
+                    yield key, match[0]
 
     def split(self, key, val, group):
         """Split a tag into its parts and add them."""
