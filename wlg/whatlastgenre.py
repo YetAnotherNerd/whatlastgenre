@@ -180,7 +180,7 @@ class WhatLastGenre(object):
                       metadata.type, metadata.albumartist[0], metadata.album,
                       metadata.year, (" (%d artists)" % num_artists
                                       if num_artists > 1 else ''))
-        taglib = TagLib(self)
+        taglib = TagLib(self.conf, self.whitelist, self.tags)
         for query in self.create_queries(metadata):
             if not query.str:
                 continue
@@ -252,14 +252,17 @@ class WhatLastGenre(object):
                                       metadata.path, 1)
             self.verbose_status(query, cached, status)
 
-        for group in ['artist', 'album']:
-            if not taglib.taggrps[group]:
-                self.stat_message(logging.INFO, 'No %s tags' % group,
-                                  metadata.path, 1)
-        if not tags:
+        genres = taglib.get_genres(num_artists > 1)
+        if genres:
+            self.stats.genres.update(genres)
+            for group in ['artist', 'album']:
+                if not taglib.taggrps[group]:
+                    self.stat_message(logging.INFO, 'No %s tags' % group,
+                                      metadata.path, 1)
+        else:
             self.stat_message(logging.ERROR, 'No genres found',
                               metadata.path, 1)
-        return taglib.get_genres(num_artists > 1), taglib.release
+        return genres, taglib.release
 
     def cached_query(self, query):
         """Perform a cached DataProvider query."""
@@ -415,9 +418,13 @@ class WhatLastGenre(object):
 class TagLib(object):
     """Class to handle tags."""
 
-    def __init__(self, wlg):
-        self.wlg = wlg
+    def __init__(self, conf, whitelist, tags):
         self.log = logging.getLogger(__name__)
+        self.conf = conf
+        self.whitelist = whitelist
+        self.aliases = tags['alias']
+        self.regexes = tags['regex']
+        self.upper = tags['upper']
         self.taggrps = {'artist': defaultdict(float),
                         'album': defaultdict(float)}
         self.release = None
@@ -434,7 +441,7 @@ class TagLib(object):
         good = 0
         for key, val in tags.iteritems():
             # resolve if not whitelisted
-            if key not in self.wlg.whitelist:
+            if key not in self.whitelist:
                 key = self.resolve(key)
             # split if wasn't yet
             splitgood = 0
@@ -449,7 +456,7 @@ class TagLib(object):
                 continue
             self.log.debug('tag score   %s %.3f', key, val)
             # filter
-            if key not in self.wlg.whitelist:
+            if key not in self.whitelist:
                 self.log.debug('tag filter  %s', key)
                 continue
             # was not good for splitting, but still good for itself
@@ -486,18 +493,18 @@ class TagLib(object):
 
         def alias(key):
             """Return whether a key got an alias and log it if True."""
-            if key in self.wlg.tags['alias']:
+            if key in self.aliases:
                 self.log.debug('tag alias   %s -> %s', key,
-                               self.wlg.tags['alias'][key])
+                               self.aliases[key])
                 return True
             return False
 
         # alias
         if alias(key):
-            return self.wlg.tags['alias'][key]
+            return self.aliases[key]
         # regex
-        if any(r[0].search(key) for r in self.wlg.tags['regex']):
-            for pat, repl in self.wlg.tags['regex']:
+        if any(r[0].search(key) for r in self.regexes):
+            for pat, repl in self.regexes:
                 if pat.search(key):
                     key_ = key
                     key = pat.sub(repl, key)
@@ -505,7 +512,7 @@ class TagLib(object):
                                    key_, key, pat.pattern)
             # key got replaced, try alias again
             if alias(key):
-                return self.wlg.tags['alias'][key]
+                return self.aliases[key]
             return key
         return key
 
@@ -527,7 +534,7 @@ class TagLib(object):
             if key in ['vanity house']:
                 # some exceptions (move to tagsfile if it gets longer)
                 return True
-            if key in self.wlg.whitelist:
+            if key in self.whitelist:
                 if '&' in key or key.startswith('nu '):
                     return True
             return False
@@ -549,8 +556,8 @@ class TagLib(object):
                     for combi in itertools.combinations(keys, length):
                         combis.append(' '.join(combi))
                 keys = combis
-            base = val * self.wlg.conf.getfloat('scores', 'splitup')
-        elif '-' in key and key not in self.wlg.whitelist:
+            base = val * self.conf.getfloat('scores', 'splitup')
+        elif '-' in key and key not in self.whitelist:
             keys = [k.strip() for k in key.split('-') if len(k.strip()) > 2]
         # add the parts
         if keys:
@@ -568,7 +575,7 @@ class TagLib(object):
             if group == 'artist':
                 if various:
                     group = 'various'
-                scoremod = self.wlg.conf.getfloat('scores', group)
+                scoremod = self.conf.getfloat('scores', group)
             tags = {k: min(1.5, v) for k, v in tags.iteritems()}
             max_ = max(tags.itervalues())
             for key, val in tags.iteritems():
@@ -583,7 +590,7 @@ class TagLib(object):
         words = key.split(' ')
         for i, word in enumerate(words):
             if len(word) < 3 and word != 'nu' or \
-                    word in self.wlg.tags['upper']:
+                    word in self.upper:
                 words[i] = word.upper()
             else:
                 words[i] = word.title()
@@ -606,13 +613,12 @@ class TagLib(object):
                 tags[key] *= 0.5
         # filter low scored tags
         tags = {k: v for k, v in tags.iteritems()
-                if v >= self.wlg.conf.getfloat('scores', 'minimum')}
+                if v >= self.conf.getfloat('scores', 'minimum')}
         # sort, limit and format
         tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
-        tags = tags[:self.wlg.conf.args.tag_limit]
+        tags = tags[:self.conf.args.tag_limit]
         tags = [self.format(k) for k, _ in tags]
         self.log.info(self)
-        self.wlg.stats.genres.update(tags)
         return tags
 
     def __str__(self):
