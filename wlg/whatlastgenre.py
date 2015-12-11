@@ -181,6 +181,7 @@ class WhatLastGenre(object):
                       metadata.year, (" (%d artists)" % num_artists
                                       if num_artists > 1 else ''))
         taglib = TagLib(self.conf, self.whitelist, self.tags)
+        release = None
         for query in self.create_queries(metadata):
             if not query.str:
                 continue
@@ -245,8 +246,8 @@ class WhatLastGenre(object):
             if query.dapr.name.lower() == 'whatcd' and query.type == 'album':
                 if 'releasetype' in results[0] and results[0]['releasetype']:
                     self.stats.reltyps[results[0]['releasetype']] += 1
-                    taglib.release = {k: v for k, v in results[0].iteritems()
-                                      if k not in ['info', 'tags']}
+                    release = {k: v for k, v in results[0].iteritems()
+                               if k not in ['info', 'tags']}
                 elif self.conf.args.release:
                     self.stat_message(logging.ERROR, 'No releaseinfo found',
                                       metadata.path, 1)
@@ -262,7 +263,7 @@ class WhatLastGenre(object):
         else:
             self.stat_message(logging.ERROR, 'No genres found',
                               metadata.path, 1)
-        return genres, taglib.release
+        return genres, release
 
     def cached_query(self, query):
         """Perform a cached DataProvider query."""
@@ -427,7 +428,6 @@ class TagLib(object):
         self.upper = tags['upper']
         self.taggrps = {'artist': defaultdict(float),
                         'album': defaultdict(float)}
-        self.release = None
 
     def add(self, tags, group, split=False):
         """Add scored tags to a group of tags.
