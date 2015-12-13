@@ -554,6 +554,8 @@ class Config(ConfigParser.SafeConfigParser):
             ('scores', 'src_whatcd', '1.50'),
             ('discogs', 'token', ''),
             ('discogs', 'secret', ''),
+            ('whatcd', 'username', ''),
+            ('whatcd', 'password', ''),
             ('whatcd', 'session', ''),
             ]
 

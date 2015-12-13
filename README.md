@@ -131,6 +131,8 @@ src_whatcd = 1.50
 token =
 secret =
 [whatcd]
+username =
+password =
 session =
 ```
 
@@ -233,8 +235,10 @@ Default `1.0`, see `sources` option above.
 ##### discogs token and secret options
 Authentication information for discogs, will be set interactively.
 
-##### whatcd session options
-Session cookie, will be received by interactively entering user credentials.
+##### whatcd username, password and session options
+You can optionally store your username and/or password here. If you don't store
+them, you will be asked interactively every time the automatically stored
+session cookie expired (or does not exist yet).
 
 
 ## Usage

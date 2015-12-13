@@ -536,58 +536,66 @@ class WhatCD(DataProvider):
         # http://github.com/WhatCD/Gazelle/wiki/JSON-API-Documentation
         self.rate_limit = 2.0
         self.conf = conf
-        cookie = base64.b64decode(conf.get('whatcd', 'session'))
-        if cookie:
-            self.session.cookies.set('session', cookie)
-        self.login()
+        # restore session cookie from config
+        cookie = base64.b64decode(self.conf.get('whatcd', 'session'))
+        self.session.cookies.set('session', cookie)
+
+    def get_credentials(self):
+        """Get credentials from config file or interactively from user."""
+        username = self.conf.get('whatcd', 'username')
+        password = self.conf.get('whatcd', 'password')
+        if not username or not password:
+            print('WhatCD requires authentication with your own account.')
+            if username:
+                print('Username: %s' % username)
+            else:
+                print('Disable whatcd in the config file or supply '
+                      'credentials to receive a session cookie:')
+                username = raw_input('Username: ')
+            if not password:
+                from getpass import getpass
+                password = getpass('Password: ')
+        return username, password
 
     def login(self):
-        """Login to What.CD if we don't have a cookie yet.
-
-        Ask user for credentials to receive a session cookie
-        and save it to config.
-        """
+        """Login to What.CD."""
 
         def login():
             """Send a login request with username and password."""
+            self.session.cookies.clear()
             self._request('https://what.cd/login.php',
                           {'username': username, 'password': password}, 'POST')
+            assert self.session.cookies.get('session', None)
 
-        if self.session.cookies.get('session', None):
-            return
-
-        from getpass import getpass
-        print('WhatCD requires authentication with your own account. '
-              'Disable whatcd\nin the config file or supply credentials '
-              'to receive a session cookie:')
-        username = raw_input('Username: ')
-        password = getpass("Password: ")
-
-        if requests_cache:
-            with self.session.cache_disabled():
+        username, password = self.get_credentials()
+        try:
+            if requests_cache:
+                with self.session.cache_disabled():
+                    login()
+            else:
                 login()
-        else:
-            login()
-
-        if not self.session.cookies.get('session', None):
+        except (requests.exceptions.TooManyRedirects, AssertionError):
             self.log.critical('WhatCD login failed')
             exit()
         # save session cookie to config
+        cookie = base64.b64encode(self.session.cookies['session'])
         if not self.conf.has_section('whatcd'):
             self.conf.add_section('whatcd')
-        cookie = base64.b64encode(self.session.cookies['session'])
         self.conf.set('whatcd', 'session', cookie)
         self.conf.save()
 
     def _query(self, params):
         """Query What.CD API."""
-        self.login()
+        # lazy login
+        if not self.session.cookies.get('session', None):
+            self.log.debug('no session cookie, login')
+            self.login()
         try:
             result = self._request_json('https://what.cd/ajax.php', params)
         except requests.exceptions.TooManyRedirects:
-            # whatcd session expired
-            self.session.cookies.set('session', None)
+            self.log.debug('session cookie expired, relogin')
             self.login()
+            return self._query(params)
         try:
             response = result['response']
         except KeyError:
