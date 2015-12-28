@@ -196,6 +196,8 @@ class Track(object):
             key = 'musicbrainz_albumtype'
         elif self.ext == 'mp3' and key == 'albumartist':
             key = 'performer'
+        elif self.ext == 'mp3' and key == 'edition':
+            key = 'version'
         elif self.ext == 'mp3' and key == 'label':
             key = 'organization'
         return key
