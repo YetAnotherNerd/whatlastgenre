@@ -185,11 +185,9 @@ class Track(object):
         :param key: metadata key name string
         """
         if not key or self.ext in ['m4a'] \
-                and key in ('label', 'catalog', 'edition', 'media',
-                            'musicbrainz_releasegroupid'):
+                and key in ('label', 'catalognumber', 'edition',
+                            'media', 'musicbrainz_releasegroupid'):
             return None
-        if key == 'catalog':
-            key = 'catalognumber'
         if self.ext in ['flac', 'ogg']:
             key = key.upper()
         elif self.ext in ['mp3', 'm4a'] and key == 'releasetype':

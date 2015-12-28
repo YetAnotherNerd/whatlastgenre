@@ -696,7 +696,7 @@ def work_directory(wlg, path):
     if release and wlg.conf.args.release:
         release_info = []
         for key in ['releasetype', 'date',
-                    'label', 'catalog', 'edition', 'media']:
+                    'label', 'catalognumber', 'edition', 'media']:
             if key in release and release[key]:
                 album.set_meta(key, release[key])
                 release_info.append(release[key])

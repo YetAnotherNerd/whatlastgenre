@@ -722,12 +722,12 @@ class WhatCD(DataProvider):
                 edition += ' %s' % year
             result.update({
                 'label': res['torrent']['remasterRecordLabel'],
-                'catalog': res['torrent']['remasterCatalogueNumber'],
+                'catalognumber': res['torrent']['remasterCatalogueNumber'],
                 'edition': edition})
         else:
             result.update({
                 'label': res['group']['recordLabel'],
-                'catalog': res['group']['catalogueNumber']})
+                'catalognumber': res['group']['catalogueNumber']})
         return {k: v.strip() for k, v in result.iteritems() if v}
 
     def query_artist(self, artist):
