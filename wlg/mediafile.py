@@ -41,6 +41,24 @@ VA_PAT = re.compile('^va(rious( ?artists?)?)?$', re.I)
 # musicbrainz artist id of 'Various Artists'
 VA_MBID = '89ad4ac3-39f7-470e-963a-56509c546377'
 
+# metadata key mapping {ext: {old: new}}
+MAPPING = {
+    'mp3': {
+        'albumartist': 'performer',
+        'edition': 'version',
+        'label': 'organization',
+        'releasetype': 'musicbrainz_albumtype',
+    },
+    'm4a': {
+        'catalognumber': None,
+        'edition': None,
+        'label': None,
+        'media': None,
+        'musicbrainz_releasegroupid': None,
+        'releasetype': 'musicbrainz_albumtype',
+    },
+}
+
 
 def find_music_dirs(paths):
     """Scan paths for directories containing supported music files."""
@@ -56,6 +74,15 @@ def find_music_dirs(paths):
 def is_various_artists(name, mbid):
     """Check if given name or mbid represents 'Various Artists'."""
     return name and VA_PAT.match(name) or mbid == VA_MBID
+
+
+def map_key(ext, key):
+    """Map metadata key."""
+    if ext in MAPPING and key in MAPPING[ext]:
+        key = MAPPING[ext][key]
+    if ext in ['flac', 'ogg']:
+        key = key.upper()
+    return key
 
 
 def get_first(iterable, default=None):
@@ -178,27 +205,6 @@ class Track(object):
         if not self.muta:
             raise TrackError('unknown mutagen error')
 
-    def map_key(self, key):
-        """Map a general metadata key to an ext-specific metadata key.
-
-        :param key: metadata key name string
-        """
-        if not key or self.ext in ['m4a'] \
-                and key in ('label', 'catalognumber', 'edition',
-                            'media', 'musicbrainz_releasegroupid'):
-            return None
-        if self.ext in ['flac', 'ogg']:
-            key = key.upper()
-        elif self.ext in ['mp3', 'm4a'] and key == 'releasetype':
-            key = 'musicbrainz_albumtype'
-        elif self.ext == 'mp3' and key == 'albumartist':
-            key = 'performer'
-        elif self.ext == 'mp3' and key == 'edition':
-            key = 'version'
-        elif self.ext == 'mp3' and key == 'label':
-            key = 'organization'
-        return key
-
     def get_meta(self, key):
         """Get metadata for a given key."""
 
@@ -209,7 +215,7 @@ class Track(object):
                     return [v.strip() for v in value.split(sep)]
             return [value]
 
-        key = self.map_key(key)
+        key = map_key(self.ext, key)
         if not key or key not in self.muta or not self.muta[key]:
             return None
         values = self.muta[key]
@@ -224,7 +230,7 @@ class Track(object):
 
     def set_meta(self, key, val):
         """Set metadata of a given key to a given val."""
-        key = self.map_key(key)
+        key = map_key(self.ext, key)
         if not key:
             return
         # no val, delete key if exists
