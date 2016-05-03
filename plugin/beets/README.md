@@ -1,7 +1,7 @@
 # whatlastgenre plugin for beets
 
 Plug [whatlastgenre](https://github.com/YetAnotherNerd/whatlastgenre)
-into [beets](https://github.com/sampsyo/beets).
+into [beets](https://github.com/beetbox/beets).
 
 
 ## Installation
@@ -68,4 +68,4 @@ Make sure `auto: yes` is set in the `wlg` part of the beets configuration.
 ## Known issues / Differences to standalone
 
 * genres always one tag with separation / only when using id3v23
-(See [beets#505](https://github.com/sampsyo/beets/issues/505))
+(See [beets#505](https://github.com/beetbox/beets/issues/505))

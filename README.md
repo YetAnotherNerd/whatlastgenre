@@ -15,7 +15,7 @@ Improve genre metadata of audio files based on tags from various music sites.
   * Uses MusicBrainz IDs for searching when available
   * Optional: gets release info from whatcd (with interactivity if ambiguous)
   * Can be used as plugin in other software, currently:
-  [beets](https://github.com/sampsyo/beets)
+  [beets](https://github.com/beetbox/beets)
   * Dry-mode for safe testing
 * [Example output](https://gist.github.com/YetAnotherNerd/3e59c4d02f1930d9e52e)
 
