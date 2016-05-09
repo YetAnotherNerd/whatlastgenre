@@ -187,8 +187,6 @@ class DataProvider(object):
         """Factory method for DataProvider instances."""
         if name == 'discogs':
             dapr = Discogs(conf)
-        elif name == 'echonest':
-            dapr = EchoNest()
         elif name == 'lastfm':
             dapr = LastFM()
         elif name == 'mbrainz':
@@ -440,41 +438,6 @@ class Discogs(DataProvider):
                 for key in ['genre', 'style']:
                     tags.update(res.get(key))
         return [{'tags': {tag: 0 for tag in tags}}]
-
-    def query_by_mbid(self, entity, mbid):
-        """Query by mbid."""
-        raise NotImplementedError()
-
-
-class EchoNest(DataProvider):
-    """EchoNest DataProvider"""
-
-    def __init__(self):
-        super(EchoNest, self).__init__()
-        # http://developer.echonest.com/docs/v4#rate-limits
-        self.rate_limit = 3.0
-
-    def query_artist(self, artist):
-        """Query for artist data."""
-        result = self._request_json(
-            'http://developer.echonest.com/api/v4/artist/search',
-            [('api_key', 'ZS0LNJH7V6ML8AHW3'), ('format', 'json'),
-             ('results', 1), ('bucket', 'terms'), ('bucket', 'genre'),
-             ('name', artist)])
-        if not result['response']['artists']:
-            return None
-        result = result['response']['artists'][0]
-        terms = {tag['name']: float(tag['weight'] + tag['frequency']) * .5
-                 for tag in result['terms']}
-        genres = {tag['name']: 0 for tag in result['genres']}
-        # TODO: merge them instead of using just one, can't just be handled as
-        # separate results at this time since unscored tags with and without
-        # counts can't be auto-merged later
-        return [{'tags': terms or genres}]
-
-    def query_album(self, album, artist=None, year=None, reltyp=None):
-        """Query for album data."""
-        raise NotImplementedError()
 
     def query_by_mbid(self, entity, mbid):
         """Query by mbid."""

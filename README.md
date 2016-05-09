@@ -2,7 +2,7 @@
 Improve genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
-* Supported music sites: Discogs, EchoNest, Last.FM, MusicBrainz, RateYourMusic, What.CD
+* Supported music sites: Discogs, Last.FM, MusicBrainz, RateYourMusic, What.CD
 * Feature Overview
   * Gets genre tags for artists and albums from music sites and finds the most
   eligible ones.
@@ -33,14 +33,14 @@ preferences into account. Please take a look at "Configuration options
 explained" below for more details.
 
 ##### Tag scoring with counts/weights
-    echonest terms, lastfm, mbrainz, whatcd artist
+    lastfm, mbrainz, whatcd artist
 If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of `1.0`, a tag having only half of the top tag's count gets
 a score of `0.5` and so on.
 
 ##### Tag scoring without counts/weights
-     discogs, echonest genres, rymusic, whatcd album
+     discogs, rymusic, whatcd album
 Tags supplied without a count will be scored `max(1/3, 0.85^(n-1))`, where `n`
 is the total number of tags supplied by this source. The more tags the lower
 the score for each tag will be. So if only one tag is supplied, it will get a
@@ -113,7 +113,7 @@ A configuration file with default values will be created at
 ### Example configuration file
 ```
 [wlg]
-sources = discogs, echonest, lastfm, mbrainz, whatcd
+sources = discogs, lastfm, mbrainz, whatcd
 whitelist =
 tagsfile =
 vaqueries = True
@@ -127,7 +127,6 @@ various = 0.66
 splitup = 0.33
 minimum = 0.10
 src_discogs = 1.00
-src_echonest = 1.00
 src_lastfm = 0.66
 src_mbrainz = 0.66
 src_rymusic = 1.33
@@ -147,7 +146,6 @@ session =
 Source | Artist | Album | Auth | ...
 -------|:------:|:-----:|:----:|-----
 [discogs](http://discogs.com) | 0 | 1 | 1 | fixed list of [genres and styles] (http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles)
-[echonest](http://echonest.com)| 1 | 0 | 0 | [genres/terms](http://developer.echonest.com/docs/v4/) with and w/o counts
 [lastfm](http://last.fm)| 1 | 1 | 0 |  many personal tags from users
 [mbrainz](http://musicbrainz.org) | 1 | 1 | 0 | home of mbids
 [rymusic](http://rateyourmusic.com) | 1 | 1 | 0 | no real api (slow)
