@@ -491,7 +491,7 @@ class MusicBrainz(DataProvider):
     def __init__(self):
         super(MusicBrainz, self).__init__()
         # http://musicbrainz.org/doc/XML_Web_Service/Rate_Limiting
-        self.rate_limit = 1.0
+        self.rate_limit = 2.0
         self.name = 'MBrainz'
 
     def _query(self, path, params):

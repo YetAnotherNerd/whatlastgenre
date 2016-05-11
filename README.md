@@ -110,7 +110,7 @@ A configuration file with default values will be created at
 ### Example configuration file
 ```
 [wlg]
-sources = discogs, lastfm, mbrainz, whatcd
+sources = discogs, lastfm, whatcd
 whitelist =
 tagsfile =
 vaqueries = True
@@ -143,7 +143,7 @@ Source | Artist | Album | Auth | ...
 -------|:------:|:-----:|:----:|-----
 [discogs](http://discogs.com) | 0 | 1 | 1 | fixed list of [genres and styles] (http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles)
 [lastfm](http://last.fm)| 1 | 1 | 0 |  many personal tags from users
-[mbrainz](http://musicbrainz.org) | 1 | 1 | 0 | home of mbids
+[mbrainz](http://musicbrainz.org) | 1 | 1 | 0 | home of mbids (overstrained)
 [whatcd](https://what.cd) | 1 | 1 | 1 | well-kept tags from community
 
 ##### whitelist/tagsfile option
