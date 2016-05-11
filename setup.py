@@ -48,7 +48,6 @@ setup(
     install_requires=['mutagen', 'requests'],
     extras_require={
         'discogs': ['rauth'],
-        'rymusic': ['lxml'],
         'reqcache': ['requests-cache'],
     },
     classifiers=[

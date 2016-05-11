@@ -551,7 +551,6 @@ class Config(ConfigParser.SafeConfigParser):
             ('scores', 'src_discogs', '1.00'),
             ('scores', 'src_lastfm', '0.66'),
             ('scores', 'src_mbrainz', '0.66'),
-            ('scores', 'src_rymusic', '1.33'),
             ('scores', 'src_whatcd', '1.50'),
             ('discogs', 'token', ''),
             ('discogs', 'secret', ''),

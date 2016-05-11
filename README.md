@@ -2,7 +2,7 @@
 Improve genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
-* Supported music sites: Discogs, Last.FM, MusicBrainz, RateYourMusic, What.CD
+* Supported music sites: Discogs, Last.FM, MusicBrainz, What.CD
 * Feature Overview
   * Gets genre tags for artists and albums from music sites and finds the most
   eligible ones.
@@ -40,7 +40,7 @@ tag gets a score of `1.0`, a tag having only half of the top tag's count gets
 a score of `0.5` and so on.
 
 ##### Tag scoring without counts/weights
-     discogs, rymusic, whatcd album
+     discogs, whatcd album
 Tags supplied without a count will be scored `max(1/3, 0.85^(n-1))`, where `n`
 is the total number of tags supplied by this source. The more tags the lower
 the score for each tag will be. So if only one tag is supplied, it will get a
@@ -99,9 +99,6 @@ cloned/extracted to
 ##### Optional dependencies
 * `rauth` is required for Discogs. If you want to use Discogs, install `rauth`
 with pip like above and activate `discogs` in the config file (see below).
-* `lxml` is required for RateYourMusic. If you want to use RateYourMusic,
-install `lxml` with pip like above and activate `rymusic` in the config file
-(see below).
 * `requests-cache` can additionally cache the raw queries from requests if
 installed. This is mainly a developers feature.
 
@@ -129,7 +126,6 @@ minimum = 0.10
 src_discogs = 1.00
 src_lastfm = 0.66
 src_mbrainz = 0.66
-src_rymusic = 1.33
 src_whatcd = 1.50
 [discogs]
 token =
@@ -148,7 +144,6 @@ Source | Artist | Album | Auth | ...
 [discogs](http://discogs.com) | 0 | 1 | 1 | fixed list of [genres and styles] (http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles)
 [lastfm](http://last.fm)| 1 | 1 | 0 |  many personal tags from users
 [mbrainz](http://musicbrainz.org) | 1 | 1 | 0 | home of mbids
-[rymusic](http://rateyourmusic.com) | 1 | 1 | 0 | no real api (slow)
 [whatcd](https://what.cd) | 1 | 1 | 1 | well-kept tags from community
 
 ##### whitelist/tagsfile option
