@@ -221,8 +221,7 @@ class Discogs(DataProvider):
                 token = discogs.get_access_token(
                     req_token, req_secret, data=data, headers=HEADERS)
             except KeyError as err:
-                self.log.critical(err.message)
-                exit()
+                raise RuntimeError(err.message)
             # save token to config file
             if not conf.has_section('discogs'):
                 conf.add_section('discogs')
@@ -395,8 +394,7 @@ class WhatCD(DataProvider):
             else:
                 login()
         except (requests.exceptions.TooManyRedirects, AssertionError):
-            self.log.critical('WhatCD login failed')
-            exit()
+            raise RuntimeError('WhatCD login failed')
         # save session cookie to config
         cookie = base64.b64encode(self.session.cookies['session'])
         if not self.conf.has_section('whatcd'):

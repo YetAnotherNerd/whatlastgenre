@@ -78,8 +78,7 @@ class WhatLastGenre(object):
                 path = 'data/genres.txt'
         whitelist = set(read_datafile(path))
         if not whitelist:
-            self.log.critical('empty whitelist: %s', path)
-            exit()
+            raise RuntimeError('empty whitelist: %s' % path)
         self.log.debug('whitelist: %s (%d items)', path, len(whitelist))
         return whitelist
 
@@ -109,8 +108,7 @@ class WhatLastGenre(object):
                 tagsfile[section].append(line)
         if any(s not in tagsfile.iterkeys()
                for s in ['upper', 'alias', 'regex']):
-            self.log.critical('missing section in tagsfile: %s', path)
-            exit()
+            raise RuntimeError('missing section in tagsfile: %s' % path)
         for key, val in tagsfile['alias']:
             if val not in self.whitelist:
                 self.stat_message(logging.WARN, 'alias not whitelisted',
@@ -135,10 +133,9 @@ class WhatLastGenre(object):
             except dataprovider.DataProviderError as err:
                 self.log.warn('%s: %s', dapr, err)
         if not daprs:
-            self.log.critical(
+            raise RuntimeError(
                 'Where do you want to get your data from? At least one source '
                 'must be activated! (multiple sources recommended)')
-            exit()
         return daprs
 
     def progress_path(self, path):
