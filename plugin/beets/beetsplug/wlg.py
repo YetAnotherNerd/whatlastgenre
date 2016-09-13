@@ -139,7 +139,10 @@ class WhatLastGenre(BeetsPlugin):
             year=album.year, releasetype=album.albumtype)
 
         genres, _ = self.wlg.query_album(metadata)
-        genres = self.config['separator'].get(unicode).join(genres)
+        try:
+            genres = self.config['separator'].get(unicode).join(genres)
+            self._log.info(u'genres for album {0}: {1}', album, genres)
+        except TypeError:
+            self._log.info(u'No genres found for album {0}', album) 
 
-        self._log.info(u'genres for album {0}: {1}', album, genres)
         return genres
