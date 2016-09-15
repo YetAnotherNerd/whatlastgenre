@@ -585,9 +585,11 @@ class TagLib(object):
             return None
         # apply user score bonus
         for key in tags.iterkeys():
-            if key in self.wlg.conf.get_list('genres', 'love'):
+            if self.conf.has_option('genres', 'love') \
+                    and key in self.conf.get_list('genres', 'love'):
                 tags[key] *= 2.0
-            elif key in self.wlg.conf.get_list('genres', 'hate'):
+            elif self.conf.has_option('genres', 'hate') \
+                    and key in self.conf.get_list('genres', 'hate'):
                 tags[key] *= 0.5
         # filter low scored tags
         tags = {k: v for k, v in tags.iteritems()
@@ -696,15 +698,6 @@ class Config(ConfigParser.SafeConfigParser):
             os.rename(self.fullpath, backup_path)
         with open(self.fullpath, 'w') as file_:
             self.write(file_)
-
-    def get(self, section, option, raw=False, vars_=None):
-        """Fallback to default for non-existing option."""
-        if not self.has_option(section, option):
-            for sec, opt, val in self.conf:
-                if sec == section and opt == option:
-                    return val
-        return ConfigParser.SafeConfigParser.get(self, section, option,
-                                                 raw=raw, vars=vars_)
 
     def get_list(self, sec, opt):
         """Gets a csv-string as list."""

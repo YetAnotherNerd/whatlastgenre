@@ -23,6 +23,7 @@ Contains classes for querying APIs of some music related sites.
 from __future__ import division, print_function
 
 import base64
+from ConfigParser import NoSectionError, NoOptionError
 from collections import defaultdict
 from datetime import timedelta
 import logging
@@ -209,9 +210,13 @@ class Discogs(DataProvider):
             access_token_url='https://api.discogs.com/oauth/access_token',
             authorize_url='https://www.discogs.com/oauth/authorize')
         # read token from config file
-        token = (conf.get('discogs', 'token'), conf.get('discogs', 'secret'))
+        try:
+            token = (conf.get('discogs', 'token'),
+                     conf.get('discogs', 'secret'))
+        except (NoSectionError, NoOptionError):
+            token = (None, None)
         # get from user
-        if not token or not all(token):
+        if not all(token):
             req_token, req_secret = discogs.get_request_token(headers=HEADERS)
             print('Discogs requires authentication with your own account.\n'
                   'Disable discogs in the config file or use this link to '
@@ -356,13 +361,22 @@ class WhatCD(DataProvider):
         self.rate_limit = 2.0
         self.conf = conf
         # restore session cookie from config
-        cookie = base64.b64decode(self.conf.get('whatcd', 'session'))
-        self.session.cookies.set('session', cookie)
+        try:
+            cookie = base64.b64decode(self.conf.get('whatcd', 'session'))
+            self.session.cookies.set('session', cookie)
+        except (NoSectionError, NoOptionError):
+            pass
 
     def get_credentials(self):
         """Get credentials from config file or interactively from user."""
-        username = self.conf.get('whatcd', 'username')
-        password = self.conf.get('whatcd', 'password')
+        try:
+            username = self.conf.get('whatcd', 'username')
+        except (NoSectionError, NoOptionError):
+            username = None
+        try:
+            password = self.conf.get('whatcd', 'password')
+        except (NoSectionError, NoOptionError):
+            password = None
         if not username or not password:
             print('WhatCD requires authentication with your own account.')
             if username:
