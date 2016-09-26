@@ -28,7 +28,6 @@ import re
 
 import mutagen
 
-
 Metadata = namedtuple(
     'Metadata', ['path', 'type', 'artists', 'albumartist', 'album',
                  'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])

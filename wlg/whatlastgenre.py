@@ -40,7 +40,6 @@ import time
 
 from . import __version__, dataprovider, mediafile
 
-
 Query = namedtuple(
     'Query', ['dapr', 'type', 'str', 'score', 'artist', 'mbid_artist',
               'album', 'mbid_album', 'mbid_relgrp', 'year', 'releasetype'])

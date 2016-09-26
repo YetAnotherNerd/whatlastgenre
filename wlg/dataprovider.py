@@ -37,7 +37,6 @@ import requests
 
 from . import __version__
 
-
 try:  # use optional requests_cache if available
     import requests_cache
     requests_cache.install_cache(
@@ -50,7 +49,6 @@ try:  # use optional requests_cache if available
                             'oauth_signature'])
 except ImportError:
     requests_cache = None
-
 
 HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 

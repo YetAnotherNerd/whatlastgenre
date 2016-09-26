@@ -22,7 +22,6 @@
 import os
 
 from setuptools import setup
-
 from wlg import __version__
 
 
