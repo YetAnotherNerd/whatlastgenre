@@ -23,12 +23,12 @@ Contains classes for querying APIs of some music related sites.
 from __future__ import division, print_function
 
 import base64
-from ConfigParser import NoSectionError, NoOptionError
-from collections import defaultdict
-from datetime import timedelta
 import logging
 import os.path
 import time
+from ConfigParser import NoSectionError, NoOptionError
+from collections import defaultdict
+from datetime import timedelta
 
 import requests
 

@@ -19,11 +19,11 @@
 
 from __future__ import print_function
 
-from datetime import timedelta
 import json
 import os
-from tempfile import NamedTemporaryFile
 import time
+from datetime import timedelta
+from tempfile import NamedTemporaryFile
 
 
 class Cache(object):

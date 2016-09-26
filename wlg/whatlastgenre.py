@@ -24,8 +24,6 @@ from __future__ import division, print_function
 
 import ConfigParser
 import argparse
-from collections import defaultdict, Counter, namedtuple
-from datetime import timedelta
 import itertools
 import logging
 import math
@@ -35,6 +33,8 @@ import pkgutil
 import re
 import sys
 import time
+from collections import defaultdict, Counter, namedtuple
+from datetime import timedelta
 
 from . import __version__, cache, dataprovider, mediafile
 

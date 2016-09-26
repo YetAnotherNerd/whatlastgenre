@@ -22,9 +22,9 @@ Read and write metadata of audio files using mutagen.
 
 from __future__ import print_function
 
-from collections import namedtuple
 import os.path
 import re
+from collections import namedtuple
 
 import mutagen
 
