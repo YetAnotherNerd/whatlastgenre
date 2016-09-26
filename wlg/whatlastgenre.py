@@ -147,6 +147,39 @@ class WhatLastGenre(object):
             exit()
         return daprs
 
+    def progress_path(self, path):
+        """Create an Album object for a directory given by path to read and
+        write metadata from/to.  Query top genre tags by album metadata,
+        update metadata with results and save the album (its tracks).
+        """
+        # create album object to read and write metadata
+        try:
+            album = mediafile.Album(path, self.conf.get('wlg', 'id3v23sep'))
+        except mediafile.AlbumError as err:
+            self.stat_message(logging.ERROR, str(err), path, 1)
+            return
+        # read album metadata
+        metadata = album.get_metadata()
+        # query genres (and releasetype) for album metadata
+        genres, release = self.query_album(metadata)
+        # update album metadata
+        if genres:
+            album.set_meta('genre', genres)
+            print("Genres:  %s" % ', '.join(genres).encode('utf-8'))
+        if release and self.conf.args.release:
+            release_info = []
+            for key in ['releasetype', 'date',
+                        'label', 'catalognumber', 'edition', 'media']:
+                if key in release and release[key]:
+                    album.set_meta(key, release[key])
+                    release_info.append(release[key])
+            print("Release: %s" % ' / '.join(release_info))
+        # save metadata to all tracks
+        if self.conf.args.dry:
+            print("DRY-RUN! Not saving metadata.")
+        else:
+            album.save()
+
     def query_album(self, metadata):
         """Query for top genres of an album identified by metadata
         and return them and some releaseinfo."""
@@ -766,40 +799,6 @@ def ask_user(dapr_name, query_type, results):
     return [results[num - 1]] if num else results
 
 
-def work_directory(wlg, path):
-    """Create an Album object for a directory given by path to read and
-    write metadata from/to.  Query top genre tags by album metadata,
-    update metadata with results and save the album (its tracks).
-    """
-    # create album object to read and write metadata
-    try:
-        album = mediafile.Album(path, wlg.conf.get('wlg', 'id3v23sep'))
-    except mediafile.AlbumError as err:
-        wlg.stat_message(logging.ERROR, str(err), path, 1)
-        return
-    # read album metadata
-    metadata = album.get_metadata()
-    # query genres (and releasetype) for album metadata
-    genres, release = wlg.query_album(metadata)
-    # update album metadata
-    if genres:
-        album.set_meta('genre', genres)
-        print("Genres:  %s" % ', '.join(genres).encode('utf-8'))
-    if release and wlg.conf.args.release:
-        release_info = []
-        for key in ['releasetype', 'date',
-                    'label', 'catalognumber', 'edition', 'media']:
-            if key in release and release[key]:
-                album.set_meta(key, release[key])
-                release_info.append(release[key])
-        print("Release: %s" % ' / '.join(release_info))
-    # save metadata to all tracks
-    if wlg.conf.args.dry:
-        print("DRY-RUN! Not saving metadata.")
-    else:
-        album.save()
-
-
 def progressbar(current, total):
     """Return a progressbar string."""
     size = 60
@@ -863,7 +862,7 @@ def main():
         for i, path in enumerate(sorted(paths), start=1):
             print('\n' + progressbar(i, len(paths)))
             print(path)
-            work_directory(wlg, path)
+            wlg.progress_path(path)
         print('\n...all done!')
     except KeyboardInterrupt:
         print()
