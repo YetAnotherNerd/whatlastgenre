@@ -36,6 +36,7 @@ from . import __version__
 
 try:  # use optional requests_cache if available
     import requests_cache
+
     requests_cache.install_cache(
         os.path.expanduser('~/.whatlastgenre/reqcache'),
         expire_after=timedelta(days=180),
