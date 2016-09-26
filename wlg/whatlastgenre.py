@@ -173,6 +173,13 @@ class WhatLastGenre(object):
     def query_album(self, metadata):
         """Query for top genres of an album identified by metadata
         and return them and some releaseinfo."""
+
+        def log_string(query, cached, status):
+            """Return a string for logging."""
+            return "%-8s %-6s got %13s for '%s'%s" % \
+                   (query.dapr.name, query.type, status, query.str,
+                    " (cached)" if cached else '')
+
         num_artists = 1
         if not metadata.albumartist[0]:
             num_artists = len(set(metadata.artists))
@@ -201,7 +208,7 @@ class WhatLastGenre(object):
                     self.stat_message(logging.DEBUG, '%s: no %s results'
                                       % (query.dapr.name, query.type),
                                       metadata.path)
-                self.verbose_status(query, cached, "no results")
+                self.log.info(log_string(query, cached, "no results"))
                 continue
             # ask user if appropriated
             if len(results) > 1 and not self.conf.args.dry \
@@ -222,8 +229,8 @@ class WhatLastGenre(object):
                     self.stat_message(logging.DEBUG, '%s: too many %s results'
                                       % (query.dapr.name, query.type),
                                       metadata.path)
-                self.verbose_status(query, cached,
-                                    "%2d results" % len(results))
+                self.log.info(log_string(query, cached,
+                                         "%2d results" % len(results)))
                 continue
             # unique result
             query.dapr.stats['results'] += 1
@@ -251,7 +258,7 @@ class WhatLastGenre(object):
                 elif self.conf.args.release:
                     self.stat_message(logging.ERROR, 'No releaseinfo found',
                                       metadata.path, 1)
-            self.verbose_status(query, cached, status)
+            self.log.info(log_string(query, cached, status))
 
         genres = taglib.get_genres(num_artists > 1)
         if genres:
@@ -369,15 +376,6 @@ class WhatLastGenre(object):
             if len(set(vals)) == 1:
                 result.update({key: vals[0]})
         return result
-
-    def verbose_status(self, query, cached, status):
-        """Log a status line in verbose mode."""
-        qry = query.artist
-        if query.type == 'album':
-            qry += ' ' + query.album
-        self.log.info("%-8s %-6s got %13s for '%s'%s", query.dapr.name,
-                      query.type, status, qry.strip(),
-                      " (cached)" if cached else '')
 
     def stat_message(self, level, message, item, log=None):
         """Record a message in the stats and optionally log it."""
