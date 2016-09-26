@@ -158,8 +158,8 @@ class WhatLastGenre(object):
             print("Genres:  %s" % ', '.join(genres).encode('utf-8'))
         if release and self.conf.args.release:
             release_info = []
-            for key in ['releasetype', 'date',
-                        'label', 'catalognumber', 'edition', 'media']:
+            for key in ['releasetype', 'date', 'label', 'catalognumber',
+                        'edition', 'media']:
                 if key in release and release[key]:
                     album.set_meta(key, release[key])
                     release_info.append(release[key])
@@ -589,8 +589,7 @@ class TagLib(object):
         """Format a tag to correct case."""
         words = key.split(' ')
         for i, word in enumerate(words):
-            if len(word) < 3 and word != 'nu' or \
-                    word in self.upper:
+            if len(word) < 3 and word != 'nu' or word in self.upper:
                 words[i] = word.upper()
             else:
                 words[i] = word.title()

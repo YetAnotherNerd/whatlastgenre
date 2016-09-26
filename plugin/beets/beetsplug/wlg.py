@@ -134,12 +134,15 @@ class WhatLastGenre(BeetsPlugin):
             return album.genre
 
         metadata = Metadata(
-            path=album.item_dir(), type='beet',
+            path=album.item_dir(),
+            type='beet',
             artists=[(t.artist, t.mb_artistid) for t in album.items()],
             albumartist=(album.albumartist, album.mb_albumartistid),
-            album=album.album, mbid_album=album.mb_albumid,
+            album=album.album,
+            mbid_album=album.mb_albumid,
             mbid_relgrp=album.mb_releasegroupid,
-            year=album.year, releasetype=album.albumtype)
+            year=album.year,
+            releasetype=album.albumtype)
 
         genres, _ = self.wlg.query_album(metadata)
         try:

@@ -535,10 +535,12 @@ class WhatCD(DataProvider):
                 result.update(self._query_release(snatched[0]['torrentId']))
             if len(res) > 1:
                 result.update({'info': '%s - %s (%s) [%s]: '
-                               'https://what.cd/torrents.php?id=%s'
-                               % (res_['artist'], res_['groupName'],
-                                  res_['groupYear'], res_['releaseType'],
-                                  res_['groupId'])})
+                                       'https://what.cd/torrents.php?id=%s'
+                                       % (res_['artist'],
+                                          res_['groupName'],
+                                          res_['groupYear'],
+                                          res_['releaseType'],
+                                          res_['groupId'])})
             results.append(result)
         return results
 
