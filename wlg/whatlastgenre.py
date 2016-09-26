@@ -234,6 +234,7 @@ class WhatLastGenre(object):
                 continue
             # unique result
             query.dapr.stats['results'] += 1
+            # tags
             if 'tags' in results[0] and results[0]['tags']:
                 tags = taglib.score(results[0]['tags'], query.score)
                 good = taglib.add(tags, query.type)
@@ -250,6 +251,7 @@ class WhatLastGenre(object):
                 status = "%2d of %2d tags" % (good, len(tags))
             else:
                 status = "no    tags"
+            # release info
             if query.dapr.name.lower() == 'whatcd' and query.type == 'album':
                 if 'releasetype' in results[0] and results[0]['releasetype']:
                     self.stats.reltyps[results[0]['releasetype']] += 1

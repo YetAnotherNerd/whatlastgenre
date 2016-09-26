@@ -336,6 +336,7 @@ class LastFM(DataProvider):
         """Query by mbid."""
         if entity == 'album':
             # FIXME: seems broken at the moment,
+            # http error 400: artist param missing,
             # resolve later when lastfm finished migration
             raise NotImplementedError()
         self.log.debug("%-8s %-6s use mbid '%s'.", self.name, entity, mbid)
