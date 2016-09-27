@@ -146,6 +146,6 @@ class WhatLastGenre(BeetsPlugin):
             genres = self.config['separator'].get(unicode).join(genres)
             self._log.info(u'genres for album {0}: {1}', album, genres)
         except TypeError:
-            self._log.info(u'No genres found for album {0}', album) 
+            self._log.info(u'No genres found for album {0}', album)
 
         return genres
