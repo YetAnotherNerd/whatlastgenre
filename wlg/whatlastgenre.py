@@ -507,18 +507,25 @@ class TagLib(object):
 
     def split(self, key, val, group):
         """Split a tag into its parts and add them."""
+
+        def dont_split(key):
+            """Return whether key may be split."""
+            if key in ['vanity house']:
+                # some exceptions (move to tagsfile if it gets longer)
+                return True
+            if key in self.wlg.whitelist:
+                if '&' in key or key.startswith('nu '):
+                    return True
+            return False
+
         keys = []
         good = 0
         base = val
         flag = True
-        # some exceptions (move to tagsfile if it gets longer)
-        dontsplit = ['vanity house']
         if '/' in key:  # all delimiters got replaced with / earlier
             keys = [k.strip() for k in key.split('/') if len(k.strip()) > 2]
             flag = False
-        elif ' ' in key and key not in dontsplit and not \
-                (key in self.wlg.whitelist and
-                 ('&' in key or key.startswith('nu '))):
+        elif ' ' in key and not dont_split(key):
             keys = [k.strip() for k in key.split(' ') if len(k.strip()) > 2]
             if len(keys) > 2:
                 # build all combinations with length 1 to 3, requires
