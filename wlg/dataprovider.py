@@ -397,7 +397,10 @@ class WhatCD(DataProvider):
             """Send a login request with username and password."""
             self.session.cookies.clear()
             self._request('https://what.cd/login.php',
-                          {'username': username, 'password': password}, 'POST')
+                          {'username': username,
+                           'password': password,
+                           'keeplogged': True},
+                          'POST')
             assert self.session.cookies.get('session', None)
 
         username, password = self.get_credentials()
