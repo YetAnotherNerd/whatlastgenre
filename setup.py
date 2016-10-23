@@ -45,6 +45,7 @@ setup(
         ]
     },
     install_requires=['mutagen', 'requests'],
+    tests_requires=['pytest'],
     extras_require={
         'discogs': ['rauth'],
         'reqcache': ['requests-cache'],
