@@ -473,9 +473,9 @@ class TagLib(object):
         if not tags:
             return tags
         # tags with counts
-        if any(tags.itervalues()):
-            max_ = max(tags.itervalues()) * scoremod
-            tags = {k: v / max_ for k, v in tags.iteritems()}
+        if any(max(0, x) for x in tags.itervalues()):
+            max_ = max(tags.itervalues()) / scoremod
+            tags = {k: max(0, v) / max_ for k, v in tags.iteritems()}
         # tags without counts
         else:
             val = max(1 / 3, .85 ** (len(tags) - 1)) * scoremod
