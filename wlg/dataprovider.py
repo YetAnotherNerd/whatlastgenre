@@ -105,7 +105,14 @@ class DataProvider(object):
         self.last_request = 0
         self.stats = defaultdict(float)
         self.session = requests.Session()
+        self._setup_session()
+
+    def _setup_session(self):
+        """Set session headers and mount HTTPAdapters with retries."""
         self.session.headers.update(HEADERS)
+        adapter = requests.adapters.HTTPAdapter(max_retries=3)
+        for prefix in ('http://', 'https://'):
+            self.session.mount(prefix, adapter)
 
     def _wait_rate_limit(self):
         """Wait for the rate limit."""
@@ -215,7 +222,7 @@ class Discogs(DataProvider):
             token = self._get_token_from_user()
             self._save_token_to_config(token)
         self.session = self.discogs.get_session(token)
-        self.session.headers.update(HEADERS)
+        self._setup_session()
         # avoid filling cache with unusable entries
         if requests_cache \
                 and not hasattr(self.session.cache, '_ignored_parameters'):
