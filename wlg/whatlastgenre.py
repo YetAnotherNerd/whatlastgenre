@@ -62,12 +62,6 @@ class WhatLastGenre(object):
         self.daprs = self.init_dataproviders()
         self.whitelist = self.read_whitelist(whitelist)
         self.tags = self.read_tagsfile(tagsfile)
-        # validation
-        if args.release \
-                and 'whatcd' not in self.conf.get_list('wlg', 'sources'):
-            self.log.warning('Can\'t tag release with What.CD support '
-                             'disabled. Release tagging disabled.')
-            self.conf.args.release = False
 
     def read_whitelist(self, path=None):
         """Read the whitelist trying different paths.
@@ -669,6 +663,11 @@ class Config(ConfigParser.SafeConfigParser):
             exit()
         self.read(self.fullpath)
         self.__compat()
+        # validation
+        if args.release and 'whatcd' not in self.get_list('wlg', 'sources'):
+            self.log.warning('Can\'t tag release with What.CD support '
+                             'disabled. Release tagging disabled.')
+            self.args.release = False
 
     def __compat(self):
         """Backward compatibility code."""
