@@ -49,19 +49,19 @@ Stats = namedtuple('Stats', ['time', 'messages', 'genres', 'reltyps'])
 class WhatLastGenre(object):
     """Main class featuring a docstring that needs to be written."""
 
-    def __init__(self, args, whitelist=None, tagsfile=None):
+    def __init__(self, conf):
         self.log = logging.getLogger('wlg')
-        self.log.setLevel(30 - 10 * args.verbose)
+        self.log.setLevel(30 - 10 * conf.args.verbose)
         self.log.addHandler(logging.StreamHandler(sys.stdout))
         self.stats = Stats(time=time.time(),
                            messages=defaultdict(list),
                            genres=Counter(),
                            reltyps=Counter())
-        self.conf = Config(args)
-        self.cache = cache.Cache(self.conf.path, args.update_cache)
+        self.conf = conf
+        self.cache = cache.Cache(self.conf.path, self.conf.args.update_cache)
         self.daprs = self.init_dataproviders()
-        self.whitelist = self.read_whitelist(whitelist)
-        self.tags = self.read_tagsfile(tagsfile)
+        self.whitelist = self.read_whitelist()
+        self.tags = self.read_tagsfile()
 
     def read_whitelist(self, path=None):
         """Read the whitelist trying different paths.
@@ -851,7 +851,8 @@ def main():
     """
     print("whatlastgenre v%s" % __version__)
     args = get_args()
-    wlg = WhatLastGenre(args)
+    conf = Config(args)
+    wlg = WhatLastGenre(conf)
     paths = mediafile.find_music_dirs(args.path)
     print("\nFound %d music directories!" % len(paths))
     if not paths:

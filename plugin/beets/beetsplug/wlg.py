@@ -50,14 +50,18 @@ class WhatLastGenre(BeetsPlugin):
         """Set up the WhatLastGenre object."""
         whitelist = self.config['whitelist'].get()
         if whitelist == 'wlg':
-            whitelist = None
+            whitelist = ''
         elif whitelist == 'beets':
             whitelist = BEET_LG_WHITELIST
-
-        self.wlg = whatlastgenre.WhatLastGenre(
-            Namespace(update_cache=update_cache, verbose=verbose, dry=False,
-                      tag_limit=self.config['count'].get(int), difflib=False,
-                      release=False), whitelist)
+        conf = whatlastgenre.Config(Namespace(
+            tag_limit=self.config['count'].get(int),
+            update_cache=update_cache,
+            verbose=verbose,
+            dry=False,
+            difflib=False,
+            release=False))
+        conf.set('wlg', 'whitelist', str(whitelist))
+        self.wlg = whatlastgenre.WhatLastGenre(conf)
 
     def setdown(self):
         """Since __del__s don't get called we need to do some stuff
