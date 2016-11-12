@@ -49,6 +49,11 @@ except ImportError:
 
 HEADERS = {'User-Agent': "whatlastgenre/%s" % __version__}
 
+LASTFM_API_KEY = '54bee5593b60d0a5bf379cedcad79052'
+
+DISCOGS_KEY = 'sYGBZLljMPsYUnmGOzTX'
+DISCOGS_SECRET = 'TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk'
+
 
 def factory(name, conf):
     """Factory for DataProviders."""
@@ -200,8 +205,8 @@ class Discogs(DataProvider):
         self.rate_limit = 3.0
         self.conf = conf
         self.discogs = rauth.OAuth1Service(
-            consumer_key='sYGBZLljMPsYUnmGOzTX',
-            consumer_secret='TtuLoHxEGvjDDOVMgmpgpXPuxudHvklk',
+            consumer_key=DISCOGS_KEY,
+            consumer_secret=DISCOGS_SECRET,
             request_token_url='https://api.discogs.com/oauth/request_token',
             access_token_url='https://api.discogs.com/oauth/access_token',
             authorize_url='https://www.discogs.com/oauth/authorize')
@@ -298,7 +303,7 @@ class LastFM(DataProvider):
     def _query(self, params):
         """Query Last.FM API."""
         params.update({'format': 'json',
-                       'api_key': '54bee5593b60d0a5bf379cedcad79052'})
+                       'api_key': LASTFM_API_KEY})
         result = self._request_json('http://ws.audioscrobbler.com/2.0/',
                                     params)
         if 'error' in result:
