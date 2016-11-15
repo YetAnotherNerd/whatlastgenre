@@ -1,8 +1,9 @@
 language: python
 python:
-    - "2.7"
+    - 2.7
 install:
-    - "pip install tox"
-script: tox
+    - pip install tox codecov
+script:
+    - tox -e cov
 after_success:
-    - bash <(curl -s https://codecov.io/bash)
+    - codecov
