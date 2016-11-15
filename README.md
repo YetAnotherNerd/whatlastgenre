@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/YetAnotherNerd/whatlastgenre.svg?branch=master)](https://travis-ci.org/YetAnotherNerd/whatlastgenre)
 # whatlastgenre
 Improve genre metadata of audio files based on tags from various music sites.
 
