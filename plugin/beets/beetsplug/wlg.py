@@ -92,7 +92,7 @@ class WhatLastGenre(BeetsPlugin):
             self.config['force'] = True
 
         albums = lib.albums(decargs(args))
-        i = len(albums)
+        i = 1
         try:
             for i, album in enumerate(albums, start=1):
                 self._log.info(whatlastgenre.progressbar(i, len(albums)))
