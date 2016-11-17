@@ -28,12 +28,13 @@ from __future__ import print_function
 import unittest
 
 import pytest
-import wlg.dataprovider
+from wlg.dataprovider import LASTFM_API_KEY, requests_cache, factory, \
+    DataProvider, DataProviderError
 
 from . import get_config
 
-if wlg.dataprovider.requests_cache:
-    wlg.dataprovider.requests_cache.core.uninstall_cache()
+if requests_cache:
+    requests_cache.core.uninstall_cache()
 
 HTTPBIN_URL = 'http://httpbin.org/'
 
@@ -61,7 +62,7 @@ class TestDataProvider(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.dapr = wlg.dataprovider.DataProvider()
+        cls.dapr = DataProvider()
         cls.dapr.rate_limit = 0
 
     def test_request_get(self):
@@ -75,7 +76,7 @@ class TestDataProvider(unittest.TestCase):
         self.assertEqual(self.params, args)
 
     def test_request_bad_status(self):
-        with self.assertRaises(wlg.dataprovider.DataProviderError):
+        with self.assertRaises(DataProviderError):
             self.dapr._request(HTTPBIN_URL + 'status/418', None)
 
     def test_request_json(self):
@@ -138,7 +139,7 @@ class TestDiscogsDataProvider(DataProviderTestCase):
     def setUpClass(cls):
         conf = get_config()
         if conf.get('discogs', 'token') and conf.get('discogs', 'secret'):
-            cls.dapr = wlg.dataprovider.Discogs(conf)
+            cls.dapr = factory('discogs', conf)
         else:
             raise unittest.SkipTest('no discogs auth')
 
@@ -160,13 +161,13 @@ class TestLastFMDataProvider(DataProviderTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.dapr = wlg.dataprovider.LastFM()
+        cls.dapr = factory('lastfm', None)
 
     def test_api(self):
         res = self.dapr._request_json(
             'http://ws.audioscrobbler.com/2.0/',
             {'format': 'json',
-             'api_key': wlg.dataprovider.LASTFM_API_KEY,
+             'api_key': LASTFM_API_KEY,
              'method': 'tag.gettoptags'})
         self.assertIn('toptags', res)
 
@@ -189,7 +190,7 @@ class TestMusicBrainzDataProvider(DataProviderTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.dapr = wlg.dataprovider.MusicBrainz()
+        cls.dapr = factory('mbrainz', None)
 
     def test_api(self):
         mbid = '067102ea-9519-4622-9077-57ca4164cfbb'
@@ -216,7 +217,7 @@ class TestRedactedDataProvider(DataProviderTestCase):
         if conf.get('redacted', 'session') or (
                     conf.get('redacted', 'username') and
                     conf.get('redacted', 'password')):
-            cls.dapr = wlg.dataprovider.Redacted(conf)
+            cls.dapr = factory('redacted', conf)
         else:
             raise unittest.SkipTest('no redacted auth')
 
