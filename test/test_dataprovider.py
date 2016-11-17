@@ -196,7 +196,6 @@ class TestMusicBrainzDataProvider(DataProviderTestCase):
         res = self.dapr._request_json(
             'http://musicbrainz.org/ws/2/artist/%s' % mbid,
             {'fmt': 'json', 'limit': 1})
-        print(res)
         self.assertEqual(res['id'], mbid)
 
 
