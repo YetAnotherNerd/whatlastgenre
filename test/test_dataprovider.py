@@ -58,6 +58,17 @@ TEST_DATA = {
 
 
 class TestDataProvider(unittest.TestCase):
+    def test_factory(self):
+        conf = get_config()
+        for name in ['lastfm', 'mbrainz']:
+            factory(name, conf)
+
+    def test_factory_fail(self):
+        with self.assertRaises(DataProviderError):
+            factory('fail', None)
+
+
+class TestDataProviderClass(unittest.TestCase):
     params = {'test': '123', 'foo': 'bar'}
 
     @classmethod
