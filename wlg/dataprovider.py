@@ -64,8 +64,8 @@ def factory(name, conf):
         dapr = LastFM()
     elif name == 'mbrainz':
         dapr = MusicBrainz()
-    elif name == 'whatcd':
-        dapr = WhatCD(conf)
+    elif name == 'redacted':
+        dapr = Redacted(conf)
     else:
         raise DataProviderError('unknown dataprovider: %s' % name)
     return dapr
@@ -387,17 +387,17 @@ class MusicBrainz(DataProvider):
         return self._query(entity + '/' + mbid, {'inc': 'tags'})
 
 
-class WhatCD(DataProvider):
-    """What.CD DataProvider"""
+class Redacted(DataProvider):
+    """Redacted.ch DataProvider"""
 
     def __init__(self, conf):
-        super(WhatCD, self).__init__()
+        super(Redacted, self).__init__()
         # http://github.com/WhatCD/Gazelle/wiki/JSON-API-Documentation
         self.rate_limit = 2.0
         self.conf = conf
         # restore session cookie from config
         try:
-            cookie = base64.b64decode(self.conf.get('whatcd', 'session'))
+            cookie = base64.b64decode(self.conf.get('redacted', 'session'))
             self.session.cookies.set('session', cookie)
         except (NoSectionError, NoOptionError):
             pass
@@ -405,19 +405,19 @@ class WhatCD(DataProvider):
     def get_credentials(self):
         """Get credentials from config file or interactively from user."""
         try:
-            username = self.conf.get('whatcd', 'username')
+            username = self.conf.get('redacted', 'username')
         except (NoSectionError, NoOptionError):
             username = None
         try:
-            password = self.conf.get('whatcd', 'password')
+            password = self.conf.get('redacted', 'password')
         except (NoSectionError, NoOptionError):
             password = None
         if not username or not password:
-            print('WhatCD requires authentication with your own account.')
+            print('Redacted requires authentication with your own account.')
             if username:
                 print('Username: %s' % username)
             else:
-                print('Disable whatcd in the config file or supply '
+                print('Disable redacted in the config file or supply '
                       'credentials to receive a session cookie:')
                 username = raw_input('Username: ')
             if not password:
@@ -426,12 +426,12 @@ class WhatCD(DataProvider):
         return username, password
 
     def login(self):
-        """Login to What.CD."""
+        """Login to Redacted.ch."""
 
         def login():
             """Send a login request with username and password."""
             self.session.cookies.clear()
-            self._request('https://what.cd/login.php',
+            self._request('https://redacted.ch/login.php',
                           {'username': username,
                            'password': password,
                            'keeplogged': True},
@@ -446,22 +446,22 @@ class WhatCD(DataProvider):
             else:
                 login()
         except (requests.exceptions.TooManyRedirects, AssertionError):
-            raise RuntimeError('WhatCD login failed')
+            raise RuntimeError('Redacted login failed')
         # save session cookie to config
         cookie = base64.b64encode(self.session.cookies['session'])
-        if not self.conf.has_section('whatcd'):
-            self.conf.add_section('whatcd')
-        self.conf.set('whatcd', 'session', cookie)
+        if not self.conf.has_section('redacted'):
+            self.conf.add_section('redacted')
+        self.conf.set('redacted', 'session', cookie)
         self.conf.save()
 
     def _query(self, params):
-        """Query What.CD API."""
+        """Query Redacted.ch API."""
         # lazy login
         if not self.session.cookies.get('session', None):
             self.log.debug('no session cookie, login')
             self.login()
         try:
-            result = self._request_json('https://what.cd/ajax.php', params)
+            result = self._request_json('https://redacted.ch/ajax.php', params)
         except requests.exceptions.TooManyRedirects:
             self.log.debug('session cookie expired, relogin')
             self.login()
@@ -509,7 +509,7 @@ class WhatCD(DataProvider):
         res = res['results']
         # prefilter by snatched
         # make sure to enable "Enable snatched torrents indicator" in
-        # your whatcd profile settings
+        # your redacted profile settings
         if len(res) > 1:
             res = self._prefilter_results(
                 res, 'snatched', True,
@@ -535,7 +535,7 @@ class WhatCD(DataProvider):
                 result.update(self._query_release(snatched[0]['torrentId']))
             if len(res) > 1:
                 result.update({'info': '%s - %s (%s) [%s]: '
-                                       'https://what.cd/torrents.php?id=%s'
+                                       'https://redacted.ch/torrents.php?id=%s'
                                        % (res_['artist'],
                                           res_['groupName'],
                                           res_['groupYear'],
