@@ -3,7 +3,7 @@
 Improve genre metadata of audio files based on tags from various music sites.
 
 * Supported audio files: flac, ogg, mp3, m4a
-* Supported music sites: Discogs, Last.FM, MusicBrainz, What.CD
+* Supported music sites: Discogs, Last.FM, MusicBrainz, Redacted.ch
 * Feature Overview
   * Gets genre tags for artists and albums from music sites and finds the most
   eligible ones.
@@ -14,7 +14,7 @@ Improve genre metadata of audio files based on tags from various music sites.
     * Scores tags while taking personal preferences into account
   * Caches all data received from music sites to speedup reruns
   * Uses MusicBrainz IDs for searching when available
-  * Optional: gets release info from whatcd (with interactivity if ambiguous)
+  * Optional: gets release info from redacted (with interactivity if ambiguous)
   * Can be used as plugin in other software, currently:
   [beets](https://github.com/beetbox/beets)
   * Dry-mode for safe testing
@@ -34,14 +34,14 @@ preferences into account. Please take a look at "Configuration options
 explained" below for more details.
 
 ##### Tag scoring with counts/weights
-    lastfm, mbrainz, whatcd artist
+    lastfm, mbrainz, redacted artist
 If counts are supplied for the tags they will get scored by `count/topcount`,
 where `topcount` is the highest count of all tags from a source. So the top
 tag gets a score of `1.0`, a tag having only half of the top tag's count gets
 a score of `0.5` and so on.
 
 ##### Tag scoring without counts/weights
-     discogs, whatcd album
+     discogs, redacted album
 Tags supplied without a count will be scored `max(1/3, 0.85^(n-1))`, where `n`
 is the total number of tags supplied by this source. The more tags the lower
 the score for each tag will be. So if only one tag is supplied, it will get a
@@ -74,7 +74,7 @@ option explained below.
 ##### Release info tagging and interactivity
     releasetype, year, label, catalog, edition, media
 Releaseinfo can be tagged for snatched torrents (make sure to enable 'Snatched
-torrents indicator' in your whatcd profile settings). Although prefiltering
+torrents indicator' in your redacted profile settings). Although prefiltering
 tries to minimize needed user input, some might be required in ambiguous cases
 while tagging releaseinfo. `-r` implies interactivity, `-n` disables
 interactivity. Be aware that `-r` saves the original release year into the
@@ -111,7 +111,7 @@ A configuration file with default values will be created at
 ### Example configuration file
 ```
 [wlg]
-sources = discogs, lastfm, whatcd
+sources = discogs, lastfm, redacted
 whitelist =
 tagsfile =
 vaqueries = True
@@ -127,11 +127,11 @@ minimum = 0.10
 src_discogs = 1.00
 src_lastfm = 0.66
 src_mbrainz = 0.66
-src_whatcd = 1.50
+src_redacted = 1.50
 [discogs]
 token =
 secret =
-[whatcd]
+[redacted]
 username =
 password =
 session =
@@ -147,7 +147,7 @@ Source | Artist | Album | Auth | ...
 [discogs](http://discogs.com) | 0 | 1 | 1 | fixed list of [genres and styles] (http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles)
 [lastfm](http://last.fm)| 1 | 1 | 0 |  many personal tags from users
 [mbrainz](http://musicbrainz.org) | 1 | 1 | 0 | home of mbids (overstrained)
-[whatcd](https://what.cd) | 1 | 1 | 1 | well-kept tags from community
+[redacted](https://redacted.ch) | 1 | 1 | 1 | well-kept tags from community
 
 ##### whitelist/tagsfile option
 Path to your custom whitelist and tagsfile. Use shipped
@@ -236,7 +236,7 @@ Default `1.0`, see `sources` option above.
 ##### discogs token and secret options
 Authentication information for discogs, will be set interactively.
 
-##### whatcd username, password and session options
+##### redacted username, password and session options
 You can optionally store your username and/or password here. If you don't store
 them, you will be asked interactively every time the automatically stored
 session cookie expired (or does not exist yet).
@@ -255,7 +255,7 @@ optional arguments:
   -n, --dry            don't save metadata (default: False)
   -u, --update-cache   force cache update (default: False)
   -l N, --tag-limit N  max. number of genre tags (default: 4)
-  -r, --release        get release info from whatcd (default: False)
+  -r, --release        get release info from redacted (default: False)
   -d, --difflib        enable difflib matching (slow) (default: False)
 ```
 

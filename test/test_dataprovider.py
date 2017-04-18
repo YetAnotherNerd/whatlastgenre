@@ -200,7 +200,7 @@ class TestMusicBrainzDataProvider(DataProviderTestCase):
         self.assertEqual(res['id'], mbid)
 
 
-class TestWhatCDDataProvider(DataProviderTestCase):
+class TestRedactedDataProvider(DataProviderTestCase):
     results = {
         'artist': [
             (1, 97),
@@ -214,12 +214,12 @@ class TestWhatCDDataProvider(DataProviderTestCase):
     @classmethod
     def setUpClass(cls):
         conf = get_config()
-        if conf.get('whatcd', 'session') or (
-                    conf.get('whatcd', 'username') and
-                    conf.get('whatcd', 'password')):
-            cls.dapr = wlg.dataprovider.WhatCD(conf)
+        if conf.get('redacted', 'session') or (
+                    conf.get('redacted', 'username') and
+                    conf.get('redacted', 'password')):
+            cls.dapr = wlg.dataprovider.Redacted(conf)
         else:
-            raise unittest.SkipTest('no whatcd auth')
+            raise unittest.SkipTest('no redacted auth')
 
     def test_api(self):
         res = self.dapr._query({'action': 'index'})

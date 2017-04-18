@@ -213,7 +213,7 @@ class WhatLastGenre(object):
             # ask user if appropriated
             if len(results) > 1 and not self.conf.args.dry \
                     and self.conf.args.release \
-                    and query.dapr.name.lower() == 'whatcd' \
+                    and query.dapr.name.lower() == 'redacted' \
                     and query.type == 'album' \
                     and len(set(r.get('releasetype') for r in results)) > 1:
                 results = ask_user(query.dapr.name, query.type, results)
@@ -252,7 +252,7 @@ class WhatLastGenre(object):
             else:
                 status = "no    tags"
             # release info
-            if query.dapr.name.lower() == 'whatcd' and query.type == 'album':
+            if query.dapr.name.lower() == 'redacted' and query.type == 'album':
                 if 'releasetype' in results[0] and results[0]['releasetype']:
                     self.stats.reltyps[results[0]['releasetype']] += 1
                     release = {k: v for k, v in results[0].iteritems()
@@ -639,7 +639,7 @@ class Config(ConfigParser.SafeConfigParser):
     """Read, maintain and write the configuration file."""
 
     # (section, option, value)
-    conf = [('wlg', 'sources', 'discogs, lastfm, whatcd'),
+    conf = [('wlg', 'sources', 'discogs, lastfm, redacted'),
             ('wlg', 'whitelist', ''),
             ('wlg', 'tagsfile', ''),
             ('wlg', 'vaqueries', 'true'),
@@ -653,12 +653,12 @@ class Config(ConfigParser.SafeConfigParser):
             ('scores', 'src_discogs', '1.00'),
             ('scores', 'src_lastfm', '0.66'),
             ('scores', 'src_mbrainz', '0.66'),
-            ('scores', 'src_whatcd', '1.50'),
+            ('scores', 'src_redacted', '1.50'),
             ('discogs', 'token', ''),
             ('discogs', 'secret', ''),
-            ('whatcd', 'username', ''),
-            ('whatcd', 'password', ''),
-            ('whatcd', 'session', ''),
+            ('redacted', 'username', ''),
+            ('redacted', 'password', ''),
+            ('redacted', 'session', ''),
             ]
 
     def __init__(self, args):
@@ -681,8 +681,8 @@ class Config(ConfigParser.SafeConfigParser):
         self.read(self.fullpath)
         self.__compat()
         # validation
-        if args.release and 'whatcd' not in self.get_list('wlg', 'sources'):
-            self.log.warning('Can\'t tag release with What.CD support '
+        if args.release and 'redacted' not in self.get_list('wlg', 'sources'):
+            self.log.warning('Can\'t tag release with Redacted.ch support '
                              'disabled. Release tagging disabled.')
             self.args.release = False
 
@@ -844,7 +844,7 @@ def get_args():
     parser.add_argument('-l', '--tag-limit', metavar='N', type=int, default=4,
                         help='max. number of genre tags')
     parser.add_argument('-r', '--release', action='store_true',
-                        help='get release info from whatcd')
+                        help='get release info from redacted')
     parser.add_argument('-d', '--difflib', action='store_true',
                         help='enable difflib matching (slow)')
     return parser.parse_args()
