@@ -183,7 +183,6 @@ heavy metal
 hip-hop
 horror punk
 horrorcore
-horrorcore
 house
 idm
 illbient
@@ -247,7 +246,6 @@ mpb
 mushroom jazz
 ndw
 neo-classical
-neo-classical
 neo-folk
 neo-medieval
 neo-progressive
@@ -309,7 +307,6 @@ rockabilly
 rocksteady
 roots reggae
 roots rock
-roots rock
 salsa
 samba
 schlager
@@ -325,8 +322,6 @@ skiffle
 slowcore
 smooth jazz
 soft rock
-soul
-soul
 soul
 soundtrack
 southern rock
