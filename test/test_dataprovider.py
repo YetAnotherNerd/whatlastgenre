@@ -15,46 +15,20 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-"""dataprovider tests
-
-I hope these tests make sense since they compare to data from remote
-APIs which obviously could change any time.  Since the data is
-somewhat constant they appear helpful anyway.  Make sure the failure
-is not caused by changed remote data.
-"""
+"""dataprovider tests"""
 
 from __future__ import print_function
 
 import unittest
 
-import pytest
 from wlg.dataprovider import LASTFM_API_KEY, requests_cache, factory, \
     DataProvider, DataProviderError
-
 from . import get_config
 
 if requests_cache:
     requests_cache.core.uninstall_cache()
 
 HTTPBIN_URL = 'http://httpbin.org/'
-
-TEST_DATA = {
-    'artist': [
-        ('nirvana',),
-    ],
-    'album': [
-        ('who can you trust', 'morcheeba', None, None),
-        ('the virgin suicides', 'air', 2000, 'soundtrack'),
-    ],
-    'mbid': [
-        # pink floyd the dark side of the moon (album mbid)
-        ('album', 'f5093c06-23e3-404f-aeaa-40f72885ee3a'),
-        # portishead dummy (relgrp mbid)
-        ('album', '76df3287-6cda-33eb-8e9a-044b5e15ffdd'),
-        # bonobo (artist mbid)
-        ('artist', '9a709693-b4f8-4da9-8cc1-038c911a61be'),
-    ],
-}
 
 
 class TestDataProvider(unittest.TestCase):
@@ -101,55 +75,13 @@ class TestDataProviderClass(unittest.TestCase):
         self.assertEqual(len(filtered), 2)
 
 
-class DataProviderTestCase(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        if cls is DataProviderTestCase:
-            raise unittest.SkipTest('base class')
-        super(DataProviderTestCase, cls).setUpClass()
-
-    def dapr_test(self, test_func, test_data, expected_results):
-        if not expected_results:
-            with self.assertRaises(NotImplementedError):
-                test_func(*test_data[0])
-        else:
-            for test, exp_res in zip(test_data, expected_results):
-                res = test_func(*test)
-                if res:
-                    res = (len(res), sum(len(r['tags']) for r in res))
-                self.assertEqual(exp_res, res)
-
-    @pytest.mark.long
-    def test_query_artist(self):
-        self.dapr_test(self.dapr.query_artist,
-                       TEST_DATA['artist'],
-                       self.results.get('artist'))
-
-    @pytest.mark.long
-    def test_query_album(self):
-        self.dapr_test(self.dapr.query_album,
-                       TEST_DATA['album'],
-                       self.results.get('album'))
-
-    @pytest.mark.long
-    def test_query_by_mbid(self):
-        self.dapr_test(self.dapr.query_by_mbid,
-                       TEST_DATA['mbid'],
-                       self.results.get('mbid'))
-
-
-class TestDiscogsDataProvider(DataProviderTestCase):
-    results = {
-        'album': [
-            (1, 5),
-            (1, 16),
-        ],
-    }
-
+class TestDiscogsDataProvider(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         conf = get_config()
-        if conf.get('discogs', 'token') and conf.get('discogs', 'secret'):
+        if conf.has_section('discogs') and \
+                conf.get('discogs', 'token') and \
+                conf.get('discogs', 'secret'):
             cls.dapr = factory('discogs', conf)
         else:
             raise unittest.SkipTest('no discogs auth')
@@ -159,17 +91,7 @@ class TestDiscogsDataProvider(DataProviderTestCase):
         self.assertIn('api_version', result)
 
 
-class TestLastFMDataProvider(DataProviderTestCase):
-    results = {
-        'artist': [
-            (1, 20),
-        ],
-        'album': [
-            (1, 8),
-            (1, 100),
-        ],
-    }
-
+class TestLastFMDataProvider(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.dapr = factory('lastfm', None)
@@ -183,22 +105,7 @@ class TestLastFMDataProvider(DataProviderTestCase):
         self.assertIn('toptags', res)
 
 
-class TestMusicBrainzDataProvider(DataProviderTestCase):
-    results = {
-        'artist': [
-            (1, 20),
-        ],
-        'album': [
-            (1, 10),
-            (1, 12),
-        ],
-        'mbid': [
-            (1, 24),
-            None,
-            (1, 4),
-        ],
-    }
-
+class TestMusicBrainzDataProvider(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.dapr = factory('mbrainz', None)
@@ -211,23 +118,14 @@ class TestMusicBrainzDataProvider(DataProviderTestCase):
         self.assertEqual(res['id'], mbid)
 
 
-class TestRedactedDataProvider(DataProviderTestCase):
-    results = {
-        'artist': [
-            (1, 97),
-        ],
-        'album': [
-            (1, 1),
-            (1, 9),
-        ],
-    }
-
+class TestRedactedDataProvider(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         conf = get_config()
-        if conf.get('redacted', 'session') or (
-                    conf.get('redacted', 'username') and
-                    conf.get('redacted', 'password')):
+        if conf.has_section('redacted') and (
+                conf.get('redacted', 'session') or (
+                conf.get('redacted', 'username') and
+                conf.get('redacted', 'password'))):
             cls.dapr = factory('redacted', conf)
         else:
             raise unittest.SkipTest('no redacted auth')
