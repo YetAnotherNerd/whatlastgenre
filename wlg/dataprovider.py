@@ -20,14 +20,14 @@
 Contains classes for querying APIs of some music related sites.
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, unicode_literals
 
 import base64
 import logging
 import os.path
 import time
-from ConfigParser import NoSectionError, NoOptionError
 from collections import defaultdict
+from configparser import NoSectionError, NoOptionError
 from datetime import timedelta
 
 import requests
@@ -240,7 +240,7 @@ class Discogs(DataProvider):
                   'Disable discogs in the config file or use this link to '
                   'authenticate:\n%s'
                   % self.discogs.get_authorize_url(req_token))
-            oauth_verifier = raw_input('Verification code: ')
+            oauth_verifier = input('Verification code: ')
             try:
                 token = self.discogs.get_access_token(
                     req_token, req_secret,
@@ -419,7 +419,7 @@ class Redacted(DataProvider):
             else:
                 print('Disable redacted in the config file or supply '
                       'credentials to receive a session cookie:')
-                username = raw_input('Username: ')
+                username = input('Username: ')
             if not password:
                 from getpass import getpass
                 password = getpass('Password: ')
@@ -489,7 +489,7 @@ class Redacted(DataProvider):
             result.update({
                 'label': res['group']['recordLabel'],
                 'catalognumber': res['group']['catalogueNumber']})
-        return {k: v.strip() for k, v in result.iteritems() if v}
+        return {k: v.strip() for k, v in result.items() if v}
 
     def query_artist(self, artist):
         """Query for artist data."""

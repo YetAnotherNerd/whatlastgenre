@@ -17,7 +17,7 @@
 
 """whatlastgenre cache"""
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
 import json
 import os
@@ -79,7 +79,7 @@ class Cache(object):
         """Clean up expired entries."""
         print("Cleaning cache... ", end='')
         size = len(self.cache)
-        for key, val in self.cache.items():
+        for key, val in list(self.cache.items()):
             if time.time() > val[0] + self.expire_after:
                 del self.cache[key]
                 self.dirty = True
@@ -99,7 +99,7 @@ class Cache(object):
         try:
             with NamedTemporaryFile(prefix=basename + '.tmp_',
                                     dir=dirname, delete=False) as tmpfile:
-                tmpfile.write(json.dumps(self.cache))
+                tmpfile.write(json.dumps(self.cache).encode())
                 os.fsync(tmpfile)
             # seems atomic rename here is not possible on windows
             # http://docs.python.org/2/library/os.html#os.rename

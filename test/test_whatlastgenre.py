@@ -17,7 +17,7 @@
 
 """whatlastgenre tests"""
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import shutil
@@ -26,11 +26,11 @@ import time
 import unittest
 from tempfile import NamedTemporaryFile
 
-from test_mediafile import DATA_PATH
 from wlg import whatlastgenre
 from wlg.dataprovider import DataProvider
 from wlg.mediafile import Metadata
 from . import get_config
+from .test_mediafile import DATA_PATH
 
 
 class TestWhatLastGenreClass(unittest.TestCase):
@@ -80,14 +80,14 @@ class TestWhatLastGenreClass(unittest.TestCase):
 
     def test_query_album(self):
         metadata = Metadata(
-            path=u'/tmp',
-            type=u'test',
-            artists=[(u'Artist A', None),
-                     (u'Artist B', None),
-                     (u'Artist C', None),
-                     (u'Artist D', None)],
+            path='/tmp',
+            type='test',
+            artists=[('Artist A', None),
+                     ('Artist B', None),
+                     ('Artist C', None),
+                     ('Artist D', None)],
             albumartist=('AlbumArtist', None),
-            album=u'Album',
+            album='Album',
             mbid_album=None,
             mbid_relgrp=None,
             year=1987,
@@ -117,14 +117,14 @@ class TestWhatLastGenreClass(unittest.TestCase):
 
     def test_create_queries_with_albumartist(self):
         metadata = Metadata(
-            path=u'/tmp',
-            type=u'test',
+            path='/tmp',
+            type='test',
             albumartist=('AlbumArtist', None),
-            artists=[(u'Artist A', None),
-                     (u'Artist B', None),
-                     (u'Artist C', None),
-                     (u'Artist D', None)],
-            album=u'Album',
+            artists=[('Artist A', None),
+                     ('Artist B', None),
+                     ('Artist C', None),
+                     ('Artist D', None)],
+            album='Album',
             mbid_album=None,
             mbid_relgrp=None,
             year=1987,
@@ -134,14 +134,14 @@ class TestWhatLastGenreClass(unittest.TestCase):
 
     def test_create_queries_without_albumartist(self):
         metadata = Metadata(
-            path=u'/tmp',
-            type=u'test',
-            artists=[(u'Artist A', None),
-                     (u'Artist B', None),
-                     (u'Artist C', None),
-                     (u'Artist D', None)],
+            path='/tmp',
+            type='test',
+            artists=[('Artist A', None),
+                     ('Artist B', None),
+                     ('Artist C', None),
+                     ('Artist D', None)],
             albumartist=(None, None),
-            album=u'Album',
+            album='Album',
             mbid_album=None,
             mbid_relgrp=None,
             year=1987,
@@ -162,8 +162,8 @@ class TestWhatLastGenreClass(unittest.TestCase):
                          'alt': str(j % 2),
                          } for j in range(5)]
         merged_results = self.wlg.merge_results(test_results)
-        self.assertIn('test', merged_results.iterkeys())
-        self.assertNotIn('alt', merged_results.iterkeys())
+        self.assertIn('test', merged_results.keys())
+        self.assertNotIn('alt', merged_results.keys())
         self.assertEqual('test123', merged_results['test'])
         self.assertEqual(tags, merged_results['tags'])
 
@@ -177,15 +177,15 @@ class TestWhatLastGenre(unittest.TestCase):
             'abcdefabcdefabcdefabcdefabcde': 1,
         }
         preprocessed_tags = whatlastgenre.preprocess_tags(tags)
-        for key, val in preprocessed_tags.iteritems():
-            self.assertEquals(key, key.strip().lower())
+        for key, val in preprocessed_tags.items():
+            self.assertEqual(key, key.strip().lower())
             self.assertGreater(val, 0)
-        self.assertEquals(len(preprocessed_tags), 1)
+        self.assertEqual(len(preprocessed_tags), 1)
 
     def test_preprocess_tags_many_without_scores(self):
         tags = {'tag%s' % i: 0 for i in range(100)}
         preprocessed_tags = whatlastgenre.preprocess_tags(tags)
-        self.assertEquals(len(preprocessed_tags), 42)
+        self.assertEqual(len(preprocessed_tags), 42)
 
     def test_searchstr(self):
         test_data = [
@@ -195,7 +195,7 @@ class TestWhatLastGenre(unittest.TestCase):
             ('album (limited edition)', 'album'),
         ]
         for raw, done in test_data:
-            self.assertEquals(done, whatlastgenre.searchstr(raw))
+            self.assertEqual(done, whatlastgenre.searchstr(raw))
 
     def test_tag_display(self):
         res = whatlastgenre.tag_display([('a', 1), ('b', 2), ('c', 3)],
@@ -212,7 +212,7 @@ class TestWhatLastGenre(unittest.TestCase):
 
     def test_read_datafile_external(self):
         with NamedTemporaryFile(delete=False) as temp_file:
-            temp_file.write('\n aBc \n xYz\n\n')
+            temp_file.write(b'\n aBc \n xYz\n\n')
         res = whatlastgenre.read_datafile(temp_file.name)
         self.assertEqual(res, ['abc', 'xyz'])
         os.unlink(temp_file.name)
@@ -220,7 +220,7 @@ class TestWhatLastGenre(unittest.TestCase):
     def test_read_datafile_empty(self):
         with NamedTemporaryFile() as temp_file:
             res = whatlastgenre.read_datafile(temp_file.name)
-        self.assertEquals(res, [])
+        self.assertEqual(res, [])
 
     def test_read_datafile_not_found(self):
         temp_path = os.path.join(tempfile.gettempdir(), 'wlg_test_not_found')

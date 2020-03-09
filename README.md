@@ -83,7 +83,7 @@ interactivity. Be aware that `-r` saves the original release year into the
 
 
 ## Installation
-You'll need Python 2.7.
+You'll need Python. It should work with 2.7 and 3.x.
 
 Install the dependencies with your package manager, on Debian based distros run
 this as root:
@@ -99,6 +99,7 @@ cloned/extracted to
 * Install it by running `python setup.py install` as root in that directory
 
 ##### Optional dependencies
+* `configparser` is required for py27.
 * `rauth` is required for Discogs. If you want to use Discogs, install `rauth`
 with pip like above and activate `discogs` in the config file (see below).
 * `requests-cache` can additionally cache the raw queries from requests if

@@ -17,14 +17,13 @@
 
 """taglib tests"""
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
 import re
 import unittest
 from random import randint
 
 from wlg.whatlastgenre import Config, TagLib
-
 from . import get_config
 
 WHITELIST = [
@@ -72,30 +71,30 @@ class TestTagLib(unittest.TestCase):
             'rock': 1,
             'shit': 1,
         }
-        whitelisted = sum(x in WHITELIST for x in tags.iterkeys())
+        whitelisted = sum(x in WHITELIST for x in tags.keys())
         good = self.taglib.add(tags, 'artist')
-        self.assertEquals(whitelisted, good)
+        self.assertEqual(whitelisted, good)
 
     def test_score_with_counts(self):
         tags = {'tag%s' % i: randint(1, 10) for i in range(5)}
         for score_mod in [0.5, 1, 2]:
             scored_tags = self.taglib.score(tags, score_mod)
-            max_score = max(scored_tags.itervalues())
-            self.assertEquals(max_score, score_mod)
+            max_score = max(scored_tags.values())
+            self.assertEqual(max_score, score_mod)
 
     def test_score_without_counts(self):
         tags = {'tag%s' % i: 0 for i in range(5)}
         scored_tags = self.taglib.score(tags, 1)
-        len_scores = len(set(scored_tags.itervalues()))
-        self.assertEquals(len_scores, 1)
+        len_scores = len(set(scored_tags.values()))
+        self.assertEqual(len_scores, 1)
 
     def test_score_negative(self):
         """issue #7"""
         tags = {'tag%s' % i: randint(1, 10) for i in range(5)}
         tags.update({'tag5': -1})
         scored_tags = self.taglib.score(tags, 1)
-        pos_scores = [x for x in scored_tags.itervalues() if x > 0]
-        self.assertEquals(len(tags) - 1, len(pos_scores))
+        pos_scores = [x for x in scored_tags.values() if x > 0]
+        self.assertEqual(len(tags) - 1, len(pos_scores))
 
     def test_difflib_matching(self):
         tags = {
@@ -134,7 +133,7 @@ class TestTagLib(unittest.TestCase):
         for tag in tags:
             self.taglib.split(tag, 1, 'artist')
         for tag in tags_split:
-            self.assertIn(tag, self.taglib.taggrps['artist'].iterkeys())
+            self.assertIn(tag, self.taglib.taggrps['artist'].keys())
 
     def test_normalize(self):
         tags = {
@@ -142,17 +141,17 @@ class TestTagLib(unittest.TestCase):
             'jazz': 0.8,
         }
         tags = self.taglib.normalize(tags)
-        self.assertEqual(1, max(tags.itervalues()))
+        self.assertEqual(1, max(tags.values()))
 
     def test_merge(self):
         self.taglib.add({'pop': 0.6}, 'artist')
         self.taglib.add({'rock': 0.3}, 'album')
         merged_tags = self.taglib.merge()
-        self.assertIn('pop', merged_tags.iterkeys())
-        self.assertIn('rock', merged_tags.iterkeys())
+        self.assertIn('pop', merged_tags.keys())
+        self.assertIn('rock', merged_tags.keys())
         self.assertEqual(2, len(merged_tags))
         # check normalized score
-        self.assertEqual(1, max(merged_tags.itervalues()))
+        self.assertEqual(1, max(merged_tags.values()))
 
     def test_format(self):
         test_data = [
@@ -161,7 +160,7 @@ class TestTagLib(unittest.TestCase):
             ('edm', 'EDM'),
         ]
         for raw, done in test_data:
-            self.assertEquals(done, self.taglib.format(raw))
+            self.assertEqual(done, self.taglib.format(raw))
 
     def test_get_genres(self):
         self.taglib.add({'pop': 1, 'rock': 0.5}, 'artist')

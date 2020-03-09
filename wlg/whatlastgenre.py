@@ -20,10 +20,11 @@
 https://github.com/YetAnotherNerd/whatlastgenre
 """
 
-from __future__ import division, print_function
+from __future__ import absolute_import, division, print_function, \
+    unicode_literals
 
-import ConfigParser
 import argparse
+import configparser
 import itertools
 import logging
 import math
@@ -97,7 +98,7 @@ class WhatLastGenre(object):
         tagsfile = {}
         section = None
         for line in read_datafile(path):
-            line = line.strip().lower()
+            line = str(line.strip().lower())
             if line.startswith('[') and line.endswith(']'):
                 section = line[1:-1]
                 tagsfile[section] = []
@@ -105,7 +106,7 @@ class WhatLastGenre(object):
                 if ' = ' in line:
                     line = tuple(line.split(' = ', 2))
                 tagsfile[section].append(line)
-        if any(s not in tagsfile.iterkeys()
+        if any(s not in tagsfile.keys()
                for s in ['upper', 'alias', 'regex']):
             raise RuntimeError('missing section in tagsfile: %s' % path)
         for key, val in tagsfile['alias']:
@@ -155,7 +156,7 @@ class WhatLastGenre(object):
         # update album metadata
         if genres:
             album.set_meta('genre', genres)
-            print("Genres:  %s" % ', '.join(genres).encode('utf-8'))
+            print("Genres:  %s" % ', '.join(genres))
         if release and self.conf.args.release:
             release_info = []
             for key in ['releasetype', 'date', 'label', 'catalognumber',
@@ -258,7 +259,7 @@ class WhatLastGenre(object):
             if query.dapr.name.lower() == 'redacted' and query.type == 'album':
                 if 'releasetype' in results[0] and results[0]['releasetype']:
                     self.stats.reltyps[results[0]['releasetype']] += 1
-                    release = {k: v for k, v in results[0].iteritems()
+                    release = {k: v for k, v in results[0].items()
                                if k not in ['info', 'tags']}
                 elif self.conf.args.release:
                     self.stat_message(logging.ERROR, 'No releaseinfo found',
@@ -377,7 +378,7 @@ class WhatLastGenre(object):
         """Merge multiple results."""
         tags = defaultdict(float)
         for tags_ in [r['tags'] for r in results if 'tags' in r]:
-            for key, val in tags_.iteritems():
+            for key, val in tags_.items():
                 tags[key] += val
         result = {'tags': tags}
         for key in set(k for r in results for k in r.keys() if k != 'tags'):
@@ -409,7 +410,7 @@ class WhatLastGenre(object):
                   % len(reltyps))
             print(tag_display(reltyps, pattern))
         # messages
-        messages = sorted(self.stats.messages.iteritems(),
+        messages = sorted(self.stats.messages.items(),
                           key=lambda x: (x[0][0], len(x[1])), reverse=True)
         for (lvl, msg), items in messages:
             if self.log.level <= lvl:
@@ -448,7 +449,7 @@ class TagLib(object):
         :param split: was split already
         """
         good = 0
-        for key, val in tags.iteritems():
+        for key, val in tags.items():
             # resolve if not whitelisted
             if key not in self.whitelist:
                 key = self.resolve(key)
@@ -482,17 +483,17 @@ class TagLib(object):
         if not tags:
             return tags
         # tags with counts
-        if any(max(0, x) for x in tags.itervalues()):
-            max_ = max(tags.itervalues()) / scoremod
-            tags = {k: max(0, v) / max_ for k, v in tags.iteritems()}
+        if any(max(0, x) for x in tags.values()):
+            max_ = max(tags.values()) / scoremod
+            tags = {k: max(0, v) / max_ for k, v in tags.items()}
         # tags without counts
         else:
             val = max(1 / 3, .85 ** (len(tags) - 1)) * scoremod
-            tags = {k: val for k in tags.iterkeys()}
+            tags = {k: val for k in tags.keys()}
         self.log.debug('tagscoring min/avg/max (num) = %.3f/%.3f/%.3f (%d)',
-                       min(tags.itervalues()),
-                       sum(tags.itervalues()) / len(tags),
-                       max(tags.itervalues()), len(tags))
+                       min(tags.values()),
+                       sum(tags.values()) / len(tags),
+                       max(tags.values()), len(tags))
         return tags
 
     def resolve(self, key):
@@ -528,7 +529,7 @@ class TagLib(object):
     def difflib_matching(self, tags):
         """Use difflib to find some whitelist matches."""
         from difflib import get_close_matches
-        for key in tags.iterkeys():
+        for key in tags.keys():
             if key not in self.whitelist and key not in self.aliases:
                 match = get_close_matches(key, self.whitelist, 1, .92)
                 if match:
@@ -578,13 +579,13 @@ class TagLib(object):
         """Normalize tag scores."""
         if not tags:
             return tags
-        max_ = max(tags.itervalues())
-        return {k: v / max_ for k, v in tags.iteritems()}
+        max_ = max(tags.values())
+        return {k: v / max_ for k, v in tags.items()}
 
     def merge(self):
         """Merge all tag groups using different score modifiers."""
         mergedtags = defaultdict(float)
-        for group, tags in self.taggrps.iteritems():
+        for group, tags in self.taggrps.items():
             if not tags:
                 continue
             scoremod = 1
@@ -593,7 +594,7 @@ class TagLib(object):
                 if scoremod == 0.0:
                     continue
             tags = self.normalize(tags)
-            for key, val in tags.iteritems():
+            for key, val in tags.items():
                 mergedtags[key] += val * scoremod
         return self.normalize(mergedtags)
 
@@ -612,20 +613,19 @@ class TagLib(object):
 
         Record messages in the stats if appropriated.
         """
-        for group, tags in self.taggrps.iteritems():
+        for group, tags in self.taggrps.items():
             if not tags:
                 continue
             tags = self.normalize(tags)
-            tags = {self.format(k): v for k, v in tags.iteritems()}
-            tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
-                          reverse=1)
+            tags = {self.format(k): v for k, v in tags.items()}
+            tags = sorted(tags.items(), key=operator.itemgetter(1), reverse=1)
             self.log.info('Best %-6s genres (%d):' % (group, len(tags)))
             self.log.info(tag_display(tags[:9], '%4.2f %-20s'))
         tags = self.merge()
         if not tags:
             return []
         # apply user score bonus
-        for key in tags.iterkeys():
+        for key in tags.keys():
             if self.conf.has_option('genres', 'love') \
                     and key in self.conf.get_list('genres', 'love'):
                 tags[key] *= 2.0
@@ -634,16 +634,16 @@ class TagLib(object):
                 tags[key] *= 0.5
         tags = self.normalize(tags)
         # filter low scored tags
-        tags = {k: v for k, v in tags.iteritems()
+        tags = {k: v for k, v in tags.items()
                 if v >= self.conf.getfloat('scores', 'minimum')}
-        tags = {self.format(k): v for k, v in tags.iteritems()}
-        tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
+        tags = {self.format(k): v for k, v in tags.items()}
+        tags = sorted(tags.items(), key=operator.itemgetter(1), reverse=1)
         self.log.info('Best merged genres (%d):' % len(tags))
         self.log.info(tag_display(tags[:9], '%4.2f %-20s'))
         return [k for k, _ in tags[:self.conf.args.tag_limit]]
 
 
-class Config(ConfigParser.SafeConfigParser):
+class Config(configparser.ConfigParser):
     """Read, maintain and write the configuration file."""
 
     # (section, option, value)
@@ -669,7 +669,7 @@ class Config(ConfigParser.SafeConfigParser):
             ]
 
     def __init__(self, args):
-        ConfigParser.SafeConfigParser.__init__(self)
+        configparser.ConfigParser.__init__(self, interpolation=None)
         self.log = logging.getLogger(__name__)
         self.args = args
         self.path = os.path.expanduser('~/.whatlastgenre')
@@ -737,22 +737,22 @@ def preprocess_tags(tags):
     """
     if not tags:
         return tags
-    tags = {k.strip().lower(): v for k, v in tags.iteritems()}
-    tags = {k: v for k, v in tags.iteritems()
+    tags = {k.strip().lower(): v for k, v in tags.items()}
+    tags = {k: v for k, v in tags.items()
             if len(k) in range(2, 64) and v >= 0}
     # answer to the ultimate question of life, the universe,
     # the optimal number of considerable tags and everything
     limit = 42
     if len(tags) > limit:
         # tags with scores
-        if any(tags.itervalues()):
-            min_val = max(tags.itervalues()) / 3
-            tags = {k: v for k, v in tags.iteritems() if v >= min_val}
-            tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
+        if any(tags.values()):
+            min_val = max(tags.values()) / 3
+            tags = {k: v for k, v in tags.items() if v >= min_val}
+            tags = sorted(tags.items(), key=operator.itemgetter(1),
                           reverse=1)  # best tags
         # tags without scores
         else:
-            tags = sorted(tags.iteritems(), key=len)  # shortest tags
+            tags = sorted(tags.items(), key=len)  # shortest tags
         tags = {k: v for k, v in tags[:limit]}
     return tags
 
@@ -797,8 +797,8 @@ def ask_user(dapr_name, query_type, results):
         print("#%2d: %s" % (i, info))
     while True:
         try:
-            num = int(raw_input("Please choose #[1-%d] (0 to skip): "
-                                % len(results)))
+            num = int(input("Please choose #[1-%d] (0 to skip): "
+                            % len(results)))
         except ValueError:
             num = None
         except EOFError:
@@ -823,9 +823,9 @@ def progressbar(current, total):
 def read_datafile(path):
     """Read a file that might be package data."""
     if path.startswith('data/'):
-        lines = pkgutil.get_data('wlg', path).split('\n')
+        lines = pkgutil.get_data('wlg', path).decode().splitlines()
     else:
-        with open(path, b'r') as file_:
+        with open(path, 'r') as file_:
             lines = file_.read().splitlines()
     return [l.strip().lower() for l in lines if l.strip()]
 
