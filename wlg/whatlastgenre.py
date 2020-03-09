@@ -768,7 +768,7 @@ def searchstr(str_):
 def tag_display(tags):
     """Return a string of tags formatted in columns."""
     columns = 3
-    num_lines = -(-len(tags) // columns)  # math.ceil()
+    num_lines = int(math.ceil(len(tags) / columns))
     # pattern should not exceed (80-2)/3=26 chars length
     if all(float(t[1]).is_integer() for t in tags):
         pattern = '%4d %-20s'
@@ -778,7 +778,7 @@ def tag_display(tags):
     for line in range(num_lines):
         values = []
         for column in range(columns):
-            index = line + columns * column
+            index = line + num_lines * column
             if index < len(tags):
                 values.append(pattern % tuple(reversed(tags[index])))
         lines.append(' '.join(values))
