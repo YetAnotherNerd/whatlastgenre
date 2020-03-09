@@ -147,7 +147,7 @@ class TestTagLib(unittest.TestCase):
     def test_merge(self):
         self.taglib.add({'pop': 0.6}, 'artist')
         self.taglib.add({'rock': 0.3}, 'album')
-        merged_tags = self.taglib.merge(False)
+        merged_tags = self.taglib.merge()
         self.assertIn('pop', merged_tags.iterkeys())
         self.assertIn('rock', merged_tags.iterkeys())
         self.assertEqual(2, len(merged_tags))
@@ -165,12 +165,12 @@ class TestTagLib(unittest.TestCase):
 
     def test_get_genres(self):
         self.taglib.add({'pop': 1, 'rock': 0.5}, 'artist')
-        self.taglib.add({'rock': 0.8, 'jazz': 0.1}, 'album')
-        genres = self.taglib.get_genres(False)
+        self.taglib.add({'rock': 0.8, 'jazz': 0.0}, 'album')
+        genres = self.taglib.get_genres()
         self.assertEqual(['Rock', 'Pop'], genres)
 
     def test_get_genres_limit(self):
         limit = 1
         self.taglib.conf.args.tag_limit = limit
         self.taglib.add({'rock': 1, 'pop': 1, 'jazz': 1}, 'album')
-        self.assertEqual(limit, len(self.taglib.get_genres(False)))
+        self.assertEqual(limit, len(self.taglib.get_genres()))

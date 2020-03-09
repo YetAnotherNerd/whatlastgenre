@@ -237,7 +237,10 @@ class WhatLastGenre(object):
             # tags
             if 'tags' in results[0] and results[0]['tags']:
                 tags = taglib.score(results[0]['tags'], query.score)
-                good = taglib.add(tags, query.type)
+                grp = query.type
+                if query.type == 'artist' and num_artists > 1:
+                    grp = 'various'
+                good = taglib.add(tags, grp)
                 if self.conf.args.difflib:
                     matched = {}
                     for old, new in taglib.difflib_matching(tags):
@@ -262,13 +265,15 @@ class WhatLastGenre(object):
                                       metadata.path, 1)
             self.log.info(log_string(query, cached, status))
 
-        genres = taglib.get_genres(num_artists > 1)
+        genres = taglib.get_genres()
         if genres:
             self.stats.genres.update(genres)
-            for group in ['artist', 'album']:
-                if not taglib.taggrps[group]:
-                    self.stat_message(logging.INFO, 'No %s tags' % group,
-                                      metadata.path, 1)
+            if not taglib.taggrps['album']:
+                self.stat_message(logging.INFO, 'No album tags',
+                                  metadata.path, 1)
+            if not taglib.taggrps['artist'] and not taglib.taggrps['various']:
+                self.stat_message(logging.INFO, 'No artist tags',
+                                  metadata.path, 1)
         else:
             self.stat_message(logging.ERROR, 'No genres found',
                               metadata.path, 1)
@@ -430,7 +435,8 @@ class TagLib(object):
         self.regexes = tags['regex']
         self.upper = tags['upper']
         self.taggrps = {'artist': defaultdict(float),
-                        'album': defaultdict(float)}
+                        'album': defaultdict(float),
+                        'various': defaultdict(float)}
 
     def add(self, tags, group, split=False):
         """Add scored tags to a group of tags.
@@ -438,7 +444,7 @@ class TagLib(object):
         Return the number of good (used) tags.
 
         :param tags: dict of tag names and tag scores
-        :param group: name of the tag group (artist or album)
+        :param group: name of the tag group (artist, album or various)
         :param split: was split already
         """
         good = 0
@@ -575,16 +581,14 @@ class TagLib(object):
         max_ = max(tags.itervalues())
         return {k: v / max_ for k, v in tags.iteritems()}
 
-    def merge(self, various):
+    def merge(self):
         """Merge all tag groups using different score modifiers."""
         mergedtags = defaultdict(float)
         for group, tags in self.taggrps.iteritems():
             if not tags:
                 continue
             scoremod = 1
-            if group == 'artist':
-                if various:
-                    group = 'various'
+            if group in ['artist', 'various']:
                 scoremod = self.conf.getfloat('scores', group)
                 if scoremod == 0.0:
                     continue
@@ -603,13 +607,13 @@ class TagLib(object):
                 words[i] = word.title()
         return ' '.join(words)
 
-    def get_genres(self, various):
+    def get_genres(self):
         """Return the formatted names of the limited top genres.
 
         Record messages in the stats if appropriated.
         """
         # merge tag groups
-        tags = self.merge(various)
+        tags = self.merge()
         # apply user score bonus
         for key in tags.iterkeys():
             if self.conf.has_option('genres', 'love') \
