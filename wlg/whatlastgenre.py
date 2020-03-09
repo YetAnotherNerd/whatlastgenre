@@ -566,6 +566,13 @@ class TagLib(object):
             good = self.add({k: val * .5 for k in keys}, group, flag)
         return good, base
 
+    def normalize(self, tags):
+        """Normalize tag scores."""
+        if not tags:
+            return tags
+        max_ = max(tags.itervalues())
+        return {k: v / max_ for k, v in tags.iteritems()}
+
     def merge(self, various):
         """Merge all tag groups using different score modifiers."""
         mergedtags = defaultdict(float)
@@ -577,14 +584,10 @@ class TagLib(object):
                 if various:
                     group = 'various'
                 scoremod = self.conf.getfloat('scores', group)
-            tags = {k: min(1.5, v) for k, v in tags.iteritems()}
-            max_ = max(tags.itervalues())
+            tags = self.normalize(tags)
             for key, val in tags.iteritems():
-                mergedtags[key] += val / max_ * scoremod
-        if mergedtags:  # normalize tag scores
-            max_ = max(mergedtags.itervalues())
-            mergedtags = {k: v / max_ for k, v in mergedtags.iteritems()}
-        return mergedtags
+                mergedtags[key] += val * scoremod
+        return self.normalize(mergedtags)
 
     def format(self, key):
         """Format a tag to correct case."""
@@ -611,6 +614,7 @@ class TagLib(object):
             elif self.conf.has_option('genres', 'hate') \
                     and key in self.conf.get_list('genres', 'hate'):
                 tags[key] *= 0.5
+        tags = self.normalize(tags)
         # filter low scored tags
         tags = {k: v for k, v in tags.iteritems()
                 if v >= self.conf.getfloat('scores', 'minimum')}
@@ -626,9 +630,8 @@ class TagLib(object):
         for group, tags in self.taggrps.iteritems():
             if not tags:
                 continue
-            max_ = max(tags.itervalues())
-            tags = {self.format(k): v / max_ for k, v in tags.iteritems()
-                    if v / max_ >= .01}
+            tags = self.normalize(tags)
+            tags = {self.format(k): v for k, v in tags.iteritems()}
             tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
                           reverse=1)
             strs.append('Best %-6s genres (%d):' % (group, len(tags)))

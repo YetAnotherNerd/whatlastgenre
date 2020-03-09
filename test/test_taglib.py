@@ -136,6 +136,14 @@ class TestTagLib(unittest.TestCase):
         for tag in tags_split:
             self.assertIn(tag, self.taglib.taggrps['artist'].iterkeys())
 
+    def test_normalize(self):
+        tags = {
+            'blues': 2.5,
+            'jazz': 0.8,
+        }
+        tags = self.taglib.normalize(tags)
+        self.assertEqual(1, max(tags.itervalues()))
+
     def test_merge(self):
         self.taglib.add({'pop': 0.6}, 'artist')
         self.taglib.add({'rock': 0.3}, 'album')
