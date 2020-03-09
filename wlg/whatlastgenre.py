@@ -650,7 +650,6 @@ class Config(ConfigParser.SafeConfigParser):
     conf = [('wlg', 'sources', 'discogs, lastfm, redacted'),
             ('wlg', 'whitelist', ''),
             ('wlg', 'tagsfile', ''),
-            ('wlg', 'vaqueries', 'true'),
             ('wlg', 'id3v23sep', ''),
             ('genres', 'love', ''),
             ('genres', 'hate', 'alternative, electronic, indie, pop, rock'),

@@ -147,11 +147,11 @@ class TestWhatLastGenreClass(unittest.TestCase):
             year=1987,
             releasetype=None)
         # vaqueries enabled
-        self.wlg.conf.set('wlg', 'vaqueries', str(True))
+        self.wlg.conf.set('scores', 'various', '1.0')
         queries = self.wlg.create_queries(metadata)
         self.assertEqual(len(queries), 5 * len(self.wlg.daprs))
         # va queries disabled
-        self.wlg.conf.set('wlg', 'vaqueries', str(False))
+        self.wlg.conf.set('scores', 'various', '0.0')
         queries = self.wlg.create_queries(metadata)
         self.assertEqual(len(queries), 1 * len(self.wlg.daprs))
 

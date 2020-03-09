@@ -62,7 +62,7 @@ See `artist` score option below.
 If there is no specific album artist for a various artist album every track
 artist can get used for searching. Tags for artists that appear multiple times
 in that album get counted multiple times.
-See `vaqueries` and `various` options below.
+See `various` score option below.
 
 ##### Multiple value metadata and old ID3 versions
 Mutagen's ID3 API is primary targeted at id3v2.4, so by default any id3 tags
@@ -115,7 +115,6 @@ A configuration file with default values will be created at
 sources = discogs, lastfm, redacted
 whitelist =
 tagsfile =
-vaqueries = True
 id3v23_sep =
 [genres]
 love = trip-rock
@@ -156,12 +155,6 @@ Path to your custom whitelist and tagsfile. Use shipped
 if empty (default). Instead of setting the path here, you can also put the
 files in your config directory and they should get recognized (see debug log).
 
-##### vaqueries option
-Search for all artists if there is no albumartist on albums with various
-artists. This will make queries for va-albums without an albumartist take
-significantly longer, but yields more results. (Default: `True`)
-See `various` score option below.
-
 ##### id3v23sep option
 By (mutagen) default all id3 v2.3 tags will be upgraded to v2.4. Since v2.3
 can't store multiple value metadata you need to set a separator if you intend
@@ -198,7 +191,8 @@ Default `1.33`
 ##### various option
 Score multiplier similar to the artist option, but this one applies to various
 artists releases if there is no albumartist and all the track artists get used
-for searching, which can be controlled with the `vaqueries` option (see above).
+for searching. This will make queries for va-albums without an albumartist take
+significantly longer, but yields more results.
 For example: a 5 track va-album with 3 tracks from artist A and 2 tracks from
 artist B will get tags like this:
 
