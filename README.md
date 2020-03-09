@@ -1,4 +1,6 @@
 [![Build Status](https://travis-ci.org/YetAnotherNerd/whatlastgenre.svg?branch=master)](https://travis-ci.org/YetAnotherNerd/whatlastgenre)
+[![codecov](https://codecov.io/gh/YetAnotherNerd/whatlastgenre/branch/master/graph/badge.svg)](https://codecov.io/gh/YetAnotherNerd/whatlastgenre)
+
 # whatlastgenre
 Improve genre metadata of audio files based on tags from various music sites.
 
@@ -65,8 +67,7 @@ See `vaqueries` and `various` options below.
 ##### Multiple value metadata and old ID3 versions
 Mutagen's ID3 API is primary targeted at id3v2.4, so by default any id3 tags
 will be upgraded to 2.4 and saving a file will make it 2.4 as well.
-See [mutagen doc]
-(https://mutagen.readthedocs.org/en/latest/tutorial.html#id3-versions)
+See [mutagen doc](https://mutagen.readthedocs.io/en/latest/user/id3.html#id3-versions)
 for details.
 However, if you don't want to use v2.4 tags you can use the `id3v23sep` config
 option explained below.
@@ -91,8 +92,8 @@ this as root:
 
 * Alternatively, install the dependencies using python-pip:
 `pip install mutagen requests`
-* Clone the repository or download and unzip the [source package]
-(http://github.com/YetAnotherNerd/whatlastgenre/archive/master.zip)
+* Clone the repository or download and unzip the
+[source package](http://github.com/YetAnotherNerd/whatlastgenre/archive/master.zip)
 * Run it without install by using `./whatlastgenre` from the directory you
 cloned/extracted to
 * Install it by running `python setup.py install` as root in that directory
@@ -144,7 +145,7 @@ session =
 ##### sources option
 Source | Artist | Album | Auth | ...
 -------|:------:|:-----:|:----:|-----
-[discogs](http://discogs.com) | 0 | 1 | 1 | fixed list of [genres and styles] (http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles)
+[discogs](http://discogs.com) | 0 | 1 | 1 | fixed list of [genres and styles](http://www.discogs.com/help/doc/submission-guidelines-release-genres-styles)
 [lastfm](http://last.fm)| 1 | 1 | 0 |  many personal tags from users
 [mbrainz](http://musicbrainz.org) | 1 | 1 | 0 | home of mbids (overstrained)
 [redacted](https://redacted.ch) | 1 | 1 | 1 | well-kept tags from community
