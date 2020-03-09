@@ -341,17 +341,19 @@ class WhatLastGenre(object):
                 year=metadata.year, releasetype=metadata.releasetype))
         # albumartist queries
         if metadata.albumartist[0]:
-            for dapr in self.daprs:
-                score = self.conf.getfloat('scores',
-                                           'src_%s' % dapr.name.lower())
-                queries.append(Query(
-                    dapr=dapr, type='artist', score=score,
-                    str=albumartist.strip(),
-                    artist=albumartist, mbid_artist=metadata.albumartist[1],
-                    album='', mbid_album='', mbid_relgrp='',
-                    year='', releasetype=''))
+            if self.conf.getfloat('scores', 'artist') > 0.0:
+                for dapr in self.daprs:
+                    score = self.conf.getfloat('scores',
+                                               'src_%s' % dapr.name.lower())
+                    queries.append(Query(
+                        dapr=dapr, type='artist', score=score,
+                        str=albumartist.strip(),
+                        artist=albumartist,
+                        mbid_artist=metadata.albumartist[1],
+                        album='', mbid_album='', mbid_relgrp='',
+                        year='', releasetype=''))
         # all artists if no albumartist and vaqueries enabled
-        elif self.conf.getboolean('wlg', 'vaqueries'):
+        elif self.conf.getfloat('scores', 'various') > 0.0:
             for key, val in set(artists):
                 artist = searchstr(key)
                 for dapr in self.daprs:
@@ -584,6 +586,8 @@ class TagLib(object):
                 if various:
                     group = 'various'
                 scoremod = self.conf.getfloat('scores', group)
+                if scoremod == 0.0:
+                    continue
             tags = self.normalize(tags)
             for key, val in tags.iteritems():
                 mergedtags[key] += val * scoremod

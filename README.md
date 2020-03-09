@@ -190,6 +190,7 @@ albums from one artist get more equal tags.
 `<artist tags> * <artist score> + <album tags>`
 
 Default `1.33`
+* `= 0.0` disable artist queries
 * `< 1.0` prefer album tags
 * `= 1.0` handle them equally
 * `> 1.0` prefer artist tags
@@ -204,8 +205,10 @@ artist B will get tags like this:
 `(3 * <artist A tags> + 2 * <artist B tags>) * <various score> + <album tags>`
 
 Default `0.66`
+* `= 0.0` disable various artist queries
 * `< 1.0` prefer album tags
 * `= 1.0` handle them equally
+* `> 1.0` prefer various artist tags
 
 ##### splitup option
 Score multiplier for modifying the score of a tag that got split up by space.
