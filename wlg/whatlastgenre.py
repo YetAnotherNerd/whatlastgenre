@@ -612,8 +612,18 @@ class TagLib(object):
 
         Record messages in the stats if appropriated.
         """
-        # merge tag groups
+        for group, tags in self.taggrps.iteritems():
+            if not tags:
+                continue
+            tags = self.normalize(tags)
+            tags = {self.format(k): v for k, v in tags.iteritems()}
+            tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
+                          reverse=1)
+            self.log.info('Best %-6s genres (%d):' % (group, len(tags)))
+            self.log.info(tag_display(tags[:9], '%4.2f %-20s'))
         tags = self.merge()
+        if not tags:
+            return []
         # apply user score bonus
         for key in tags.iterkeys():
             if self.conf.has_option('genres', 'love') \
@@ -626,25 +636,11 @@ class TagLib(object):
         # filter low scored tags
         tags = {k: v for k, v in tags.iteritems()
                 if v >= self.conf.getfloat('scores', 'minimum')}
-        # sort, limit and format
+        tags = {self.format(k): v for k, v in tags.iteritems()}
         tags = sorted(tags.iteritems(), key=operator.itemgetter(1), reverse=1)
-        tags = tags[:self.conf.args.tag_limit]
-        tags = [self.format(k) for k, _ in tags]
-        self.log.info(self)
-        return tags
-
-    def __str__(self):
-        strs = []
-        for group, tags in self.taggrps.iteritems():
-            if not tags:
-                continue
-            tags = self.normalize(tags)
-            tags = {self.format(k): v for k, v in tags.iteritems()}
-            tags = sorted(tags.iteritems(), key=operator.itemgetter(1),
-                          reverse=1)
-            strs.append('Best %-6s genres (%d):' % (group, len(tags)))
-            strs.append(tag_display(tags[:9], '%4.2f %-20s'))
-        return '\n'.join(strs)
+        self.log.info('Best merged genres (%d):' % len(tags))
+        self.log.info(tag_display(tags[:9], '%4.2f %-20s'))
+        return [k for k, _ in tags[:self.conf.args.tag_limit]]
 
 
 class Config(ConfigParser.SafeConfigParser):
