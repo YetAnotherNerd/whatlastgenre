@@ -30,7 +30,6 @@ from test_mediafile import DATA_PATH
 from wlg import whatlastgenre
 from wlg.dataprovider import DataProvider
 from wlg.mediafile import Metadata
-
 from . import get_config
 
 
@@ -199,11 +198,12 @@ class TestWhatLastGenre(unittest.TestCase):
             self.assertEquals(done, whatlastgenre.searchstr(raw))
 
     def test_tag_display(self):
-        res = whatlastgenre.tag_display([('a', 1), ('b', 2), ('c', 3)])
+        res = whatlastgenre.tag_display([('a', 1), ('b', 2), ('c', 3)],
+                                        '%4d %-20s')
         self.assertIsNotNone(res)
 
     def test_tag_display_empty(self):
-        res = whatlastgenre.tag_display({})
+        res = whatlastgenre.tag_display({}, '')
         self.assertEqual(res, '')
 
     def test_read_datafile_internal(self):
