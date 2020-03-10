@@ -15,6 +15,8 @@ Configure beets to use the wlg plugin, for example (adjust path):
     pluginpath:
         ~/git/whatlastgenre/plugin/beets/beetsplug
 
+    plugins: wlg
+
     wlg:
         auto: yes
         force: no
@@ -23,8 +25,7 @@ If you didn't install whatlastgenre, make sure to have it in PYTHONPATH:
 
     export PYTHONPATH="${PYTHONPATH}:~/git/whatlastgenre"
 
-See also: [beets doc about plugins]
-(http://beets.readthedocs.org/en/latest/plugins/index.html)
+See also: [beets doc about plugins](https://beets.readthedocs.io/en/latest/plugins/index.html)
 
 
 ## Configuration
