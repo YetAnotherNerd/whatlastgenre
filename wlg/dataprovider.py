@@ -22,7 +22,6 @@ Contains classes for querying APIs of some music related sites.
 
 from __future__ import division, print_function, unicode_literals
 
-import base64
 import logging
 import os.path
 import time
@@ -397,7 +396,7 @@ class Redacted(DataProvider):
         self.conf = conf
         # restore session cookie from config
         try:
-            cookie = base64.b64decode(self.conf.get('redacted', 'session'))
+            cookie = self.conf.get('redacted', 'session')
             self.session.cookies.set('session', cookie)
         except (NoSectionError, NoOptionError):
             pass
@@ -448,10 +447,9 @@ class Redacted(DataProvider):
         except (requests.exceptions.TooManyRedirects, AssertionError):
             raise RuntimeError('Redacted login failed')
         # save session cookie to config
-        cookie = base64.b64encode(self.session.cookies['session'])
         if not self.conf.has_section('redacted'):
             self.conf.add_section('redacted')
-        self.conf.set('redacted', 'session', cookie)
+        self.conf.set('redacted', 'session', self.session.cookies['session'])
         self.conf.save()
 
     def _query(self, params):
