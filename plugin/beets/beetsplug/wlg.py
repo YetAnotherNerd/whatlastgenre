@@ -24,7 +24,7 @@ from argparse import Namespace
 from beets import config
 from beets.plugins import BeetsPlugin
 from beets.ui import Subcommand, decargs
-from beetsplug.lastgenre import WHITELIST as BEET_LG_WHITELIST
+
 from wlg import whatlastgenre
 from wlg.mediafile import Metadata
 
@@ -52,7 +52,8 @@ class WhatLastGenre(BeetsPlugin):
         if whitelist == 'wlg':
             whitelist = ''
         elif whitelist == 'beets':
-            whitelist = BEET_LG_WHITELIST
+            from beetsplug.lastgenre import WHITELIST
+            whitelist = WHITELIST
         conf = whatlastgenre.Config(Namespace(
             tag_limit=self.config['count'].get(int),
             update_cache=update_cache,
