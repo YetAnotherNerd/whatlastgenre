@@ -135,7 +135,7 @@ class WhatLastGenre(BeetsPlugin):
             return album.genre
 
         metadata = Metadata(
-            path=album.item_dir(),
+            path=album.item_dir().decode(),
             type='beet',
             artists=[(t.artist, t.mb_artistid) for t in album.items()],
             albumartist=(album.albumartist, album.mb_albumartistid),
