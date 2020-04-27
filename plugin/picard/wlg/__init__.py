@@ -59,7 +59,7 @@ def _get_genres(album: Album, metadata: Metadata):
 
     metadata = WlgMetadata(
         path=album_dir,
-        type='beet',
+        type='wlg',
         artists=artists,
         albumartist=(
             metadata.getall("albumartist")[0],
@@ -73,7 +73,7 @@ def _get_genres(album: Album, metadata: Metadata):
     )
     # log.info('WLG METADATA: {}'.format(metadata))
 
-    wlg = _get_wlg(False, 1)
+    wlg = _get_wlg(False, 0)
 
     wlg_genres, _ = wlg.query_album(metadata)
 
