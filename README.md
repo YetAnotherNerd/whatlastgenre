@@ -116,7 +116,7 @@ A configuration file with default values will be created at
 sources = discogs, lastfm, redacted
 whitelist =
 tagsfile =
-id3v23_sep =
+id3v23sep =
 [genres]
 love = trip-rock
 hate = alternative, electronic, indie, pop, rock
