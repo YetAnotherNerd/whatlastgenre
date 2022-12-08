@@ -110,13 +110,14 @@ class Album(object):
         for file_ in os.listdir(path):
             if os.path.splitext(file_)[1].lower() in EXTENSIONS:
                 try:
-                    self.tracks.append(Track(path, file_, v23sep))
+                     self.tracks.append(Track(path, file_, v23sep))
                 except TrackError as err:
                     print("Error loading track '%s': %s" % (file_, err))
         if not self.tracks:
             raise AlbumError("Could not load any tracks")
-        if not self.get_meta('album'):
-            raise AlbumError("Not all tracks have the same or any album-tag")
+        #TODO access command argument here
+        #if not self.get_meta('album'):
+            #raise AlbumError("Not all tracks have the same or any album-tag")
         self.type = ','.join(set(t.ext for t in self.tracks)).upper()
 
     def get_metadata(self):

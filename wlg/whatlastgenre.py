@@ -48,7 +48,6 @@ Stats = namedtuple('Stats', ['time', 'messages', 'genres', 'reltyps'])
 
 class WhatLastGenre(object):
     """Main class featuring a docstring that needs to be written."""
-
     def __init__(self, conf):
         self.log = logging.getLogger('wlg')
         self.log.setLevel(30 - 10 * conf.args.verbose)
@@ -62,7 +61,6 @@ class WhatLastGenre(object):
         self.daprs = self.init_dataproviders()
         self.whitelist = self.read_whitelist()
         self.tags = self.read_tagsfile()
-
     def read_whitelist(self, path=None):
         """Read the whitelist trying different paths.
 
@@ -329,8 +327,9 @@ class WhatLastGenre(object):
     def create_queries(self, metadata):
         """Create queries for all DataProviders based on metadata."""
         artists = metadata.artists
-        if len(set(artists)) > 42:
-            self.log.warn('Too many artists for va-artist search')
+
+        if len(set(artists)) > 42 and not self.conf.args.massive:
+            self.log.warn('Too many artists for va-artist search. Use -m for massive search')
             artists = []
         albumartist = searchstr(metadata.albumartist[0])
         album = searchstr(metadata.album)
@@ -850,6 +849,8 @@ def get_args():
                         help='get release info from redacted')
     parser.add_argument('-d', '--difflib', action='store_true',
                         help='enable difflib matching (slow)')
+    parser.add_argument('-m', '--massive', action='store_true',
+                        help='enable massive track tagging and ignore album tags')
     return parser.parse_args()
 
 
