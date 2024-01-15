@@ -68,7 +68,12 @@ class WhatLastGenre(BeetsPlugin):
         """Since __del__s don't get called we need to do some stuff
         manually.
         """
-        self.wlg.cache.save()
+        try:
+            self.wlg.cache.save()
+        except AttributeError:
+            self._log.debug("Catched NoneType error in "
+                            "WhatLastGenre.setdown().")
+
 
     def commands(self):
         cmds = Subcommand('wlg', help='get genres with whatlastgenre')
