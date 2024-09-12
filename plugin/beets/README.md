@@ -10,10 +10,7 @@ Install and configure beets and whatlastgenre according to its docs.
 
 Run whatlastgenre standalone to see if it is working.
 
-Configure beets to use the wlg plugin, for example (adjust path):
-
-    pluginpath:
-        ~/git/whatlastgenre/plugin/beets/beetsplug
+The beets plugin is registered to the `beetsplug` namespace automatically when whatlastgenre was installed via pip.
 
     plugins: wlg
 
@@ -24,6 +21,12 @@ Configure beets to use the wlg plugin, for example (adjust path):
 If you didn't install whatlastgenre, make sure to have it in PYTHONPATH:
 
     export PYTHONPATH="${PYTHONPATH}:~/git/whatlastgenre"
+
+In that case you also must configure beets to point to the plugin's path, for example:
+
+    pluginpath:
+        ~/git/whatlastgenre/plugin/beets/beetsplug
+
 
 See also: [beets doc about plugins](https://beets.readthedocs.io/en/latest/plugins/index.html)
 

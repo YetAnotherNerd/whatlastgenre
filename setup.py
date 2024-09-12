@@ -37,7 +37,8 @@ setup(
     description=('Improves genre metadata of audio files '
                  'based on tags from various music sites.'),
     long_description=read('README.md'),
-    packages=['wlg'],
+    packages=['wlg', 'beetsplug',],
+    package_dir={'beetsplug': 'plugin/beets/beetsplug'},
     package_data={'wlg': ['data/genres.txt', 'data/tags.txt']},
     entry_points={
         'console_scripts': [
