@@ -103,11 +103,11 @@ class WhatLastGenre(BeetsPlugin):
             for i, album in enumerate(albums, start=1):
                 self._log.info(whatlastgenre.progressbar(i, len(albums)))
                 genres = self.genres(album)
-                if album.genre != genres:
-                    album.genre = genres
+                if album.genres != genres:
+                    album.genres = genres
                     album.store()
                     for item in album.items():
-                        item.genre = genres
+                        item.genres = genres
                         item.store()
                         if config['import']['write'].get(bool):
                             item.try_write()
@@ -124,20 +124,20 @@ class WhatLastGenre(BeetsPlugin):
 
         if task.is_album:
             genres = self.genres(task.album)
-            if task.album.genre != genres:
-                task.album.genre = genres
+            if task.album.genres != genres:
+                task.album.genres = genres
                 task.album.store()
                 for item in task.album.items():
-                    item.genre = genres
+                    item.genres = genres
                     item.store()
 
     def genres(self, album):
         """Return the current genres of an album if they exist and
         the force option is not set or get genres from whatlastgenre.
         """
-        if album.genre and not self.config['force']:
+        if album.genres and not self.config['force']:
             self._log.info('not forcing genre update for album {0}', album)
-            return album.genre
+            return album.genres
 
         metadata = Metadata(
             path=album.item_dir().decode(),
@@ -152,9 +152,10 @@ class WhatLastGenre(BeetsPlugin):
 
         genres, _ = self.wlg.query_album(metadata)
         try:
-            genres = self.config['separator'].get(str).join(genres)
+            genres = list(genres)
             self._log.info('genres for album {0}: {1}', album, genres)
         except TypeError:
             self._log.info('No genres found for album {0}', album)
+            genres = []
 
         return genres
