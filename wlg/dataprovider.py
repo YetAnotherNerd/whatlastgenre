@@ -274,8 +274,23 @@ class Discogs(DataProvider):
         self.conf.save()
 
     def query_artist(self, artist):
-        """Query for artist data."""
-        raise NotImplementedError()
+        """Query for artist data.
+
+        Discogs has no artist-genre endpoint, so aggregate genre+style
+        across this artist's releases as a fallback when album lookup
+        returns nothing. Brings Discogs to parity with LastFM and
+        MusicBrainz, which both implement artist-level fallback.
+        """
+        params = {'artist': artist, 'type': 'release', 'per_page': 50}
+        result = self._request_json(
+            'https://api.discogs.com/database/search', params)
+        if not result.get('results'):
+            return None
+        tags = set()
+        for res in result['results']:
+            for key in ['genre', 'style']:
+                tags.update(res.get(key) or [])
+        return [{'tags': {tag: 0 for tag in tags}}] if tags else None
 
     def query_album(self, album, artist=None, year=None, reltyp=None):
         """Query for album data."""
